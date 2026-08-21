@@ -132,12 +132,18 @@ export function SiteEditorForm({
             onChange={(e) => set("about", e.target.value)}
           />
         </Field>
-        <Field label="Services (one per line)">
+        <Field label="Story (optional, for a dedicated About page)">
           <textarea
             className="input min-h-24"
-            value={data.services ?? ""}
-            onChange={(e) => set("services", e.target.value)}
-            placeholder={"Drain cleaning\nWater heater repair\nEmergency service"}
+            value={data.story ?? ""}
+            onChange={(e) => set("story", e.target.value)}
+            placeholder="A longer version of your story — separate paragraphs with a blank line."
+          />
+        </Field>
+        <Field label="Services">
+          <ServicesEditor
+            services={data.serviceItems ?? []}
+            onChange={(items) => set("serviceItems", items)}
           />
         </Field>
         <Field label="Hours">
@@ -175,6 +181,30 @@ export function SiteEditorForm({
           <p className="mt-1 text-xs text-slate-500">
             Adds a &ldquo;DM us on Instagram&rdquo; button that opens a DM to this account.
           </p>
+        </Field>
+        <Field label="Facebook URL">
+          <input
+            className="input"
+            value={data.facebookUrl ?? ""}
+            onChange={(e) => set("facebookUrl", e.target.value)}
+            placeholder="https://facebook.com/yourbusiness"
+          />
+        </Field>
+        <Field label="Payment methods (comma-separated)">
+          <input
+            className="input"
+            value={data.paymentMethods ?? ""}
+            onChange={(e) => set("paymentMethods", e.target.value)}
+            placeholder="Cash, Card, Venmo"
+          />
+        </Field>
+        <Field label="Guarantee statement">
+          <input
+            className="input"
+            value={data.guaranteeText ?? ""}
+            onChange={(e) => set("guaranteeText", e.target.value)}
+            placeholder="100% satisfaction guaranteed"
+          />
         </Field>
         <Field label="Template">
           <div className="grid grid-cols-3 gap-2">
@@ -243,5 +273,89 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <span className="block text-sm font-medium text-slate-700">{label}</span>
       <div className="mt-1">{children}</div>
     </label>
+  );
+}
+
+type EditableService = { id?: string; slug?: string; name: string; description?: string | null };
+
+function ServicesEditor({
+  services,
+  onChange,
+}: {
+  services: EditableService[];
+  onChange: (services: EditableService[]) => void;
+}) {
+  function update(index: number, patch: Partial<EditableService>) {
+    onChange(services.map((s, i) => (i === index ? { ...s, ...patch } : s)));
+  }
+
+  function remove(index: number) {
+    onChange(services.filter((_, i) => i !== index));
+  }
+
+  function move(index: number, dir: -1 | 1) {
+    const target = index + dir;
+    if (target < 0 || target >= services.length) return;
+    const next = [...services];
+    [next[index], next[target]] = [next[target], next[index]];
+    onChange(next);
+  }
+
+  return (
+    <div className="space-y-3">
+      {services.map((s, i) => (
+        <div key={s.id ?? i} className="rounded-md border border-slate-300 p-3">
+          <div className="flex items-start gap-2">
+            <input
+              className="input"
+              value={s.name}
+              onChange={(e) => update(i, { name: e.target.value })}
+              placeholder="Service name"
+            />
+            <div className="flex shrink-0 flex-col gap-1">
+              <button
+                type="button"
+                onClick={() => move(i, -1)}
+                disabled={i === 0}
+                aria-label="Move up"
+                className="flex h-6 w-6 items-center justify-center rounded border border-slate-300 text-xs text-slate-500 disabled:opacity-30"
+              >
+                ↑
+              </button>
+              <button
+                type="button"
+                onClick={() => move(i, 1)}
+                disabled={i === services.length - 1}
+                aria-label="Move down"
+                className="flex h-6 w-6 items-center justify-center rounded border border-slate-300 text-xs text-slate-500 disabled:opacity-30"
+              >
+                ↓
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => remove(i)}
+              aria-label="Remove service"
+              className="shrink-0 rounded-md border border-slate-300 px-2 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-50 hover:text-red-600"
+            >
+              Remove
+            </button>
+          </div>
+          <textarea
+            className="input mt-2 min-h-16 text-xs"
+            value={s.description ?? ""}
+            onChange={(e) => update(i, { description: e.target.value })}
+            placeholder="Optional longer description — gives this service its own page"
+          />
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={() => onChange([...services, { name: "" }])}
+        className="w-full rounded-md border border-dashed border-slate-300 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+      >
+        + Add service
+      </button>
+    </div>
   );
 }

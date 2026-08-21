@@ -1,18 +1,24 @@
 import Image from "next/image";
+import { parseHours, isOpenNow } from "@/lib/hours";
 
 export type SiteData = {
   businessName: string;
   tagline?: string | null;
   about?: string | null;
-  services?: string | null;
+  story?: string | null;
   hours?: string | null;
   phone?: string | null;
   address?: string | null;
   instagramHandle?: string | null;
+  facebookUrl?: string | null;
   email?: string | null;
   photoUrl?: string | null;
+  guaranteeText?: string | null;
+  paymentMethods?: string | null;
   template: string;
   primaryColor: string;
+  slug?: string | null;
+  serviceItems?: { id?: string; slug?: string; name: string; description?: string | null }[];
 };
 
 function Photo({ site }: { site: SiteData }) {
@@ -38,29 +44,19 @@ export function instagramDmUrl(handle?: string | null): string | null {
   return `https://ig.me/m/${clean}`;
 }
 
-export function siteNavLinks(site: Pick<SiteData, "about" | "services">): { href: string; label: string }[] {
-  const links = [{ href: "#top", label: "Home" }];
-  if (site.about) links.push({ href: "#about", label: "About" });
-  if (serviceList(site.services).length > 0) links.push({ href: "#services", label: "Services" });
-  links.push({ href: "#contact", label: "Contact" });
-  return links;
-}
-
 export const TEMPLATES = [
   { id: "classic", name: "Classic", description: "Traditional, trustworthy — serif headings, centered hero." },
   { id: "modern", name: "Modern", description: "Clean sans-serif, left-aligned hero, card-based sections." },
   { id: "bold", name: "Bold", description: "Big color block hero, high contrast, punchy CTAs." },
 ] as const;
 
-function serviceList(services?: string | null): string[] {
-  return (services ?? "")
-    .split("\n")
-    .map((s) => s.trim())
-    .filter(Boolean);
+function serviceHref(site: SiteData, item: { slug?: string }): string | null {
+  if (!site.slug || !item.slug) return null;
+  return `/s/${site.slug}/services/${item.slug}`;
 }
 
 export function SitePreview({ site }: { site: SiteData }) {
-  const services = serviceList(site.services);
+  const services = site.serviceItems ?? [];
   const color = site.primaryColor || "#2563eb";
 
   if (site.template === "bold") {
@@ -92,24 +88,30 @@ export function SitePreview({ site }: { site: SiteData }) {
           </div>
         </section>
         <Photo site={site} />
-        {site.about && (
+        {(site.about || site.story) && (
           <section id="about" className="mx-auto max-w-3xl scroll-mt-20 px-8 py-16 text-center">
             <h2 className="text-2xl font-bold dark:text-white">About Us</h2>
-            <p className="mt-4 text-lg text-slate-600 dark:text-slate-300">{site.about}</p>
+            <p className="mt-4 text-lg text-slate-600 dark:text-slate-300">{site.about || site.story}</p>
           </section>
         )}
         {services.length > 0 && (
           <section id="services" className="scroll-mt-20 bg-slate-50 px-8 py-16 dark:bg-slate-900">
             <h2 className="text-center text-2xl font-bold dark:text-white">Services</h2>
             <div className="mx-auto mt-8 grid max-w-4xl gap-4 sm:grid-cols-3">
-              {services.map((s) => (
-                <div
-                  key={s}
-                  className="rounded-lg bg-white p-6 text-center font-medium shadow-sm transition-shadow hover:shadow-md dark:bg-slate-800 dark:text-white"
-                >
-                  {s}
-                </div>
-              ))}
+              {services.map((s, i) => {
+                const href = serviceHref(site, s);
+                const cardClass =
+                  "block rounded-lg bg-white p-6 text-center font-medium shadow-sm transition-shadow hover:shadow-md dark:bg-slate-800 dark:text-white";
+                return href ? (
+                  <a key={s.id ?? s.slug ?? i} href={href} className={cardClass}>
+                    {s.name}
+                  </a>
+                ) : (
+                  <div key={s.id ?? s.slug ?? i} className={cardClass}>
+                    {s.name}
+                  </div>
+                );
+              })}
             </div>
           </section>
         )}
@@ -149,19 +151,31 @@ export function SitePreview({ site }: { site: SiteData }) {
         </section>
         <Photo site={site} />
         <div className="mx-auto grid max-w-5xl gap-8 px-8 pb-20 sm:grid-cols-2">
-          {site.about && (
+          {(site.about || site.story) && (
             <div id="about" className="scroll-mt-20 rounded-xl border border-slate-200 p-6 dark:border-slate-800">
               <h2 className="font-semibold text-slate-900 dark:text-white">About</h2>
-              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{site.about}</p>
+              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{site.about || site.story}</p>
             </div>
           )}
           {services.length > 0 && (
             <div id="services" className="scroll-mt-20 rounded-xl border border-slate-200 p-6 dark:border-slate-800">
               <h2 className="font-semibold text-slate-900 dark:text-white">Services</h2>
               <ul className="mt-2 space-y-1 text-sm text-slate-600 dark:text-slate-300">
-                {services.map((s) => (
-                  <li key={s}>• {s}</li>
-                ))}
+                {services.map((s, i) => {
+                  const href = serviceHref(site, s);
+                  return (
+                    <li key={s.id ?? s.slug ?? i}>
+                      •{" "}
+                      {href ? (
+                        <a href={href} className="underline-offset-2 hover:underline">
+                          {s.name}
+                        </a>
+                      ) : (
+                        s.name
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}
@@ -190,12 +204,12 @@ export function SitePreview({ site }: { site: SiteData }) {
         )}
       </section>
       <Photo site={site} />
-      {site.about && (
+      {(site.about || site.story) && (
         <section id="about" className="mx-auto max-w-2xl scroll-mt-20 px-8 py-14 text-center">
           <h2 className="text-xl font-semibold" style={{ color }}>
             About Us
           </h2>
-          <p className="mt-3 text-slate-700 dark:text-slate-300">{site.about}</p>
+          <p className="mt-3 text-slate-700 dark:text-slate-300">{site.about || site.story}</p>
         </section>
       )}
       {services.length > 0 && (
@@ -204,9 +218,20 @@ export function SitePreview({ site }: { site: SiteData }) {
             Our Services
           </h2>
           <ul className="mt-3 space-y-1 text-slate-700 dark:text-slate-300">
-            {services.map((s) => (
-              <li key={s}>{s}</li>
-            ))}
+            {services.map((s, i) => {
+              const href = serviceHref(site, s);
+              return (
+                <li key={s.id ?? s.slug ?? i}>
+                  {href ? (
+                    <a href={href} className="underline-offset-2 hover:underline">
+                      {s.name}
+                    </a>
+                  ) : (
+                    s.name
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </section>
       )}
@@ -218,6 +243,13 @@ export function SitePreview({ site }: { site: SiteData }) {
 function Footer({ site, color }: { site: SiteData; color: string }) {
   const dmUrl = instagramDmUrl(site.instagramHandle);
   const year = new Date().getFullYear();
+  const ranges = parseHours(site.hours);
+  const openNow = ranges ? isOpenNow(ranges) : null;
+  const payments = (site.paymentMethods ?? "")
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean);
+
   return (
     <footer
       id="contact"
@@ -242,21 +274,55 @@ function Footer({ site, color }: { site: SiteData; color: string }) {
           </a>
         </p>
       )}
-      {dmUrl && (
-        <p>
+      <p className="mt-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+        {dmUrl && (
+          <a href={dmUrl} target="_blank" rel="noopener noreferrer" style={{ color }} className="font-medium transition-opacity hover:opacity-80">
+            Instagram
+          </a>
+        )}
+        {site.facebookUrl && (
           <a
-            href={dmUrl}
+            href={site.facebookUrl}
             target="_blank"
             rel="noopener noreferrer"
             style={{ color }}
             className="font-medium transition-opacity hover:opacity-80"
           >
-            DM us on Instagram
+            Facebook
+          </a>
+        )}
+      </p>
+      {site.hours && (
+        <p className="mt-2 whitespace-pre-line">
+          {site.hours}
+          {openNow !== null && (
+            <span
+              className={`ml-2 inline-block rounded-full px-2 py-0.5 align-middle text-xs font-medium ${
+                openNow ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+              }`}
+            >
+              {openNow ? "Open now" : "Closed now"}
+            </span>
+          )}
+        </p>
+      )}
+      {payments.length > 0 && <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Payment: {payments.join(", ")}</p>}
+      {site.guaranteeText && (
+        <p className="mt-2 text-xs font-medium" style={{ color }}>
+          {site.guaranteeText}
+        </p>
+      )}
+      {site.slug && (
+        <p className="mt-4 flex justify-center gap-3 text-xs text-slate-400 dark:text-slate-500">
+          <a href={`/s/${site.slug}/privacy`} className="hover:underline">
+            Privacy Policy
+          </a>
+          <a href={`/s/${site.slug}/terms`} className="hover:underline">
+            Terms of Service
           </a>
         </p>
       )}
-      {site.hours && <p className="mt-1 whitespace-pre-line">{site.hours}</p>}
-      <p className="mt-4 text-xs text-slate-400 dark:text-slate-500">
+      <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
         © {year} {site.businessName}. All rights reserved.
       </p>
     </footer>

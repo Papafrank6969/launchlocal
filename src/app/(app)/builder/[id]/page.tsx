@@ -6,6 +6,8 @@ import { SiteEditorForm, type EditableSite } from "@/components/SiteEditorForm";
 import { FormStatus, autoClearStatus, type StatusMessage } from "@/components/FormStatus";
 import { CopyButton } from "@/components/CopyButton";
 import { ConfirmModal } from "@/components/ConfirmModal";
+import { BuilderTabs } from "@/components/BuilderTabs";
+import { ContactSubmissions } from "@/components/ContactSubmissions";
 import { withUtm } from "@/lib/utm";
 
 export default function EditSitePage({ params }: { params: Promise<{ id: string }> }) {
@@ -135,10 +137,16 @@ export default function EditSitePage({ params }: { params: Promise<{ id: string 
         onCancel={() => setConfirmOpen(false)}
       />
 
+      <BuilderTabs id={id} />
+
       <FormStatus status={saveMessage} className="mt-4" />
 
       <div className="mt-8">
         <SiteEditorForm initial={site} onSave={handleSave} saving={saving} />
+      </div>
+
+      <div className="mt-12">
+        <ContactSubmissions siteId={id} />
       </div>
     </div>
   );

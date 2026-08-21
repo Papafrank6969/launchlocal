@@ -48,12 +48,16 @@ model Site {
   businessName String
   tagline     String?
   about       String?
+  story       String?
   services    String?
   hours       String?
   phone       String?
   email       String?
   address     String?
   instagramHandle String?
+  facebookUrl String?
+  guaranteeText String?
+  paymentMethods String?
   photoUrl    String?
   template    String     @default("classic")
   primaryColor String    @default("#2563eb")
@@ -64,6 +68,71 @@ model Site {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   events      Event[]
+  serviceItems Service[]
+  faqItems    FaqItem[]
+  blogPosts   BlogPost[]
+  galleryItems GalleryItem[]
+  contactSubmissions ContactSubmission[]
+}
+
+model Service {
+  id          String   @id @default(cuid())
+  siteId      String
+  site        Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  slug        String
+  name        String
+  description String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([siteId, slug])
+}
+
+model FaqItem {
+  id        String   @id @default(cuid())
+  siteId    String
+  site      Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  question  String
+  answer    String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model BlogPost {
+  id        String   @id @default(cuid())
+  siteId    String
+  site      Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  slug      String
+  title     String
+  content   String
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([siteId, slug])
+}
+
+model GalleryItem {
+  id        String   @id @default(cuid())
+  siteId    String
+  site      Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  beforeUrl String
+  afterUrl  String
+  caption   String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model ContactSubmission {
+  id        String   @id @default(cuid())
+  siteId    String
+  site      Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  name      String
+  email     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
 }
 
 enum EventType {

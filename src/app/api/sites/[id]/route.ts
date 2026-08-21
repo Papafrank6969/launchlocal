@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { slugify } from "@/lib/slug";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const site = await db.site.findUnique({ where: { id }, include: { lead: true } });
+  const site = await db.site.findUnique({
+    where: { id },
+    include: { lead: true, serviceItems: { orderBy: { order: "asc" } } },
+  });
   if (!site) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json({ site });
 }
@@ -12,17 +16,22 @@ const EDITABLE_FIELDS = [
   "businessName",
   "tagline",
   "about",
-  "services",
+  "story",
   "hours",
   "phone",
   "email",
   "address",
   "instagramHandle",
+  "facebookUrl",
+  "guaranteeText",
+  "paymentMethods",
   "template",
   "primaryColor",
 ] as const;
 
 const EDITABLE_BOOLEAN_FIELDS = ["utmTrackingEnabled"] as const;
+
+type ServiceInput = { name: string; description?: string | null };
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -44,14 +53,40 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     status = body.status;
   }
 
-  const site = await db.site.update({
-    where: { id },
-    data: { ...data, status },
-  });
+  const services: ServiceInput[] | undefined = Array.isArray(body.serviceItems) ? body.serviceItems : undefined;
 
-  if (status === "PUBLISHED" && existing.status !== "PUBLISHED") {
-    await db.event.create({ data: { type: "SITE_PUBLISHED", siteId: site.id } });
-  }
+  const site = await db.$transaction(async (tx) => {
+    if (services) {
+      const seen = new Set<string>();
+      const rows = services
+        .map((s) => ({ name: (s.name ?? "").trim(), description: (s.description ?? "").trim() || null }))
+        .filter((s) => s.name.length > 0)
+        .map((s, i) => {
+          let slug = slugify(s.name) || `service-${i + 1}`;
+          let n = 1;
+          while (seen.has(slug)) {
+            n += 1;
+            slug = `${slugify(s.name)}-${n}`;
+          }
+          seen.add(slug);
+          return { siteId: id, slug, name: s.name, description: s.description, order: i };
+        });
+      await tx.service.deleteMany({ where: { siteId: id } });
+      if (rows.length > 0) await tx.service.createMany({ data: rows });
+    }
+
+    const updated = await tx.site.update({
+      where: { id },
+      data: { ...data, status },
+      include: { serviceItems: { orderBy: { order: "asc" } } },
+    });
+
+    if (status === "PUBLISHED" && existing.status !== "PUBLISHED") {
+      await tx.event.create({ data: { type: "SITE_PUBLISHED", siteId: updated.id } });
+    }
+
+    return updated;
+  });
 
   return NextResponse.json({ site });
 }

@@ -8,10 +8,12 @@ import { ScrollProgressBar } from "@/components/site/ScrollProgressBar";
 export function StickyHeader({
   businessName,
   color,
+  homeHref,
   navLinks,
 }: {
   businessName: string;
   color: string;
+  homeHref: string;
   navLinks: { href: string; label: string }[];
 }) {
   const [open, setOpen] = useState(false);
@@ -20,13 +22,13 @@ export function StickyHeader({
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur print:hidden dark:border-slate-800 dark:bg-slate-950/90">
       <div className="relative">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-3">
-          <a href="#top" className="truncate text-sm font-semibold" style={{ color }}>
+          <a href={homeHref} className="truncate text-sm font-semibold" style={{ color }}>
             {businessName}
           </a>
 
           <nav className="hidden items-center gap-6 text-sm font-medium text-slate-600 sm:flex dark:text-slate-300">
             {navLinks.map((l) => (
-              <a key={l.href} href={l.href} className="scroll-mt-20 transition-colors hover:text-slate-900 dark:hover:text-white">
+              <a key={l.href} href={l.href} className="transition-colors hover:text-slate-900 dark:hover:text-white">
                 {l.label}
               </a>
             ))}

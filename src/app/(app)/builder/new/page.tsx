@@ -9,14 +9,18 @@ const BLANK: EditableSite = {
   businessName: "",
   tagline: "",
   about: "",
-  services: "",
+  story: "",
   hours: "",
   phone: "",
   email: "",
   address: "",
   instagramHandle: "",
+  facebookUrl: "",
+  guaranteeText: "",
+  paymentMethods: "",
   template: "classic",
   primaryColor: "#2563eb",
+  serviceItems: [],
 };
 
 function NewSiteInner() {

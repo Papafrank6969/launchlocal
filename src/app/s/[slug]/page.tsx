@@ -23,7 +23,10 @@ export async function generateMetadata({
 
 export default async function PublicSitePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const site = await db.site.findUnique({ where: { slug } });
+  const site = await db.site.findUnique({
+    where: { slug },
+    include: { serviceItems: { orderBy: { order: "asc" } } },
+  });
 
   if (!site) notFound();
 

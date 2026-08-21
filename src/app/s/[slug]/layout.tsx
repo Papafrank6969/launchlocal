@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
-import { instagramDmUrl, siteNavLinks } from "@/lib/templates";
+import { instagramDmUrl } from "@/lib/templates";
+import { buildSiteNav } from "@/lib/siteNav";
 import { StickyHeader } from "@/components/site/StickyHeader";
 import { BackToTopButton } from "@/components/site/BackToTopButton";
 import { FloatingContactButton } from "@/components/site/FloatingContactButton";
@@ -13,11 +14,30 @@ export default async function PublicSiteLayout({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const site = await db.site.findUnique({ where: { slug } });
+  const site = await db.site.findUnique({
+    where: { slug },
+    include: {
+      _count: {
+        select: {
+          serviceItems: true,
+          galleryItems: true,
+          faqItems: true,
+          blogPosts: { where: { published: true } },
+        },
+      },
+    },
+  });
 
   if (!site) return children;
 
   const color = site.primaryColor || "#2563eb";
+  const navLinks = buildSiteNav(slug, {
+    hasAbout: Boolean(site.story || site.about),
+    hasServices: site._count.serviceItems > 0,
+    hasBlogPosts: site._count.blogPosts > 0,
+    hasGalleryItems: site._count.galleryItems > 0,
+    hasFaqItems: site._count.faqItems > 0,
+  });
 
   return (
     <>
@@ -27,7 +47,7 @@ export default async function PublicSiteLayout({
       >
         Skip to content
       </a>
-      <StickyHeader businessName={site.businessName} color={color} navLinks={siteNavLinks(site)} />
+      <StickyHeader businessName={site.businessName} color={color} homeHref={`/s/${slug}`} navLinks={navLinks} />
       {children}
       <BackToTopButton color={color} />
       <FloatingContactButton phone={site.phone} dmUrl={instagramDmUrl(site.instagramHandle)} color={color} />
