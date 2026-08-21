@@ -48,7 +48,6 @@ async function main() {
       businessName: "Sunrise Plumbing Co.",
       tagline: "Fast, friendly, family-owned since 1998",
       about: "We handle everything from leaky faucets to full repipes, with same-day service across Austin.",
-      services: "Drain cleaning\nWater heater repair\nEmergency service\nRepiping",
       hours: "Mon-Fri: 8am-6pm\nSat: 9am-2pm",
       phone: publishedLead.phone,
       address: publishedLead.address,
@@ -56,6 +55,14 @@ async function main() {
       primaryColor: "#2a78d6",
       status: "PUBLISHED",
       leadId: publishedLead.id,
+      serviceItems: {
+        create: [
+          { slug: "drain-cleaning", name: "Drain cleaning", order: 0 },
+          { slug: "water-heater-repair", name: "Water heater repair", order: 1 },
+          { slug: "emergency-service", name: "Emergency service", order: 2 },
+          { slug: "repiping", name: "Repiping", order: 3 },
+        ],
+      },
     },
   });
   await db.event.create({ data: { type: "SITE_CREATED", siteId: publishedSite.id } });
@@ -68,11 +75,18 @@ async function main() {
       businessName: "Maple Bread Co.",
       tagline: "Fresh-baked every morning",
       about: "A neighborhood bakery specializing in sourdough, pastries, and custom cakes.",
-      services: "Sourdough bread\nPastries\nCustom cakes\nCatering",
       template: "classic",
       primaryColor: "#eb6834",
       status: "DRAFT",
       leadId: draftLead.id,
+      serviceItems: {
+        create: [
+          { slug: "sourdough-bread", name: "Sourdough bread", order: 0 },
+          { slug: "pastries", name: "Pastries", order: 1 },
+          { slug: "custom-cakes", name: "Custom cakes", order: 2 },
+          { slug: "catering", name: "Catering", order: 3 },
+        ],
+      },
     },
   });
   await db.event.create({ data: { type: "SITE_CREATED", siteId: draftSite.id } });
