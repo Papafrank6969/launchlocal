@@ -1,0 +1,83 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum WebsiteStatus {
+  NONE
+  POOR
+  HAS_SITE
+}
+
+enum LeadSource {
+  GOOGLE_PLACES
+  MOCK
+}
+
+model Lead {
+  id            String        @id @default(cuid())
+  name          String
+  category      String
+  address       String
+  phone         String?
+  email         String?
+  existingUrl   String?
+  instagramHandle String?
+  rating        Float?
+  reviewCount   Int?
+  city          String
+  websiteStatus WebsiteStatus @default(NONE)
+  source        LeadSource    @default(MOCK)
+  placeId       String?       @unique
+  createdAt     DateTime      @default(now())
+  sites         Site[]
+}
+
+enum SiteStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model Site {
+  id          String     @id @default(cuid())
+  slug        String     @unique
+  businessName String
+  tagline     String?
+  about       String?
+  services    String?
+  hours       String?
+  phone       String?
+  email       String?
+  address     String?
+  instagramHandle String?
+  photoUrl    String?
+  template    String     @default("classic")
+  primaryColor String    @default("#2563eb")
+  status      SiteStatus @default(DRAFT)
+  utmTrackingEnabled Boolean @default(false)
+  leadId      String?
+  lead        Lead?      @relation(fields: [leadId], references: [id])
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  events      Event[]
+}
+
+enum EventType {
+  LEAD_FOUND
+  SITE_CREATED
+  SITE_PUBLISHED
+  SITE_VIEW
+}
+
+model Event {
+  id        String    @id @default(cuid())
+  type      EventType
+  path      String?
+  siteId    String?
+  site      Site?     @relation(fields: [siteId], references: [id])
+  createdAt DateTime  @default(now())
+}

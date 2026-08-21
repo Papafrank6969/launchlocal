@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@layer components {
+  .input {
+    @apply w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900;
+  }
+}
+
+@media print {
+  :root {
+    color-scheme: light;
+  }
+  html.dark body,
+  html.dark body * {
+    background: #fff !important;
+    color: #000 !important;
+    box-shadow: none !important;
+  }
+}
