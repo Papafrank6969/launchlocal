@@ -1,4 +1,6 @@
+import { preconnect } from "react-dom";
 import { googleFontsHref, fontCssValue, type DesignSystem } from "@/lib/designSystems";
+import { AsyncGoogleFont } from "@/components/site/AsyncGoogleFont";
 
 /**
  * Loads the design system's Google Font pairing and defines the CSS custom
@@ -7,16 +9,19 @@ import { googleFontsHref, fontCssValue, type DesignSystem } from "@/lib/designSy
  * present on <html>; --site-card-bg and --site-border are derived tints so
  * cards/dividers stay in the same palette automatically in both modes.
  *
- * React 19 hoists <link>/<style> tags rendered anywhere in the tree into
- * <head> and dedupes <link rel="stylesheet"> by href, so this is safe to
- * render from both the public site pages and the admin live preview
- * (rendering it twice on the same page, e.g. home page's layout + content,
- * is harmless — last <style> wins with identical content).
+ * The font stylesheet loads asynchronously (see AsyncGoogleFont) so it never
+ * blocks first paint — see that file for why. The <style> tag with the CSS
+ * vars is cheap/inline and safe to render synchronously; React 19 hoists it
+ * into <head> and re-rendering it (e.g. home page's layout + content) is
+ * harmless since the content is identical.
  */
 export function SiteIdentity({ system }: { system: DesignSystem }) {
+  preconnect("https://fonts.googleapis.com");
+  preconnect("https://fonts.gstatic.com", { crossOrigin: "anonymous" });
+
   return (
     <>
-      <link rel="stylesheet" href={googleFontsHref(system)} precedence="default" />
+      <AsyncGoogleFont href={googleFontsHref(system)} />
       <style>{`
         :root {
           --site-bg: ${system.colorNeutralLight};

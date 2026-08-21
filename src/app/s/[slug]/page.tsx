@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { SitePreview } from "@/lib/templates";
 import { pageMetadata } from "@/lib/seo";
+import { localBusinessJsonLd } from "@/lib/jsonLd";
 
 export const dynamic = "force-dynamic";
 
@@ -48,5 +49,15 @@ export default async function PublicSitePage({ params }: { params: Promise<{ slu
 
   await db.event.create({ data: { type: "SITE_VIEW", siteId: site.id, path: "/" } });
 
-  return <SitePreview site={site} />;
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const jsonLd = localBusinessJsonLd(site, baseUrl, `/s/${slug}`);
+  // Escape `<` so a business name/address containing "</script>" can't break out of the tag.
+  const jsonLdScript = JSON.stringify(jsonLd).replace(/</g, "\\u003c");
+
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript }} />
+      <SitePreview site={site} />
+    </>
+  );
 }

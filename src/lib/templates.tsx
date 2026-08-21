@@ -83,7 +83,7 @@ export function SitePreview({ site }: { site: SiteData }) {
 
   if (system.heroStyle === "full-bleed") {
     return (
-      <div id="top" className="min-h-screen bg-[var(--site-bg)] text-[var(--site-fg)]" style={rootStyle}>
+      <div className="min-h-screen bg-[var(--site-bg)] text-[var(--site-fg)]" style={rootStyle}>
         <SiteIdentity system={system} />
         <section
           className="relative overflow-hidden border-b-4 border-[var(--site-fg)] px-8 py-24 text-center"
@@ -167,7 +167,7 @@ export function SitePreview({ site }: { site: SiteData }) {
 
   if (system.heroStyle === "split") {
     return (
-      <div id="top" className="min-h-screen bg-[var(--site-bg)] text-[var(--site-fg)]" style={rootStyle}>
+      <div className="min-h-screen bg-[var(--site-bg)] text-[var(--site-fg)]" style={rootStyle}>
         <SiteIdentity system={system} />
         <section className="mx-auto grid max-w-5xl gap-10 px-8 py-24 sm:grid-cols-5 sm:items-center">
           <div className="sm:col-span-3">
@@ -254,7 +254,7 @@ export function SitePreview({ site }: { site: SiteData }) {
 
   // centered (default)
   return (
-    <div id="top" className="min-h-screen bg-[var(--site-bg)] text-[var(--site-fg)]" style={rootStyle}>
+    <div className="min-h-screen bg-[var(--site-bg)] text-[var(--site-fg)]" style={rootStyle}>
       <SiteIdentity system={system} />
       <section className="px-8 py-28 text-center">
         <h1 className="break-words text-5xl font-bold tracking-tight" style={headingStyle}>

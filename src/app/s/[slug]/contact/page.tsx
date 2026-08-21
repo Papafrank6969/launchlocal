@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { SitePageShell } from "@/components/site/SitePageShell";
 import { ContactForm } from "@/components/site/ContactForm";
+import { MapEmbed } from "@/components/site/MapEmbed";
 import { pageMetadata } from "@/lib/seo";
 import { resolveDesignSystem } from "@/lib/templates";
 
@@ -27,6 +28,7 @@ export default async function ContactPage({ params }: { params: Promise<{ slug: 
   return (
     <SitePageShell title={`Contact ${site.businessName}`} system={system}>
       <ContactForm slug={slug} color={system.colorPrimary} />
+      {site.address && <MapEmbed address={site.address} businessName={site.businessName} />}
     </SitePageShell>
   );
 }

@@ -51,7 +51,7 @@ export default async function PublicSiteLayout({
         Skip to content
       </a>
       <StickyHeader businessName={site.businessName} color={color} homeHref={`/s/${slug}`} navLinks={navLinks} />
-      {children}
+      <main id="top">{children}</main>
       <BackToTopButton color={color} />
       <FloatingContactButton phone={site.phone} dmUrl={instagramDmUrl(site.instagramHandle)} color={color} />
       <CookieConsentBanner />

@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { FormStatus, type StatusMessage } from "@/components/FormStatus";
 import { readableTextColor } from "@/lib/contrast";
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export function ContactForm({ slug, color }: { slug: string; color: string }) {
+  const idPrefix = useId();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
@@ -12,8 +15,24 @@ export function ContactForm({ slug, color }: { slug: string; color: string }) {
   const [status, setStatus] = useState<StatusMessage>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  function validate(): Record<string, string> {
+    const errors: Record<string, string> = {};
+    if (!name.trim()) errors.name = "Name is required.";
+    if (!email.trim()) errors.email = "Email is required.";
+    else if (!EMAIL_RE.test(email.trim())) errors.email = "Enter a valid email address.";
+    if (!message.trim()) errors.message = "Message is required.";
+    return errors;
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const clientErrors = validate();
+    if (Object.keys(clientErrors).length > 0) {
+      setFieldErrors(clientErrors);
+      setStatus({ type: "error", text: "Please fix the errors below and try again." });
+      return;
+    }
+
     setSubmitting(true);
     setStatus(null);
     setFieldErrors({});
@@ -40,36 +59,71 @@ export function ContactForm({ slug, color }: { slug: string; color: string }) {
     }
   }
 
+  const nameId = `${idPrefix}-name`;
+  const emailId = `${idPrefix}-email`;
+  const messageId = `${idPrefix}-message`;
+  const inputClass = "site-border site-card-bg mt-1 w-full rounded-md border px-3 py-2 text-sm";
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
       <div>
-        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Name</label>
+        <label htmlFor={nameId} className="block text-sm font-medium">
+          Name
+        </label>
         <input
+          id={nameId}
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+          required
+          aria-invalid={Boolean(fieldErrors.name)}
+          aria-describedby={fieldErrors.name ? `${nameId}-error` : undefined}
+          className={inputClass}
         />
-        {fieldErrors.name && <p className="mt-1 text-xs text-red-600">{fieldErrors.name}</p>}
+        {fieldErrors.name && (
+          <p id={`${nameId}-error`} className="mt-1 text-xs text-red-600">
+            {fieldErrors.name}
+          </p>
+        )}
       </div>
       <div>
-        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Email</label>
+        <label htmlFor={emailId} className="block text-sm font-medium">
+          Email
+        </label>
         <input
+          id={emailId}
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+          required
+          aria-invalid={Boolean(fieldErrors.email)}
+          aria-describedby={fieldErrors.email ? `${emailId}-error` : undefined}
+          className={inputClass}
         />
-        {fieldErrors.email && <p className="mt-1 text-xs text-red-600">{fieldErrors.email}</p>}
+        {fieldErrors.email && (
+          <p id={`${emailId}-error`} className="mt-1 text-xs text-red-600">
+            {fieldErrors.email}
+          </p>
+        )}
       </div>
       <div>
-        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Message</label>
+        <label htmlFor={messageId} className="block text-sm font-medium">
+          Message
+        </label>
         <textarea
+          id={messageId}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           rows={5}
-          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+          required
+          aria-invalid={Boolean(fieldErrors.message)}
+          aria-describedby={fieldErrors.message ? `${messageId}-error` : undefined}
+          className={inputClass}
         />
-        {fieldErrors.message && <p className="mt-1 text-xs text-red-600">{fieldErrors.message}</p>}
+        {fieldErrors.message && (
+          <p id={`${messageId}-error`} className="mt-1 text-xs text-red-600">
+            {fieldErrors.message}
+          </p>
+        )}
       </div>
       <button
         type="submit"
