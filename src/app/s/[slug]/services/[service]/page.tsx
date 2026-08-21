@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { SitePageShell } from "@/components/site/SitePageShell";
+import { pageMetadata } from "@/lib/seo";
 
 async function getService(slug: string, serviceSlug: string) {
   const site = await db.site.findUnique({ where: { slug } });
@@ -19,7 +20,11 @@ export async function generateMetadata({
   const { slug, service: serviceSlug } = await params;
   const result = await getService(slug, serviceSlug);
   if (!result) return { title: "Not found" };
-  return { title: `${result.service.name} · ${result.site.businessName}` };
+  return pageMetadata({
+    title: `${result.service.name} · ${result.site.businessName}`,
+    description: result.service.description || `${result.service.name} offered by ${result.site.businessName}.`,
+    path: `/s/${slug}/services/${serviceSlug}`,
+  });
 }
 
 export default async function ServiceDetailPage({

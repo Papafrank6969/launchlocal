@@ -2,12 +2,17 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { SitePageShell } from "@/components/site/SitePageShell";
+import { pageMetadata } from "@/lib/seo";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const site = await db.site.findUnique({ where: { slug } });
   if (!site) return { title: "Site not found" };
-  return { title: `Blog · ${site.businessName}` };
+  return pageMetadata({
+    title: `Blog · ${site.businessName}`,
+    description: `News and updates from ${site.businessName}.`,
+    path: `/s/${slug}/blog`,
+  });
 }
 
 function excerpt(content: string, max = 160): string {

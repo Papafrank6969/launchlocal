@@ -3,12 +3,17 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { db } from "@/lib/db";
 import { SitePageShell } from "@/components/site/SitePageShell";
+import { pageMetadata } from "@/lib/seo";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const site = await db.site.findUnique({ where: { slug } });
   if (!site) return { title: "Site not found" };
-  return { title: `Gallery · ${site.businessName}` };
+  return pageMetadata({
+    title: `Gallery · ${site.businessName}`,
+    description: `Before and after photos from ${site.businessName}.`,
+    path: `/s/${slug}/gallery`,
+  });
 }
 
 export default async function GalleryPage({ params }: { params: Promise<{ slug: string }> }) {

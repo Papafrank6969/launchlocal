@@ -25,6 +25,7 @@ const EDITABLE_FIELDS = [
   "facebookUrl",
   "guaranteeText",
   "paymentMethods",
+  "googleSiteVerification",
   "template",
   "primaryColor",
 ] as const;

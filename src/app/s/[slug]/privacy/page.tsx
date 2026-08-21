@@ -3,12 +3,16 @@ import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { SitePageShell, LastUpdated } from "@/components/site/SitePageShell";
 import { generatePrivacyPolicy } from "@/lib/legalContent";
+import { pageMetadata } from "@/lib/seo";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const site = await db.site.findUnique({ where: { slug } });
   if (!site) return { title: "Site not found" };
-  return { title: `Privacy Policy · ${site.businessName}` };
+  return pageMetadata({
+    title: `Privacy Policy · ${site.businessName}`,
+    path: `/s/${slug}/privacy`,
+  });
 }
 
 export default async function PrivacyPage({ params }: { params: Promise<{ slug: string }> }) {

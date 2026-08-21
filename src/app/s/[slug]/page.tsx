@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { SitePreview } from "@/lib/templates";
+import { pageMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -16,8 +17,14 @@ export async function generateMetadata({
   if (!site) return { title: "Site not found" };
 
   return {
+    ...pageMetadata({
+      title: site.businessName,
+      description: site.tagline || site.about || `${site.businessName} — contact info, services, and hours.`,
+      path: `/s/${slug}`,
+      image: site.photoUrl,
+    }),
     title: { absolute: site.businessName },
-    description: site.tagline || site.about || `${site.businessName} — contact info, services, and hours.`,
+    verification: site.googleSiteVerification ? { google: site.googleSiteVerification } : undefined,
   };
 }
 

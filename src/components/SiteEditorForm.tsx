@@ -9,6 +9,7 @@ export type EditableSite = SiteData & {
   status?: "DRAFT" | "PUBLISHED";
   slug?: string;
   utmTrackingEnabled?: boolean;
+  googleSiteVerification?: string | null;
 };
 
 export function SiteEditorForm({
@@ -244,6 +245,17 @@ export function SiteEditorForm({
             </span>
           </span>
         </label>
+        <Field label="Google Search Console verification code (optional)">
+          <input
+            className="input"
+            value={data.googleSiteVerification ?? ""}
+            onChange={(e) => set("googleSiteVerification", e.target.value)}
+            placeholder="Paste the content value from a google-site-verification meta tag"
+          />
+          <p className="mt-1 text-xs text-slate-500">
+            Get this from Google Search Console after adding this site&apos;s URL as a property.
+          </p>
+        </Field>
 
         <button
           type="button"

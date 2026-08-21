@@ -3,12 +3,16 @@ import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { SitePageShell, LastUpdated } from "@/components/site/SitePageShell";
 import { generateTermsOfService } from "@/lib/legalContent";
+import { pageMetadata } from "@/lib/seo";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const site = await db.site.findUnique({ where: { slug } });
   if (!site) return { title: "Site not found" };
-  return { title: `Terms of Service · ${site.businessName}` };
+  return pageMetadata({
+    title: `Terms of Service · ${site.businessName}`,
+    path: `/s/${slug}/terms`,
+  });
 }
 
 export default async function TermsPage({ params }: { params: Promise<{ slug: string }> }) {
