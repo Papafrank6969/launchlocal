@@ -10,8 +10,22 @@ them one, and tracking how it's doing.
   generated sample data so the app works out of the box. Each result is scored
   `NONE` / `POOR` / `HAS_SITE` based on whether it has a real website.
 - **Site Builder** (`/builder`) — turn a lead (or a blank form) into a real
-  templated site with a live preview, then publish it to a public URL at
-  `/s/[slug]`.
+  small multi-page site with a live preview, then publish it to a public URL
+  at `/s/[slug]`. Each site gets whatever pages it actually has content for —
+  Home, About, per-service pages, Blog, Gallery, FAQ, Contact (with a working
+  form), Privacy Policy, and Terms of Service. Nav only ever links to pages
+  that exist. Manage FAQ, Blog posts, and before/after Gallery photos from
+  their own tabs on the site editor; contact-form messages show up in an
+  inbox on the same page.
+- **Site chrome** — dark mode, sticky header with a mobile menu, scroll
+  progress bar, back-to-top button, floating call/DM button, cookie consent
+  banner, skip-to-content link, and a print stylesheet, all on every
+  published site.
+- **SEO** — per-site `sitemap.xml`, `llms.txt`, canonical + Open Graph tags on
+  every page, and a root `robots.txt` that lists every published site's
+  sitemap. A per-site field for a Google Search Console verification code
+  renders as a meta tag (full auto-verification isn't possible since sites
+  share a domain rather than owning their own).
 - **Stats** (`/stats`) — leads found, sites built, conversion rate, and site
   views over time.
 - **Instagram outreach** — every lead and every generated site can carry an
@@ -62,3 +76,7 @@ is a manual per-lead button, not run automatically on every search.
 ## Stack
 
 Next.js (App Router) + TypeScript + Tailwind, Prisma + SQLite, Recharts.
+
+See [`docs/SITE-QUALITY-CHECKLIST.md`](docs/SITE-QUALITY-CHECKLIST.md) before touching
+the site templates or public pages — it's the standing bar for what a
+LaunchLocal-built site is and isn't allowed to look like.
