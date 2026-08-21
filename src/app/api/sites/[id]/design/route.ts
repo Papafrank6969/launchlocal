@@ -7,7 +7,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const { id } = await params;
   const site = await db.site.findUnique({
     where: { id },
-    include: { serviceItems: { orderBy: { order: "asc" }, take: 10 } },
+    include: {
+      serviceItems: { orderBy: { order: "asc" }, take: 10 },
+      inspirationImages: { orderBy: { order: "asc" } },
+    },
   });
   if (!site) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
@@ -24,6 +27,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       tagline: site.tagline,
       about: site.about,
       serviceNames: site.serviceItems.map((s) => s.name),
+      inspirationImageUrls: site.inspirationImages.map((img) => img.url),
     });
   }
 

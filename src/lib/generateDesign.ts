@@ -1,3 +1,5 @@
+import { readFile } from "fs/promises";
+import path from "path";
 import { DESIGN_SYSTEMS, deterministicDesignSystem, type DesignSystem } from "@/lib/designSystems";
 
 export type DesignChoice = {
@@ -12,6 +14,10 @@ export type BusinessBrief = {
   tagline?: string | null;
   about?: string | null;
   serviceNames?: string[];
+  /** Public paths (e.g. "/uploads/inspiration/xyz.webp") to operator-supplied
+   *  reference photos (commonly screenshots from the business's Instagram) —
+   *  read from disk and sent to the model as real images, never fabricated. */
+  inspirationImageUrls?: string[];
 };
 
 function fallback(brief: BusinessBrief): DesignChoice {
@@ -35,10 +41,33 @@ export async function chooseDesign(brief: BusinessBrief): Promise<DesignChoice> 
   }
 }
 
+async function loadImageBlocks(urls: string[]): Promise<{ type: "image"; source: { type: "base64"; media_type: string; data: string } }[]> {
+  const blocks = await Promise.all(
+    urls.map(async (url) => {
+      try {
+        // These are always our own saved uploads (webp, from imageUpload.ts) —
+        // never an arbitrary path, so resolving against the public dir is safe.
+        const filePath = path.join(process.cwd(), "public", url);
+        const bytes = await readFile(filePath);
+        return {
+          type: "image" as const,
+          source: { type: "base64" as const, media_type: "image/webp", data: bytes.toString("base64") },
+        };
+      } catch {
+        return null;
+      }
+    })
+  );
+  return blocks.filter((b): b is NonNullable<typeof b> => b !== null);
+}
+
 async function chooseDesignViaAI(brief: BusinessBrief, apiKey: string): Promise<DesignChoice> {
   const systemList = DESIGN_SYSTEMS.map(
     (s) => `- ${s.id}: ${s.mood} (typical fit: ${s.categories.join(", ")})`
   ).join("\n");
+
+  const imageUrls = brief.inspirationImageUrls ?? [];
+  const imageBlocks = imageUrls.length > 0 ? await loadImageBlocks(imageUrls) : [];
 
   const prompt = `You are picking a pre-built visual design system for a small local business's website. Only use the real information given below — never invent details about the business.
 
@@ -47,11 +76,18 @@ Category: ${brief.category ?? "unknown"}
 Tagline: ${brief.tagline ?? "(none given)"}
 About: ${brief.about ?? "(none given)"}
 Services: ${brief.serviceNames?.length ? brief.serviceNames.join(", ") : "(none given)"}
+${
+  imageBlocks.length > 0
+    ? `\nThe ${imageBlocks.length} image(s) attached are reference photos the operator provided (often screenshots from the business's own Instagram) — look at their actual visual style (colors, mood, photography style, whether it's warm/cool, minimal/busy, dark/bright) and weigh that alongside the text above when picking.`
+    : ""
+}
 
 Available design systems:
 ${systemList}
 
-Pick the single design system id that best fits this specific business's category and tone.`;
+Pick the single design system id that best fits this specific business's category, tone, and (if provided) visual style. If a reference photo's aesthetic conflicts with the "typical fit" for its category, prefer what the photo actually shows — that's real signal from the business, the category list is just a starting guess.`;
+
+  const content: unknown[] = [{ type: "text", text: prompt }, ...imageBlocks];
 
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -71,14 +107,18 @@ Pick the single design system id that best fits this specific business's categor
             type: "object",
             properties: {
               systemId: { type: "string", enum: DESIGN_SYSTEMS.map((s) => s.id) },
-              rationale: { type: "string", description: "One sentence explaining the choice, referencing the actual business." },
+              rationale: {
+                type: "string",
+                description:
+                  "One sentence explaining the choice, referencing the actual business and, if photos were provided, what in them informed the pick.",
+              },
             },
             required: ["systemId", "rationale"],
           },
         },
       ],
       tool_choice: { type: "tool", name: "select_design" },
-      messages: [{ role: "user", content: prompt }],
+      messages: [{ role: "user", content }],
     }),
   });
 

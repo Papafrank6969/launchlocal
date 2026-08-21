@@ -77,6 +77,7 @@ model Site {
   blogPosts   BlogPost[]
   galleryItems GalleryItem[]
   contactSubmissions ContactSubmission[]
+  inspirationImages InspirationImage[]
 }
 
 model Service {
@@ -124,6 +125,15 @@ model GalleryItem {
   beforeUrl String
   afterUrl  String
   caption   String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model InspirationImage {
+  id        String   @id @default(cuid())
+  siteId    String
+  site      Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  url       String
   order     Int      @default(0)
   createdAt DateTime @default(now())
 }

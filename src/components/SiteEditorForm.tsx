@@ -4,6 +4,7 @@ import { useState } from "react";
 import { SitePreview, type SiteData } from "@/lib/templates";
 import { FormStatus, type StatusMessage } from "@/components/FormStatus";
 import { DESIGN_SYSTEMS, getDesignSystem } from "@/lib/designSystems";
+import { InspirationPhotos } from "@/components/InspirationPhotos";
 
 export type EditableSite = SiteData & {
   id?: string;
@@ -246,6 +247,11 @@ export function SiteEditorForm({
             placeholder="100% satisfaction guaranteed"
           />
         </Field>
+        {data.id && (
+          <Field label="Inspiration photos">
+            <InspirationPhotos siteId={data.id} />
+          </Field>
+        )}
         <Field label="Design">
           {!data.id ? (
             <p className="text-sm text-slate-500">
