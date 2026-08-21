@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { SitePageShell } from "@/components/site/SitePageShell";
 import { pageMetadata } from "@/lib/seo";
+import { resolveDesignSystem } from "@/lib/templates";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -29,24 +30,25 @@ export default async function BlogIndexPage({ params }: { params: Promise<{ slug
   if (!site || site.status !== "PUBLISHED") notFound();
   if (site.blogPosts.length === 0) notFound();
 
-  const color = site.primaryColor || "#2563eb";
+  const system = resolveDesignSystem(site);
+  const color = system.colorPrimary;
 
   return (
-    <SitePageShell title="Blog" wide>
+    <SitePageShell title="Blog" wide system={system}>
       <div className="space-y-6">
         {site.blogPosts.map((post) => (
           <a
             key={post.id}
             href={`/s/${slug}/blog/${post.slug}`}
-            className="block rounded-xl border border-slate-200 p-6 transition-shadow hover:shadow-md dark:border-slate-800"
+            className="site-border block rounded-xl border p-6 transition-shadow hover:shadow-md"
           >
-            <h2 className="font-semibold text-slate-900 dark:text-white" style={{ color }}>
+            <h2 className="font-semibold" style={{ color }}>
               {post.title}
             </h2>
-            <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+            <p className="mt-1 text-xs opacity-60">
               {post.updatedAt.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}
             </p>
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{excerpt(post.content)}</p>
+            <p className="mt-2 text-sm opacity-80">{excerpt(post.content)}</p>
           </a>
         ))}
       </div>

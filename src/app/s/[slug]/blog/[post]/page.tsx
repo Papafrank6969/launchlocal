@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { SitePageShell, LastUpdated } from "@/components/site/SitePageShell";
 import { pageMetadata } from "@/lib/seo";
+import { resolveDesignSystem } from "@/lib/templates";
 
 async function getPost(slug: string, postSlug: string) {
   const site = await db.site.findUnique({ where: { slug } });
@@ -32,13 +33,14 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const result = await getPost(slug, postSlug);
   if (!result) notFound();
   const { site, post } = result;
-  const color = site.primaryColor || "#2563eb";
+  const system = resolveDesignSystem(site);
+  const color = system.colorPrimary;
 
   const paragraphs = post.content.split("\n").map((p) => p.trim()).filter(Boolean);
 
   return (
-    <SitePageShell title={post.title} subtitle={<LastUpdated date={post.updatedAt} />}>
-      <div className="space-y-4 text-slate-700 dark:text-slate-300">
+    <SitePageShell title={post.title} subtitle={<LastUpdated date={post.updatedAt} />} system={system}>
+      <div className="space-y-4 opacity-90">
         {paragraphs.map((p, i) => (
           <p key={i}>{p}</p>
         ))}

@@ -4,6 +4,7 @@ import Image from "next/image";
 import { db } from "@/lib/db";
 import { SitePageShell } from "@/components/site/SitePageShell";
 import { pageMetadata } from "@/lib/seo";
+import { resolveDesignSystem } from "@/lib/templates";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -25,12 +26,14 @@ export default async function GalleryPage({ params }: { params: Promise<{ slug: 
   if (!site || site.status !== "PUBLISHED") notFound();
   if (site.galleryItems.length === 0) notFound();
 
+  const system = resolveDesignSystem(site);
+
   return (
-    <SitePageShell title="Before & after" wide>
+    <SitePageShell title="Before & after" wide system={system}>
       <div className="grid gap-8 sm:grid-cols-2">
         {site.galleryItems.map((item, i) => (
           <div key={item.id}>
-            <div className="grid grid-cols-2 gap-1 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">
+            <div className="site-border grid grid-cols-2 gap-1 overflow-hidden rounded-xl border">
               <div className="relative aspect-square">
                 <Image src={item.beforeUrl} alt="Before" fill className="object-cover" sizes="50vw" priority={i === 0} />
                 <span className="absolute left-2 top-2 rounded bg-black/60 px-2 py-0.5 text-xs font-medium text-white">
@@ -44,7 +47,7 @@ export default async function GalleryPage({ params }: { params: Promise<{ slug: 
                 </span>
               </div>
             </div>
-            {item.caption && <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{item.caption}</p>}
+            {item.caption && <p className="mt-2 text-sm opacity-80">{item.caption}</p>}
           </div>
         ))}
       </div>

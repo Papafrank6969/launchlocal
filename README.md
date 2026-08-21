@@ -17,6 +17,13 @@ them one, and tracking how it's doing.
   that exist. Manage FAQ, Blog posts, and before/after Gallery photos from
   their own tabs on the site editor; contact-form messages show up in an
   inbox on the same page.
+- **Bespoke design generation** — every site's fonts, colors, and layout come
+  from a curated design system (`src/lib/designSystems.ts`) picked for that
+  specific business. With `ANTHROPIC_API_KEY` set, an AI call picks the best
+  fit from the business's real name/category/services; without it, a
+  deterministic category-based fallback keeps the app working out of the box.
+  Every curated system is pre-validated for WCAG AA contrast. The operator can
+  regenerate or manually override the pick from the site editor.
 - **Site chrome** — dark mode, sticky header with a mobile menu, scroll
   progress bar, back-to-top button, floating call/DM button, cookie consent
   banner, skip-to-content link, and a print stylesheet, all on every
@@ -54,6 +61,17 @@ To use live business search instead of sample data, add to `.env`:
 ```
 GOOGLE_PLACES_API_KEY=your-key-here
 ```
+
+To enable AI-driven bespoke design selection instead of the deterministic
+category fallback, add to `.env`:
+
+```
+ANTHROPIC_API_KEY=your-key-here
+```
+
+Get one at [console.anthropic.com](https://console.anthropic.com/). Generation
+runs once per site (on creation, or when the operator clicks "Regenerate
+design") using `claude-haiku-4-5-20251001`.
 
 To enable on-demand Instagram handle lookup, add to `.env`:
 

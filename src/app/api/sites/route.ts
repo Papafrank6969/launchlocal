@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { uniqueSlug, slugify } from "@/lib/slug";
+import { chooseDesign } from "@/lib/generateDesign";
 
 export async function GET() {
   const sites = await db.site.findMany({
@@ -41,6 +42,8 @@ export async function POST(req: NextRequest) {
       return { slug: itemSlug, name: s.name, description: s.description, order: i };
     });
 
+  const category = (body.category ?? "").toString().trim() || null;
+
   const site = await db.site.create({
     data: {
       slug,
@@ -56,8 +59,7 @@ export async function POST(req: NextRequest) {
       facebookUrl: body.facebookUrl || null,
       guaranteeText: body.guaranteeText || null,
       paymentMethods: body.paymentMethods || null,
-      template: body.template || "classic",
-      primaryColor: body.primaryColor || "#2563eb",
+      category,
       leadId: body.leadId || null,
       serviceItems: serviceRows.length > 0 ? { create: serviceRows } : undefined,
     },
@@ -66,5 +68,18 @@ export async function POST(req: NextRequest) {
 
   await db.event.create({ data: { type: "SITE_CREATED", siteId: site.id } });
 
-  return NextResponse.json({ site });
+  const choice = await chooseDesign({
+    businessName: site.businessName,
+    category: site.category,
+    tagline: site.tagline,
+    about: site.about,
+    serviceNames: site.serviceItems.map((s) => s.name),
+  });
+  const designed = await db.site.update({
+    where: { id: site.id },
+    data: { designSystemId: choice.system.id, designRationale: choice.rationale },
+    include: { serviceItems: { orderBy: { order: "asc" } } },
+  });
+
+  return NextResponse.json({ site: designed });
 }

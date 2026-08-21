@@ -15,7 +15,7 @@ export function FaqAccordion({
   if (items.length === 0) return null;
 
   return (
-    <div className="divide-y divide-slate-200 dark:divide-slate-800">
+    <div className="site-border divide-y">
       {items.map((item, i) => {
         const open = openIndex === i;
         return (
@@ -24,7 +24,7 @@ export function FaqAccordion({
               type="button"
               onClick={() => setOpenIndex(open ? null : i)}
               aria-expanded={open}
-              className="flex w-full items-center justify-between gap-4 py-4 text-left font-medium text-slate-900 dark:text-white"
+              className="flex w-full items-center justify-between gap-4 py-4 text-left font-medium"
             >
               {item.question}
               <ChevronDown
@@ -33,7 +33,7 @@ export function FaqAccordion({
                 style={{ transform: open ? "rotate(180deg)" : undefined, color }}
               />
             </button>
-            {open && <p className="pb-4 text-sm text-slate-600 dark:text-slate-300">{item.answer}</p>}
+            {open && <p className="pb-4 text-sm opacity-80">{item.answer}</p>}
           </div>
         );
       })}

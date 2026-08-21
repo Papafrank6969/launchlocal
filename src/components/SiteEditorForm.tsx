@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { SitePreview, TEMPLATES, type SiteData } from "@/lib/templates";
-import { FormStatus } from "@/components/FormStatus";
+import { SitePreview, type SiteData } from "@/lib/templates";
+import { FormStatus, type StatusMessage } from "@/components/FormStatus";
+import { DESIGN_SYSTEMS, getDesignSystem } from "@/lib/designSystems";
 
 export type EditableSite = SiteData & {
   id?: string;
@@ -10,6 +11,7 @@ export type EditableSite = SiteData & {
   slug?: string;
   utmTrackingEnabled?: boolean;
   googleSiteVerification?: string | null;
+  designRationale?: string | null;
 };
 
 export function SiteEditorForm({
@@ -24,9 +26,37 @@ export function SiteEditorForm({
   const [data, setData] = useState<EditableSite>(initial);
   const [uploading, setUploading] = useState(false);
   const [photoMessage, setPhotoMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [regenerating, setRegenerating] = useState(false);
+  const [designMessage, setDesignMessage] = useState<StatusMessage>(null);
 
   function set<K extends keyof EditableSite>(key: K, value: EditableSite[K]) {
     setData((d) => ({ ...d, [key]: value }));
+  }
+
+  async function regenerateDesign(systemId?: string) {
+    if (!data.id) return;
+    setRegenerating(true);
+    setDesignMessage(null);
+    try {
+      const res = await fetch(`/api/sites/${data.id}/design`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(systemId ? { systemId } : {}),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error ?? "Couldn't generate a design");
+      set("designSystemId", result.site.designSystemId);
+      set("designRationale", result.site.designRationale);
+      setDesignMessage({
+        type: "success",
+        text: result.aiGenerated ? `AI picked "${result.designSystemName}".` : `Set to "${result.designSystemName}".`,
+      });
+    } catch (err) {
+      setDesignMessage({ type: "error", text: err instanceof Error ? err.message : "Something went wrong" });
+    } finally {
+      setRegenerating(false);
+      setTimeout(() => setDesignMessage(null), 4000);
+    }
   }
 
   async function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
@@ -78,6 +108,15 @@ export function SiteEditorForm({
             value={data.businessName}
             onChange={(e) => set("businessName", e.target.value)}
           />
+        </Field>
+        <Field label="Category">
+          <input
+            className="input"
+            value={data.category ?? ""}
+            onChange={(e) => set("category", e.target.value)}
+            placeholder="e.g. bakery, law firm, landscaping"
+          />
+          <p className="mt-1 text-xs text-slate-500">Drives the bespoke design generated for this site.</p>
         </Field>
         <Field label="Photo">
           {!data.id ? (
@@ -207,29 +246,43 @@ export function SiteEditorForm({
             placeholder="100% satisfaction guaranteed"
           />
         </Field>
-        <Field label="Template">
-          <div className="grid grid-cols-3 gap-2">
-            {TEMPLATES.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => set("template", t.id)}
-                className={`rounded-md border p-2 text-left text-xs ${
-                  data.template === t.id ? "border-slate-900 bg-slate-900 text-white" : "border-slate-300"
-                }`}
-              >
-                <div className="font-semibold">{t.name}</div>
-              </button>
-            ))}
-          </div>
-        </Field>
-        <Field label="Accent color">
-          <input
-            type="color"
-            value={data.primaryColor}
-            onChange={(e) => set("primaryColor", e.target.value)}
-            className="h-10 w-16 rounded border border-slate-300"
-          />
+        <Field label="Design">
+          {!data.id ? (
+            <p className="text-sm text-slate-500">
+              A bespoke design (fonts, colors, layout) is generated automatically when you save.
+            </p>
+          ) : (
+            <div className="rounded-md border border-slate-300 p-3">
+              <p className="text-sm font-medium text-slate-900">{getDesignSystem(data.designSystemId).name}</p>
+              <p className="mt-1 text-xs text-slate-500">{data.designRationale || getDesignSystem(data.designSystemId).mood}</p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => regenerateDesign()}
+                  disabled={regenerating}
+                  className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                >
+                  {regenerating ? "Generating…" : "Regenerate design"}
+                </button>
+                <select
+                  className="rounded-md border border-slate-300 px-2 py-1.5 text-xs text-slate-700"
+                  value=""
+                  onChange={(e) => {
+                    if (e.target.value) regenerateDesign(e.target.value);
+                  }}
+                  disabled={regenerating}
+                >
+                  <option value="">Switch to…</option>
+                  {DESIGN_SYSTEMS.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <FormStatus status={designMessage} className="mt-2" />
+            </div>
+          )}
         </Field>
         <label className="flex items-start gap-2 text-sm text-slate-700">
           <input

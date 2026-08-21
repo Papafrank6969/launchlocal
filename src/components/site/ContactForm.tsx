@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { FormStatus, type StatusMessage } from "@/components/FormStatus";
+import { readableTextColor } from "@/lib/contrast";
 
 export function ContactForm({ slug, color }: { slug: string; color: string }) {
   const [name, setName] = useState("");
@@ -73,8 +74,8 @@ export function ContactForm({ slug, color }: { slug: string; color: string }) {
       <button
         type="submit"
         disabled={submitting}
-        className="rounded-md px-5 py-2.5 font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-        style={{ backgroundColor: color }}
+        className="rounded-md px-5 py-2.5 font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
+        style={{ backgroundColor: color, color: readableTextColor(color) }}
       >
         {submitting ? "Sending…" : "Send message"}
       </button>

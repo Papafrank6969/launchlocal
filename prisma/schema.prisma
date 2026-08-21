@@ -61,6 +61,9 @@ model Site {
   photoUrl    String?
   template    String     @default("classic")
   primaryColor String    @default("#2563eb")
+  category    String?
+  designSystemId String?
+  designRationale String?
   status      SiteStatus @default(DRAFT)
   utmTrackingEnabled Boolean @default(false)
   googleSiteVerification String?

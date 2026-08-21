@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { SitePageShell } from "@/components/site/SitePageShell";
 import { ContactForm } from "@/components/site/ContactForm";
 import { pageMetadata } from "@/lib/seo";
+import { resolveDesignSystem } from "@/lib/templates";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -21,9 +22,11 @@ export default async function ContactPage({ params }: { params: Promise<{ slug: 
   const site = await db.site.findUnique({ where: { slug } });
   if (!site || site.status !== "PUBLISHED") notFound();
 
+  const system = resolveDesignSystem(site);
+
   return (
-    <SitePageShell title={`Contact ${site.businessName}`}>
-      <ContactForm slug={slug} color={site.primaryColor || "#2563eb"} />
+    <SitePageShell title={`Contact ${site.businessName}`} system={system}>
+      <ContactForm slug={slug} color={system.colorPrimary} />
     </SitePageShell>
   );
 }

@@ -18,8 +18,7 @@ const BLANK: EditableSite = {
   facebookUrl: "",
   guaranteeText: "",
   paymentMethods: "",
-  template: "classic",
-  primaryColor: "#2563eb",
+  category: "",
   serviceItems: [],
 };
 
@@ -47,6 +46,7 @@ function NewSiteInner() {
             address: d.lead.address ?? "",
             instagramHandle: d.lead.instagramHandle ?? "",
             tagline: `Your trusted ${d.lead.category} in ${d.lead.city}`,
+            category: d.lead.category ?? "",
           }));
         }
       })
@@ -76,7 +76,10 @@ function NewSiteInner() {
   return (
     <div className="mx-auto max-w-6xl px-6 py-12">
       <h1 className="text-2xl font-semibold text-slate-900">New site</h1>
-      <p className="mt-1 text-slate-600">Fill in the details and pick a template. You can publish later.</p>
+      <p className="mt-1 text-slate-600">
+        Fill in the details — we&apos;ll generate a bespoke design for this business when you save. You can publish
+        later.
+      </p>
       <FormStatus status={error ? { type: "error", text: error } : null} className="mt-4" />
       <div className="mt-8">
         <SiteEditorForm initial={initial} onSave={handleSave} saving={saving} />

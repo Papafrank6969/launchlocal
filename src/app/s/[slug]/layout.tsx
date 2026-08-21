@@ -1,10 +1,11 @@
 import { db } from "@/lib/db";
-import { instagramDmUrl } from "@/lib/templates";
+import { instagramDmUrl, resolveDesignSystem } from "@/lib/templates";
 import { buildSiteNav } from "@/lib/siteNav";
 import { StickyHeader } from "@/components/site/StickyHeader";
 import { BackToTopButton } from "@/components/site/BackToTopButton";
 import { FloatingContactButton } from "@/components/site/FloatingContactButton";
 import { CookieConsentBanner } from "@/components/site/CookieConsentBanner";
+import { SiteIdentity } from "@/components/site/SiteFonts";
 
 export default async function PublicSiteLayout({
   children,
@@ -30,7 +31,8 @@ export default async function PublicSiteLayout({
 
   if (!site) return children;
 
-  const color = site.primaryColor || "#2563eb";
+  const system = resolveDesignSystem(site);
+  const color = system.colorPrimary;
   const navLinks = buildSiteNav(slug, {
     hasAbout: Boolean(site.story || site.about),
     hasServices: site._count.serviceItems > 0,
@@ -41,6 +43,7 @@ export default async function PublicSiteLayout({
 
   return (
     <>
+      <SiteIdentity system={system} />
       <a
         href="#top"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-slate-900 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white"

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { SitePageShell } from "@/components/site/SitePageShell";
 import { pageMetadata } from "@/lib/seo";
+import { resolveDesignSystem } from "@/lib/templates";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -24,23 +25,22 @@ export default async function ServicesIndexPage({ params }: { params: Promise<{ 
   if (!site || site.status !== "PUBLISHED") notFound();
   if (site.serviceItems.length === 0) notFound();
 
-  const color = site.primaryColor || "#2563eb";
+  const system = resolveDesignSystem(site);
+  const color = system.colorPrimary;
 
   return (
-    <SitePageShell title="Services" wide>
+    <SitePageShell title="Services" wide system={system}>
       <div className="grid gap-4 sm:grid-cols-2">
         {site.serviceItems.map((s) => (
           <a
             key={s.id}
             href={`/s/${slug}/services/${s.slug}`}
-            className="block rounded-xl border border-slate-200 p-6 transition-shadow hover:shadow-md dark:border-slate-800"
+            className="site-border block rounded-xl border p-6 transition-shadow hover:shadow-md"
           >
-            <h2 className="font-semibold text-slate-900 dark:text-white" style={{ color }}>
+            <h2 className="font-semibold" style={{ color }}>
               {s.name}
             </h2>
-            {s.description && (
-              <p className="mt-2 line-clamp-3 text-sm text-slate-600 dark:text-slate-300">{s.description}</p>
-            )}
+            {s.description && <p className="mt-2 line-clamp-3 text-sm opacity-80">{s.description}</p>}
           </a>
         ))}
       </div>

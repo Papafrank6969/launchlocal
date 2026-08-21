@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { SitePageShell, LastUpdated } from "@/components/site/SitePageShell";
 import { pageMetadata } from "@/lib/seo";
+import { resolveDesignSystem } from "@/lib/templates";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -24,10 +25,11 @@ export default async function AboutPage({ params }: { params: Promise<{ slug: st
   if (!content) notFound();
 
   const paragraphs = content.split("\n").map((p) => p.trim()).filter(Boolean);
+  const system = resolveDesignSystem(site);
 
   return (
-    <SitePageShell title={`About ${site.businessName}`}>
-      <div className="space-y-4 text-slate-700 dark:text-slate-300">
+    <SitePageShell title={`About ${site.businessName}`} system={system}>
+      <div className="space-y-4 opacity-90">
         {paragraphs.map((p, i) => (
           <p key={i}>{p}</p>
         ))}

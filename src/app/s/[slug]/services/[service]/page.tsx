@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { SitePageShell } from "@/components/site/SitePageShell";
 import { pageMetadata } from "@/lib/seo";
+import { resolveDesignSystem } from "@/lib/templates";
+import { readableTextColor } from "@/lib/contrast";
 
 async function getService(slug: string, serviceSlug: string) {
   const site = await db.site.findUnique({ where: { slug } });
@@ -36,31 +38,31 @@ export default async function ServiceDetailPage({
   const result = await getService(slug, serviceSlug);
   if (!result) notFound();
   const { site, service } = result;
-  const color = site.primaryColor || "#2563eb";
+  const system = resolveDesignSystem(site);
+  const color = system.colorPrimary;
+  const buttonText = readableTextColor(color);
 
   return (
-    <SitePageShell title={service.name}>
+    <SitePageShell title={service.name} system={system}>
       {service.description ? (
-        <p className="text-slate-700 dark:text-slate-300">{service.description}</p>
+        <p className="opacity-90">{service.description}</p>
       ) : (
-        <p className="text-slate-500 dark:text-slate-400">
-          Contact {site.businessName} to learn more about this service.
-        </p>
+        <p className="opacity-70">Contact {site.businessName} to learn more about this service.</p>
       )}
       <div className="mt-8 flex flex-wrap gap-3">
         {site.phone && (
           <a
             href={`tel:${site.phone}`}
-            className="inline-block rounded-md px-5 py-2.5 font-medium text-white transition-opacity hover:opacity-90"
-            style={{ backgroundColor: color }}
+            className="inline-block rounded-md px-5 py-2.5 font-medium transition-opacity hover:opacity-90"
+            style={{ backgroundColor: color, color: buttonText }}
           >
             Call {site.phone}
           </a>
         )}
         <a
           href={`/s/${slug}/contact`}
-          className="inline-block rounded-md border px-5 py-2.5 font-medium transition-colors hover:bg-slate-50 dark:hover:bg-slate-900"
-          style={{ borderColor: color, color }}
+          className="site-border inline-block rounded-md border px-5 py-2.5 font-medium transition-opacity hover:opacity-80"
+          style={{ color }}
         >
           Get in touch
         </a>

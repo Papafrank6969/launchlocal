@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { scoreWebsite } from "../src/lib/places";
 import { slugify } from "../src/lib/slug";
+import { deterministicDesignSystem } from "../src/lib/designSystems";
 
 const db = new PrismaClient();
 
@@ -42,6 +43,7 @@ async function main() {
   await db.event.createMany({ data: leads.map(() => ({ type: "LEAD_FOUND" as const })) });
 
   const publishedLead = leads.find((l) => l.name === "Sunrise Plumbing Co.")!;
+  const publishedDesign = deterministicDesignSystem("Sunrise Plumbing Co.", "plumber");
   const publishedSite = await db.site.create({
     data: {
       slug: "sunrise-plumbing-co",
@@ -51,8 +53,9 @@ async function main() {
       hours: "Mon-Fri: 8am-6pm\nSat: 9am-2pm",
       phone: publishedLead.phone,
       address: publishedLead.address,
-      template: "modern",
-      primaryColor: "#2a78d6",
+      category: "plumber",
+      designSystemId: publishedDesign.id,
+      designRationale: `Picked "${publishedDesign.name}" based on business category (seeded).`,
       status: "PUBLISHED",
       leadId: publishedLead.id,
       serviceItems: {
@@ -69,14 +72,16 @@ async function main() {
   await db.event.create({ data: { type: "SITE_PUBLISHED", siteId: publishedSite.id } });
 
   const draftLead = leads.find((l) => l.name === "Maple Bread Co.")!;
+  const draftDesign = deterministicDesignSystem("Maple Bread Co.", "bakery");
   const draftSite = await db.site.create({
     data: {
       slug: "maple-bread-co",
       businessName: "Maple Bread Co.",
       tagline: "Fresh-baked every morning",
       about: "A neighborhood bakery specializing in sourdough, pastries, and custom cakes.",
-      template: "classic",
-      primaryColor: "#eb6834",
+      category: "bakery",
+      designSystemId: draftDesign.id,
+      designRationale: `Picked "${draftDesign.name}" based on business category (seeded).`,
       status: "DRAFT",
       leadId: draftLead.id,
       serviceItems: {

@@ -26,8 +26,7 @@ const EDITABLE_FIELDS = [
   "guaranteeText",
   "paymentMethods",
   "googleSiteVerification",
-  "template",
-  "primaryColor",
+  "category",
 ] as const;
 
 const EDITABLE_BOOLEAN_FIELDS = ["utmTrackingEnabled"] as const;

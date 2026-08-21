@@ -1,5 +1,8 @@
 import Image from "next/image";
 import { parseHours, isOpenNow } from "@/lib/hours";
+import { getDesignSystem, deterministicDesignSystem, fontCssValue, type DesignSystem } from "@/lib/designSystems";
+import { readableTextColor } from "@/lib/contrast";
+import { SiteIdentity } from "@/components/site/SiteFonts";
 
 export type SiteData = {
   businessName: string;
@@ -15,11 +18,17 @@ export type SiteData = {
   photoUrl?: string | null;
   guaranteeText?: string | null;
   paymentMethods?: string | null;
-  template: string;
-  primaryColor: string;
+  category?: string | null;
+  designSystemId?: string | null;
   slug?: string | null;
   serviceItems?: { id?: string; slug?: string; name: string; description?: string | null }[];
 };
+
+export function resolveDesignSystem(site: Pick<SiteData, "businessName" | "category" | "designSystemId">): DesignSystem {
+  return site.designSystemId
+    ? getDesignSystem(site.designSystemId)
+    : deterministicDesignSystem(site.businessName, site.category);
+}
 
 function Photo({
   site,
@@ -45,23 +54,14 @@ export function instagramDmUrl(handle?: string | null): string | null {
   return `https://ig.me/m/${clean}`;
 }
 
-export const TEMPLATES = [
-  { id: "classic", name: "Classic", description: "Editorial serif, centered hero, understated dividers." },
-  { id: "modern", name: "Modern", description: "Split hero, numbered service tiles, confident sans-serif." },
-  { id: "bold", name: "Bold", description: "Full-bleed color block, oversized type, hard-edged tiles." },
-] as const;
-
 function serviceHref(site: SiteData, item: { slug?: string }): string | null {
   if (!site.slug || !item.slug) return null;
   return `/s/${site.slug}/services/${item.slug}`;
 }
 
-function Eyebrow({ children, color, className = "" }: { children: React.ReactNode; color: string; className?: string }) {
+function Eyebrow({ children, color, headingFont }: { children: React.ReactNode; color: string; headingFont: string }) {
   return (
-    <p
-      className={`text-xs font-semibold uppercase tracking-[0.2em] ${className}`}
-      style={{ color }}
-    >
+    <p className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color, fontFamily: headingFont }}>
       {children}
     </p>
   );
@@ -69,14 +69,27 @@ function Eyebrow({ children, color, className = "" }: { children: React.ReactNod
 
 export function SitePreview({ site }: { site: SiteData }) {
   const services = site.serviceItems ?? [];
-  const color = site.primaryColor || "#2563eb";
+  const system = resolveDesignSystem(site);
+  const primary = system.colorPrimary;
+  const accent = system.colorAccent;
+  const neutralLight = system.colorNeutralLight;
+  const primaryText = readableTextColor(primary);
+  const headingFont = fontCssValue(system.fontHeading);
+  const bodyFont = fontCssValue(system.fontBody);
   const aboutText = site.about || site.story;
 
-  if (site.template === "bold") {
+  const rootStyle: React.CSSProperties = { fontFamily: bodyFont };
+  const headingStyle: React.CSSProperties = { fontFamily: headingFont };
+
+  if (system.heroStyle === "full-bleed") {
     return (
-      <div id="top" className="min-h-screen bg-white dark:bg-slate-950">
-        <section className="relative overflow-hidden border-b-4 border-slate-900 px-8 py-24 text-center text-white dark:border-white" style={{ backgroundColor: color }}>
-          <h1 className="break-words text-5xl font-extrabold leading-[0.95] tracking-tight sm:text-7xl">
+      <div id="top" className="min-h-screen bg-[var(--site-bg)] text-[var(--site-fg)]" style={rootStyle}>
+        <SiteIdentity system={system} />
+        <section
+          className="relative overflow-hidden border-b-4 border-[var(--site-fg)] px-8 py-24 text-center"
+          style={{ backgroundColor: primary, color: primaryText }}
+        >
+          <h1 className="break-words text-5xl font-extrabold leading-[0.95] tracking-tight sm:text-7xl" style={headingStyle}>
             {site.businessName}
           </h1>
           {site.tagline && <p className="mx-auto mt-5 max-w-xl text-xl font-medium opacity-90">{site.tagline}</p>}
@@ -84,8 +97,8 @@ export function SitePreview({ site }: { site: SiteData }) {
             {site.phone && (
               <a
                 href={`tel:${site.phone}`}
-                className="inline-block rounded-md bg-white px-7 py-3.5 text-base font-bold shadow-[4px_4px_0_rgba(0,0,0,0.25)] transition-transform hover:-translate-y-0.5"
-                style={{ color }}
+                className="inline-block rounded-md px-7 py-3.5 text-base font-bold shadow-[4px_4px_0_rgba(0,0,0,0.25)] transition-transform hover:-translate-y-0.5"
+                style={{ backgroundColor: neutralLight, color: primary }}
               >
                 Call {site.phone}
               </a>
@@ -95,7 +108,8 @@ export function SitePreview({ site }: { site: SiteData }) {
                 href={instagramDmUrl(site.instagramHandle)!}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-block rounded-md border-2 border-white px-7 py-3.5 text-base font-bold text-white transition-colors hover:bg-white/10"
+                className="inline-block rounded-md border-2 px-7 py-3.5 text-base font-bold transition-colors hover:bg-white/10"
+                style={{ borderColor: primaryText, color: primaryText }}
               >
                 DM us on Instagram
               </a>
@@ -105,27 +119,32 @@ export function SitePreview({ site }: { site: SiteData }) {
         <Photo site={site} />
         {aboutText && (
           <section id="about" className="mx-auto max-w-3xl scroll-mt-20 px-8 py-20 text-center">
-            <Eyebrow color={color}>About</Eyebrow>
-            <p className="mt-4 text-2xl font-medium leading-snug text-slate-900 dark:text-white">{aboutText}</p>
+            <Eyebrow color={primary} headingFont={headingFont}>
+              About
+            </Eyebrow>
+            <p className="mt-4 text-2xl font-medium leading-snug">{aboutText}</p>
           </section>
         )}
         {services.length > 0 && (
-          <section id="services" className="scroll-mt-20 bg-slate-50 px-8 py-20 dark:bg-slate-900">
+          <section id="services" className="site-card-bg scroll-mt-20 px-8 py-20">
             <div className="mx-auto max-w-4xl text-center">
-              <Eyebrow color={color}>Services</Eyebrow>
-              <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">What we do</h2>
+              <Eyebrow color={primary} headingFont={headingFont}>
+                Services
+              </Eyebrow>
+              <h2 className="mt-2 text-3xl font-extrabold tracking-tight" style={headingStyle}>
+                What we do
+              </h2>
             </div>
             <div className="mx-auto mt-10 grid max-w-4xl gap-4 sm:grid-cols-3">
               {services.map((s, i) => {
                 const href = serviceHref(site, s);
-                const cardClass =
-                  "block border-2 border-slate-900 bg-white p-6 text-left transition-transform hover:-translate-y-1 dark:border-white dark:bg-slate-950";
+                const cardClass = "site-border block border-2 bg-[var(--site-bg)] p-6 text-left transition-transform hover:-translate-y-1";
                 const inner = (
                   <>
-                    <span className="text-sm font-extrabold" style={{ color }}>
+                    <span className="text-sm font-extrabold" style={{ color: primary }}>
                       {String(i + 1).padStart(2, "0")}
                     </span>
-                    <p className="mt-2 text-lg font-bold text-slate-900 dark:text-white">{s.name}</p>
+                    <p className="mt-2 text-lg font-bold">{s.name}</p>
                   </>
                 );
                 return href ? (
@@ -141,27 +160,28 @@ export function SitePreview({ site }: { site: SiteData }) {
             </div>
           </section>
         )}
-        <Footer site={site} color={color} variant="dark" />
+        <Footer site={site} system={system} variant="dark" />
       </div>
     );
   }
 
-  if (site.template === "modern") {
+  if (system.heroStyle === "split") {
     return (
-      <div id="top" className="min-h-screen bg-white dark:bg-slate-950">
+      <div id="top" className="min-h-screen bg-[var(--site-bg)] text-[var(--site-fg)]" style={rootStyle}>
+        <SiteIdentity system={system} />
         <section className="mx-auto grid max-w-5xl gap-10 px-8 py-24 sm:grid-cols-5 sm:items-center">
           <div className="sm:col-span-3">
-            <div className="h-1 w-12 rounded-full" style={{ backgroundColor: color }} />
-            <h1 className="mt-5 break-words text-5xl font-bold leading-[1.05] tracking-tight text-slate-900 dark:text-white">
+            <div className="h-1 w-12 rounded-full" style={{ backgroundColor: primary }} />
+            <h1 className="mt-5 break-words text-5xl font-bold leading-[1.05] tracking-tight" style={headingStyle}>
               {site.businessName}
             </h1>
-            {site.tagline && <p className="mt-4 text-lg text-slate-600 dark:text-slate-300">{site.tagline}</p>}
+            {site.tagline && <p className="mt-4 text-lg opacity-80">{site.tagline}</p>}
             <div className="mt-8 flex flex-wrap gap-3">
               {site.phone && (
                 <a
                   href={`tel:${site.phone}`}
-                  className="inline-block rounded-lg px-5 py-2.5 font-medium text-white shadow-sm transition-shadow hover:shadow-md"
-                  style={{ backgroundColor: color }}
+                  className="inline-block rounded-lg px-5 py-2.5 font-medium shadow-sm transition-shadow hover:shadow-md"
+                  style={{ backgroundColor: primary, color: primaryText }}
                 >
                   Call {site.phone}
                 </a>
@@ -171,8 +191,8 @@ export function SitePreview({ site }: { site: SiteData }) {
                   href={instagramDmUrl(site.instagramHandle)!}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-block rounded-lg border px-5 py-2.5 font-medium transition-colors hover:bg-slate-50 dark:hover:bg-slate-900"
-                  style={{ borderColor: color, color }}
+                  className="site-border inline-block rounded-lg border px-5 py-2.5 font-medium transition-opacity hover:opacity-80"
+                  style={{ color: primary }}
                 >
                   DM us on Instagram
                 </a>
@@ -189,40 +209,36 @@ export function SitePreview({ site }: { site: SiteData }) {
             </div>
           )}
         </section>
-        {!site.photoUrl && aboutText && (
-          <div className="mx-auto max-w-5xl px-8">
-            <div className="h-px bg-slate-200 dark:bg-slate-800" />
-          </div>
-        )}
-        <div className="mx-auto max-w-5xl px-8 pb-20 pt-16">
+        <div className="mx-auto max-w-5xl px-8 pb-20">
           {aboutText && (
             <div id="about" className="scroll-mt-20 max-w-2xl">
-              <Eyebrow color={color}>About</Eyebrow>
-              <p className="mt-3 text-lg leading-relaxed text-slate-700 dark:text-slate-300">{aboutText}</p>
+              <Eyebrow color={primary} headingFont={headingFont}>
+                About
+              </Eyebrow>
+              <p className="mt-3 text-lg leading-relaxed opacity-90">{aboutText}</p>
             </div>
           )}
           {services.length > 0 && (
             <div id="services" className={`scroll-mt-20 ${aboutText ? "mt-16" : ""}`}>
-              <Eyebrow color={color}>Services</Eyebrow>
+              <Eyebrow color={primary} headingFont={headingFont}>
+                Services
+              </Eyebrow>
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
                 {services.map((s, i) => {
                   const href = serviceHref(site, s);
-                  const cardClass =
-                    "block rounded-xl border-t-4 bg-white p-5 shadow-sm transition-shadow hover:shadow-md dark:bg-slate-900";
+                  const cardClass = "site-card-bg block rounded-xl border-t-4 p-5 shadow-sm transition-shadow hover:shadow-md";
                   const inner = (
                     <>
-                      <span className="text-xs font-bold text-slate-400 dark:text-slate-500">
-                        {String(i + 1).padStart(2, "0")}
-                      </span>
-                      <p className="mt-1 font-semibold text-slate-900 dark:text-white">{s.name}</p>
+                      <span className="text-xs font-bold opacity-50">{String(i + 1).padStart(2, "0")}</span>
+                      <p className="mt-1 font-semibold">{s.name}</p>
                     </>
                   );
                   return href ? (
-                    <a key={s.id ?? s.slug ?? i} href={href} className={cardClass} style={{ borderTopColor: color }}>
+                    <a key={s.id ?? s.slug ?? i} href={href} className={cardClass} style={{ borderTopColor: accent }}>
                       {inner}
                     </a>
                   ) : (
-                    <div key={s.id ?? s.slug ?? i} className={cardClass} style={{ borderTopColor: color }}>
+                    <div key={s.id ?? s.slug ?? i} className={cardClass} style={{ borderTopColor: accent }}>
                       {inner}
                     </div>
                   );
@@ -231,27 +247,28 @@ export function SitePreview({ site }: { site: SiteData }) {
             </div>
           )}
         </div>
-        <Footer site={site} color={color} variant="left" />
+        <Footer site={site} system={system} variant="left" />
       </div>
     );
   }
 
-  // classic (default)
+  // centered (default)
   return (
-    <div id="top" className="min-h-screen bg-white font-serif dark:bg-slate-950">
+    <div id="top" className="min-h-screen bg-[var(--site-bg)] text-[var(--site-fg)]" style={rootStyle}>
+      <SiteIdentity system={system} />
       <section className="px-8 py-28 text-center">
-        <h1 className="break-words text-5xl font-bold tracking-tight text-slate-900 dark:text-white">
+        <h1 className="break-words text-5xl font-bold tracking-tight" style={headingStyle}>
           {site.businessName}
         </h1>
-        <div className="mx-auto mt-5 h-0.5 w-16" style={{ backgroundColor: color }} />
-        {site.tagline && <p className="mt-5 text-lg italic text-slate-600 dark:text-slate-300">{site.tagline}</p>}
+        <div className="mx-auto mt-5 h-0.5 w-16" style={{ backgroundColor: primary }} />
+        {site.tagline && <p className="mt-5 text-lg italic opacity-80">{site.tagline}</p>}
         {instagramDmUrl(site.instagramHandle) && (
           <a
             href={instagramDmUrl(site.instagramHandle)!}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-8 inline-block rounded-full border px-6 py-3 text-sm font-semibold uppercase tracking-widest not-italic transition-colors hover:bg-slate-50 dark:hover:bg-slate-900"
-            style={{ borderColor: color, color }}
+            className="mt-8 inline-block rounded-full border px-6 py-3 text-sm font-semibold uppercase tracking-widest transition-opacity hover:opacity-80"
+            style={{ borderColor: primary, color: primary }}
           >
             DM on Instagram
           </a>
@@ -260,18 +277,22 @@ export function SitePreview({ site }: { site: SiteData }) {
       <Photo site={site} />
       {aboutText && (
         <section id="about" className="mx-auto max-w-xl scroll-mt-20 px-8 py-16 text-center">
-          <Eyebrow color={color}>About Us</Eyebrow>
-          <p className="mt-4 text-lg leading-relaxed text-slate-700 dark:text-slate-300">{aboutText}</p>
+          <Eyebrow color={primary} headingFont={headingFont}>
+            About Us
+          </Eyebrow>
+          <p className="mt-4 text-lg leading-relaxed opacity-90">{aboutText}</p>
         </section>
       )}
       {services.length > 0 && (
-        <section id="services" className="mx-auto max-w-xl scroll-mt-20 border-t border-slate-200 px-8 py-16 text-center dark:border-slate-800">
-          <Eyebrow color={color}>Our Services</Eyebrow>
-          <ul className="mt-4 divide-y divide-slate-200 dark:divide-slate-800">
+        <section id="services" className="site-border mx-auto max-w-xl scroll-mt-20 border-t px-8 py-16 text-center">
+          <Eyebrow color={primary} headingFont={headingFont}>
+            Our Services
+          </Eyebrow>
+          <ul className="site-border mt-4 divide-y">
             {services.map((s, i) => {
               const href = serviceHref(site, s);
               return (
-                <li key={s.id ?? s.slug ?? i} className="py-3 text-lg text-slate-700 dark:text-slate-300">
+                <li key={s.id ?? s.slug ?? i} className="py-3 text-lg">
                   {href ? (
                     <a href={href} className="underline-offset-4 hover:underline">
                       {s.name}
@@ -285,18 +306,18 @@ export function SitePreview({ site }: { site: SiteData }) {
           </ul>
         </section>
       )}
-      <Footer site={site} color={color} />
+      <Footer site={site} system={system} />
     </div>
   );
 }
 
 function Footer({
   site,
-  color,
+  system,
   variant = "center",
 }: {
   site: SiteData;
-  color: string;
+  system: DesignSystem;
   variant?: "center" | "left" | "dark";
 }) {
   const dmUrl = instagramDmUrl(site.instagramHandle);
@@ -307,62 +328,45 @@ function Footer({
     .split(",")
     .map((p) => p.trim())
     .filter(Boolean);
+  const primary = system.colorPrimary;
 
   const dark = variant === "dark";
   const left = variant === "left";
+  const darkStyle: React.CSSProperties | undefined = dark
+    ? { backgroundColor: system.colorNeutralDark, color: system.colorNeutralLight }
+    : undefined;
 
   return (
     <footer
       id="contact"
-      className={`scroll-mt-20 border-t px-8 py-12 text-sm ${
-        left ? "text-left" : "text-center"
-      } ${
-        dark
-          ? "border-slate-800 bg-slate-900 text-slate-300"
-          : "border-slate-200 text-slate-600 dark:border-slate-800 dark:text-slate-300"
-      }`}
+      className={`site-border scroll-mt-20 border-t px-8 py-12 text-sm ${left ? "text-left" : "text-center"} ${dark ? "" : "opacity-90"}`}
+      style={darkStyle}
     >
       <div className={left ? "mx-auto flex max-w-5xl flex-wrap items-start justify-between gap-8" : ""}>
         <div>
           {site.address && <p>{site.address}</p>}
           {site.phone && (
             <p>
-              <a href={`tel:${site.phone}`} style={{ color: dark ? undefined : color }} className={`font-medium transition-opacity hover:opacity-80 ${dark ? "text-white" : ""}`}>
+              <a href={`tel:${site.phone}`} style={{ color: dark ? undefined : primary }} className="font-medium transition-opacity hover:opacity-80">
                 {site.phone}
               </a>
             </p>
           )}
           {site.email && (
             <p>
-              <a
-                href={`mailto:${site.email}`}
-                style={{ color: dark ? undefined : color }}
-                className={`font-medium transition-opacity hover:opacity-80 ${dark ? "text-white" : ""}`}
-              >
+              <a href={`mailto:${site.email}`} style={{ color: dark ? undefined : primary }} className="font-medium transition-opacity hover:opacity-80">
                 {site.email}
               </a>
             </p>
           )}
           <p className={`mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 ${left ? "" : "justify-center"}`}>
             {dmUrl && (
-              <a
-                href={dmUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: dark ? undefined : color }}
-                className={`font-medium transition-opacity hover:opacity-80 ${dark ? "text-white" : ""}`}
-              >
+              <a href={dmUrl} target="_blank" rel="noopener noreferrer" style={{ color: dark ? undefined : primary }} className="font-medium transition-opacity hover:opacity-80">
                 Instagram
               </a>
             )}
             {site.facebookUrl && (
-              <a
-                href={site.facebookUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: dark ? undefined : color }}
-                className={`font-medium transition-opacity hover:opacity-80 ${dark ? "text-white" : ""}`}
-              >
+              <a href={site.facebookUrl} target="_blank" rel="noopener noreferrer" style={{ color: dark ? undefined : primary }} className="font-medium transition-opacity hover:opacity-80">
                 Facebook
               </a>
             )}
@@ -373,11 +377,7 @@ function Footer({
               {openNow !== null && (
                 <span
                   className={`ml-2 inline-block rounded-full px-2 py-0.5 align-middle text-xs font-medium ${
-                    openNow
-                      ? "bg-emerald-100 text-emerald-700"
-                      : dark
-                        ? "bg-slate-800 text-slate-300"
-                        : "bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                    openNow ? "bg-emerald-100 text-emerald-700" : "site-card-bg"
                   }`}
                 >
                   {openNow ? "Open now" : "Closed now"}
@@ -385,20 +385,16 @@ function Footer({
               )}
             </p>
           )}
-          {payments.length > 0 && (
-            <p className={`mt-2 text-xs ${dark ? "text-slate-400" : "text-slate-500 dark:text-slate-400"}`}>
-              Payment: {payments.join(", ")}
-            </p>
-          )}
+          {payments.length > 0 && <p className="mt-2 text-xs opacity-70">Payment: {payments.join(", ")}</p>}
           {site.guaranteeText && (
-            <p className="mt-2 text-xs font-medium" style={{ color: dark ? "#fff" : color }}>
+            <p className="mt-2 text-xs font-medium" style={{ color: dark ? undefined : primary }}>
               {site.guaranteeText}
             </p>
           )}
         </div>
         <div className={left ? "text-left" : "mt-4"}>
           {site.slug && (
-            <p className={`flex gap-3 text-xs ${left ? "" : "justify-center"} ${dark ? "text-slate-400" : "text-slate-400 dark:text-slate-500"}`}>
+            <p className={`flex gap-3 text-xs opacity-60 ${left ? "" : "justify-center"}`}>
               <a href={`/s/${site.slug}/privacy`} className="hover:underline">
                 Privacy Policy
               </a>
@@ -407,7 +403,7 @@ function Footer({
               </a>
             </p>
           )}
-          <p className={`mt-2 text-xs ${dark ? "text-slate-500" : "text-slate-400 dark:text-slate-500"}`}>
+          <p className="mt-2 text-xs opacity-60">
             © {year} {site.businessName}. All rights reserved.
           </p>
         </div>
