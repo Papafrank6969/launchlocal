@@ -4,7 +4,7 @@ import { useState } from "react";
 import { SitePreview, type SiteData } from "@/lib/templates";
 import { FormStatus, type StatusMessage } from "@/components/FormStatus";
 import { DESIGN_SYSTEMS, getDesignSystem } from "@/lib/designSystems";
-import { suggestedServices } from "@/lib/serviceSuggestions";
+import { TRADE_OPTIONS, resolveTradeId, getServicesForTrades } from "@/lib/serviceSuggestions";
 import { InspirationPhotos } from "@/components/InspirationPhotos";
 
 export type EditableSite = SiteData & {
@@ -380,14 +380,53 @@ function ServicesEditor({
     onChange([...services, { name }]);
   }
 
+  const [selectedTrades, setSelectedTrades] = useState<string[]>(() => {
+    const id = resolveTradeId(category);
+    return id ? [id] : [];
+  });
+  const [tradesTouched, setTradesTouched] = useState(false);
+  const [lastCategory, setLastCategory] = useState(category);
+
+  // Auto-follow the Category field until the operator manually picks trades
+  // themselves — after that, their multi-select choices win. Adjusting state
+  // during render (not an effect) per React's guidance for state that needs
+  // to reset when a prop changes.
+  if (category !== lastCategory) {
+    setLastCategory(category);
+    if (!tradesTouched) {
+      const id = resolveTradeId(category);
+      setSelectedTrades(id ? [id] : []);
+    }
+  }
+
   const usedNames = new Set(services.map((s) => s.name.trim().toLowerCase()));
-  const suggestions = suggestedServices(category).filter((name) => !usedNames.has(name.toLowerCase()));
+  const suggestions = getServicesForTrades(selectedTrades).filter((name) => !usedNames.has(name.toLowerCase()));
 
   return (
     <div className="space-y-3">
+      <label className="block">
+        <span className="text-xs font-medium text-slate-600">Trades (for service suggestions)</span>
+        <select
+          multiple
+          size={5}
+          className="input mt-1 text-sm"
+          value={selectedTrades}
+          onChange={(e) => {
+            setTradesTouched(true);
+            setSelectedTrades(Array.from(e.target.selectedOptions, (o) => o.value));
+          }}
+        >
+          {TRADE_OPTIONS.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.label}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-slate-500">Hold Ctrl (⌘ on Mac) and click to select more than one trade.</p>
+      </label>
       {suggestions.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-xs text-slate-500">Suggested for {category!.trim()}:</span>
+          <span className="text-xs text-slate-500">Suggested:</span>
           {suggestions.map((name) => (
             <button
               key={name}

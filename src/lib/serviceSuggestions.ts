@@ -333,17 +333,69 @@ const SERVICE_SUGGESTIONS: ServiceSuggestionGroup[] = [
 
 const GENERIC_FALLBACK = ["Consultations", "Custom quotes", "Free estimates", "Ongoing support"];
 
+function findGroup(category: string): ServiceSuggestionGroup | undefined {
+  const exact = SERVICE_SUGGESTIONS.find((g) => g.categories.includes(category));
+  if (exact) return exact;
+  return SERVICE_SUGGESTIONS.find((g) => g.categories.some((c) => category.includes(c)));
+}
+
 /** Category-typical service name suggestions, exact match before substring — same precedence as deterministicDesignSystem. */
 export function suggestedServices(category?: string | null): string[] {
   if (!category) return [];
   const cat = category.toLowerCase().trim();
   if (!cat) return [];
 
-  const exact = SERVICE_SUGGESTIONS.find((g) => g.categories.includes(cat));
-  if (exact) return exact.services;
+  return findGroup(cat)?.services ?? GENERIC_FALLBACK;
+}
 
-  const partial = SERVICE_SUGGESTIONS.find((g) => g.categories.some((c) => cat.includes(c)));
-  if (partial) return partial.services;
+/** Every group's first category string, unique across the whole catalog — used as a stable trade id. */
+function tradeId(group: ServiceSuggestionGroup): string {
+  return group.categories[0];
+}
 
-  return GENERIC_FALLBACK;
+function titleCase(category: string): string {
+  if (category === "hvac contractor") return "HVAC Contractor";
+  return category.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/** "Event / Party" for a 2-alias group, just the title-cased category for everything else (3+ aliases get too long joined). */
+function tradeLabel(group: ServiceSuggestionGroup): string {
+  if (group.categories.length === 2) {
+    return group.categories.map(titleCase).join(" / ");
+  }
+  return titleCase(tradeId(group));
+}
+
+export type TradeOption = { id: string; label: string };
+
+/** One selectable option per suggestion group, for a multi-select "which trades apply" control. */
+export const TRADE_OPTIONS: TradeOption[] = SERVICE_SUGGESTIONS.map((g) => ({
+  id: tradeId(g),
+  label: tradeLabel(g),
+})).sort((a, b) => a.label.localeCompare(b.label));
+
+/** Resolves free-text category input to the trade id an operator would land on by default. */
+export function resolveTradeId(category?: string | null): string | null {
+  if (!category) return null;
+  const cat = category.toLowerCase().trim();
+  if (!cat) return null;
+  const group = findGroup(cat);
+  return group ? tradeId(group) : null;
+}
+
+/** Union of suggested services across every selected trade id, in selection order, deduped. */
+export function getServicesForTrades(tradeIds: string[]): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const id of tradeIds) {
+    const group = SERVICE_SUGGESTIONS.find((g) => tradeId(g) === id);
+    if (!group) continue;
+    for (const service of group.services) {
+      const key = service.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      result.push(service);
+    }
+  }
+  return result;
 }
