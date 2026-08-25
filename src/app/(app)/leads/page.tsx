@@ -7,6 +7,7 @@ import { generateOutreachMessage, OUTREACH_VARIANT_COUNT } from "@/lib/outreachM
 import { FormStatus } from "@/components/FormStatus";
 import { OutreachControls } from "@/components/OutreachControls";
 import { OUTREACH_LABEL, OUTREACH_STYLE, type OutreachStatus } from "@/lib/outreachStatus";
+import { TRADE_OPTIONS } from "@/lib/serviceSuggestions";
 
 type Lead = {
   id: string;
@@ -141,12 +142,17 @@ export default function LeadsPage() {
         </div>
         <div>
           <label className="block text-sm font-medium text-slate-700">Category</label>
-          <input
+          <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             className="mt-1 w-56 rounded-md border border-slate-300 px-3 py-2 text-sm"
-            placeholder="plumber"
-          />
+          >
+            {TRADE_OPTIONS.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.label}
+              </option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="block text-sm font-medium text-slate-700">Radius (miles)</label>
