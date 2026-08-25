@@ -4,6 +4,7 @@ import { useState } from "react";
 import { SitePreview, type SiteData } from "@/lib/templates";
 import { FormStatus, type StatusMessage } from "@/components/FormStatus";
 import { DESIGN_SYSTEMS, getDesignSystem } from "@/lib/designSystems";
+import { suggestedServices } from "@/lib/serviceSuggestions";
 import { InspirationPhotos } from "@/components/InspirationPhotos";
 
 export type EditableSite = SiteData & {
@@ -185,6 +186,7 @@ export function SiteEditorForm({
           <ServicesEditor
             services={data.serviceItems ?? []}
             onChange={(items) => set("serviceItems", items)}
+            category={data.category}
           />
         </Field>
         <Field label="Hours">
@@ -352,9 +354,11 @@ type EditableService = { id?: string; slug?: string; name: string; description?:
 function ServicesEditor({
   services,
   onChange,
+  category,
 }: {
   services: EditableService[];
   onChange: (services: EditableService[]) => void;
+  category?: string | null;
 }) {
   function update(index: number, patch: Partial<EditableService>) {
     onChange(services.map((s, i) => (i === index ? { ...s, ...patch } : s)));
@@ -372,8 +376,30 @@ function ServicesEditor({
     onChange(next);
   }
 
+  function addSuggestion(name: string) {
+    onChange([...services, { name }]);
+  }
+
+  const usedNames = new Set(services.map((s) => s.name.trim().toLowerCase()));
+  const suggestions = suggestedServices(category).filter((name) => !usedNames.has(name.toLowerCase()));
+
   return (
     <div className="space-y-3">
+      {suggestions.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-xs text-slate-500">Suggested for {category!.trim()}:</span>
+          {suggestions.map((name) => (
+            <button
+              key={name}
+              type="button"
+              onClick={() => addSuggestion(name)}
+              className="rounded-full border border-dashed border-blue-300 px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-50"
+            >
+              + {name}
+            </button>
+          ))}
+        </div>
+      )}
       {services.map((s, i) => (
         <div key={s.id ?? i} className="rounded-md border border-slate-300 p-3">
           <div className="flex items-start gap-2">
