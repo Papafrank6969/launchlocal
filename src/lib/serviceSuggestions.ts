@@ -106,6 +106,18 @@ const SERVICE_SUGGESTIONS: ServiceSuggestionGroup[] = [
     services: ["Birthday parties", "Classes & camps", "Open play", "Group bookings", "After-school programs"],
   },
   {
+    categories: ["nail technician", "nail salon", "nail tech"],
+    services: ["Manicures", "Pedicures", "Gel & dip powder", "Nail art", "Acrylic fills"],
+  },
+  {
+    categories: ["lash technician", "lash tech", "eyelash technician", "lash artist"],
+    services: ["Classic lash extensions", "Volume lash extensions", "Lash lifts & tints", "Lash fills", "Lash removal"],
+  },
+  {
+    categories: ["brow technician", "brow artist", "microblading"],
+    services: ["Microblading", "Brow lamination", "Brow tinting", "Brow waxing & threading", "Ombre powder brows"],
+  },
+  {
     categories: ["salon", "hair salon"],
     services: ["Haircuts & styling", "Color & highlights", "Blowouts", "Bridal styling", "Extensions"],
   },

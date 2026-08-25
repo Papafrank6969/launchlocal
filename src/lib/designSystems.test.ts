@@ -67,3 +67,16 @@ describe("DESIGN_SYSTEMS catalog integrity", () => {
     }
   });
 });
+
+describe("beauty-tech niche routing", () => {
+  it("routes nail, lash, and brow technicians to the dedicated Studio Beauty system", () => {
+    expect(deterministicDesignSystem("Glow Bar", "nail technician").id).toBe("studio-beauty");
+    expect(deterministicDesignSystem("Lash Loft", "lash technician").id).toBe("studio-beauty");
+    expect(deterministicDesignSystem("Arch & Brow", "brow technician").id).toBe("studio-beauty");
+  });
+
+  it("does not shadow the generic 'salon'/'beauty' systems, which stay on Minimal Luxury", () => {
+    expect(deterministicDesignSystem("The Cutting Room", "salon").id).toBe("minimal-luxury");
+    expect(deterministicDesignSystem("Glow Studio", "beauty").id).toBe("minimal-luxury");
+  });
+});

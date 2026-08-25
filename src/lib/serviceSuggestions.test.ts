@@ -125,3 +125,28 @@ describe("getServicesForTrades", () => {
     expect(getServicesForTrades(["not-a-real-trade", "plumber"])).toEqual(suggestedServices("plumber"));
   });
 });
+
+describe("beauty-tech niche categories", () => {
+  it("gives nail, lash, and brow technicians their own dedicated suggestion lists", () => {
+    expect(suggestedServices("nail technician")).toEqual([
+      "Manicures",
+      "Pedicures",
+      "Gel & dip powder",
+      "Nail art",
+      "Acrylic fills",
+    ]);
+    expect(suggestedServices("lash technician")).toContain("Classic lash extensions");
+    expect(suggestedServices("brow technician")).toContain("Microblading");
+  });
+
+  it("groups synonym categories onto the same list for each niche trade", () => {
+    expect(suggestedServices("nail salon")).toEqual(suggestedServices("nail technician"));
+    expect(suggestedServices("lash artist")).toEqual(suggestedServices("lash technician"));
+    expect(suggestedServices("microblading")).toEqual(suggestedServices("brow technician"));
+  });
+
+  it("keeps these distinct from the generic 'beauty' catch-all", () => {
+    expect(suggestedServices("nail technician")).not.toEqual(suggestedServices("beauty"));
+    expect(suggestedServices("lash technician")).not.toEqual(suggestedServices("beauty"));
+  });
+});
