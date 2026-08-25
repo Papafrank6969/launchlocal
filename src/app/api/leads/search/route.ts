@@ -1,18 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { extractInstagramHandle, findBusinesses, scoreWebsite } from "@/lib/places";
+import { extractInstagramHandle, findBusinesses, scoreWebsite, type RawBusiness } from "@/lib/places";
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const city = (body.city ?? "").toString().trim();
-  const category = (body.category ?? "").toString().trim();
+  // Accept either the current multi-select `categories` array or the older
+  // single `category` string, so nothing calling this route with the old
+  // shape breaks.
+  const categories: string[] = Array.isArray(body.categories)
+    ? body.categories.map((c: unknown) => String(c).trim()).filter(Boolean)
+    : [String(body.category ?? "").trim()].filter(Boolean);
   const radiusMiles = body.radiusMiles ? Number(body.radiusMiles) : undefined;
 
-  if (!city || !category) {
-    return NextResponse.json({ error: "city and category are required" }, { status: 400 });
+  if (!city || categories.length === 0) {
+    return NextResponse.json({ error: "city and at least one category are required" }, { status: 400 });
   }
 
-  const businesses = await findBusinesses(city, category, radiusMiles);
+  const resultsByCategory = await Promise.all(categories.map((cat) => findBusinesses(city, cat, radiusMiles)));
+  const seenKeys = new Set<string>();
+  const businesses: RawBusiness[] = [];
+  for (const batch of resultsByCategory) {
+    for (const b of batch) {
+      const key = b.placeId ?? `${b.name}-${b.address}`;
+      if (seenKeys.has(key)) continue;
+      seenKeys.add(key);
+      businesses.push(b);
+    }
+  }
 
   const leads = await Promise.all(
     businesses.map(async (b) => {

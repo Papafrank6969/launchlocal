@@ -43,7 +43,7 @@ const STATUS_STYLE: Record<Lead["websiteStatus"], string> = {
 
 export default function LeadsPage() {
   const [city, setCity] = useState("Austin, TX");
-  const [category, setCategory] = useState("plumber");
+  const [categories, setCategories] = useState<string[]>(["plumber"]);
   const [radiusMiles, setRadiusMiles] = useState("");
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(false);
@@ -59,7 +59,7 @@ export default function LeadsPage() {
       const res = await fetch("/api/leads/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ city, category, radiusMiles: radiusMiles || undefined }),
+        body: JSON.stringify({ city, categories, radiusMiles: radiusMiles || undefined }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Search failed");
@@ -143,9 +143,11 @@ export default function LeadsPage() {
         <div>
           <label className="block text-sm font-medium text-slate-700">Category</label>
           <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="mt-1 w-56 rounded-md border border-slate-300 px-3 py-2 text-sm"
+            multiple
+            size={5}
+            value={categories}
+            onChange={(e) => setCategories(Array.from(e.target.selectedOptions, (o) => o.value))}
+            className="mt-1 w-56 rounded-md border border-indigo-300 bg-indigo-50 px-3 py-2 text-sm text-indigo-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           >
             {TRADE_OPTIONS.map((t) => (
               <option key={t.id} value={t.id}>
@@ -153,6 +155,7 @@ export default function LeadsPage() {
               </option>
             ))}
           </select>
+          <p className="mt-1 text-xs text-slate-500">Hold Ctrl (⌘ on Mac) to search more than one trade at once.</p>
         </div>
         <div>
           <label className="block text-sm font-medium text-slate-700">Radius (miles)</label>
@@ -168,7 +171,7 @@ export default function LeadsPage() {
         </div>
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || categories.length === 0}
           className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
         >
           {loading ? "Searching…" : "Search"}
