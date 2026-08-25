@@ -5,6 +5,8 @@ import Link from "next/link";
 import { instagramDmUrl } from "@/lib/templates";
 import { generateOutreachMessage, OUTREACH_VARIANT_COUNT } from "@/lib/outreachMessage";
 import { FormStatus } from "@/components/FormStatus";
+import { OutreachControls } from "@/components/OutreachControls";
+import { OUTREACH_LABEL, OUTREACH_STYLE, type OutreachStatus } from "@/lib/outreachStatus";
 
 type Lead = {
   id: string;
@@ -20,6 +22,9 @@ type Lead = {
   reviewCount: number | null;
   websiteStatus: "NONE" | "POOR" | "HAS_SITE";
   source: "GOOGLE_PLACES" | "MOCK";
+  outreachStatus: OutreachStatus;
+  lastContactedAt: string | null;
+  followUpAt: string | null;
   sites?: { id: string; slug: string; status: string }[];
 };
 
@@ -92,6 +97,25 @@ export default function LeadsPage() {
     } catch {
       return false;
     }
+  }
+
+  function updateOutreach(leadId: string, patch: { outreachStatus?: OutreachStatus; followUpAt?: string | null }) {
+    setLeads((prev) =>
+      prev.map((l) =>
+        l.id === leadId
+          ? {
+              ...l,
+              ...(patch.outreachStatus ? { outreachStatus: patch.outreachStatus } : {}),
+              ...("followUpAt" in patch ? { followUpAt: patch.followUpAt ?? null } : {}),
+            }
+          : l
+      )
+    );
+    fetch(`/api/leads/${leadId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    }).catch(() => {});
   }
 
   const visibleLeads = onlyOpportunities
@@ -168,7 +192,13 @@ export default function LeadsPage() {
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {visibleLeads.map((lead) => (
-          <LeadCard key={lead.id} lead={lead} onSaveInstagram={updateInstagramHandle} onSaveEmail={updateEmail} />
+          <LeadCard
+            key={lead.id}
+            lead={lead}
+            onSaveInstagram={updateInstagramHandle}
+            onSaveEmail={updateEmail}
+            onOutreachChange={updateOutreach}
+          />
         ))}
         {visibleLeads.length === 0 && !loading && (
           <p className="text-sm text-slate-500">No leads yet — search above to get started.</p>
@@ -182,10 +212,12 @@ function LeadCard({
   lead,
   onSaveInstagram,
   onSaveEmail,
+  onOutreachChange,
 }: {
   lead: Lead;
   onSaveInstagram: (leadId: string, handle: string) => Promise<boolean>;
   onSaveEmail: (leadId: string, email: string) => Promise<boolean>;
+  onOutreachChange: (leadId: string, patch: { outreachStatus?: OutreachStatus; followUpAt?: string | null }) => void;
 }) {
   const [handle, setHandle] = useState(lead.instagramHandle ?? "");
   const [email, setEmail] = useState(lead.email ?? "");
@@ -251,11 +283,14 @@ function LeadCard({
     <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex items-start justify-between gap-2">
         <h3 className="break-words font-semibold text-slate-900">{lead.name}</h3>
-        <span
-          className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLE[lead.websiteStatus]}`}
-        >
-          {STATUS_LABEL[lead.websiteStatus]}
-        </span>
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLE[lead.websiteStatus]}`}>
+            {STATUS_LABEL[lead.websiteStatus]}
+          </span>
+          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${OUTREACH_STYLE[lead.outreachStatus]}`}>
+            {OUTREACH_LABEL[lead.outreachStatus]}
+          </span>
+        </div>
       </div>
       <p className="mt-1 text-sm capitalize text-slate-500">{lead.category}</p>
       <p className="mt-2 text-sm text-slate-600">{lead.address}</p>
@@ -394,12 +429,22 @@ function LeadCard({
             href={dmUrl}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => {
+              if (lead.outreachStatus === "NEW") onOutreachChange(lead.id, { outreachStatus: "CONTACTED" });
+            }}
             className="rounded-md border border-pink-300 px-3 py-1.5 text-sm font-medium text-pink-600 hover:bg-pink-50"
           >
             DM on Instagram
           </a>
         )}
       </div>
+
+      <OutreachControls
+        leadId={lead.id}
+        outreachStatus={lead.outreachStatus}
+        followUpAt={lead.followUpAt}
+        onChange={onOutreachChange}
+      />
     </div>
   );
 }

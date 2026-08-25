@@ -17,7 +17,7 @@ function startOfDay(d: Date) {
 
 export default async function StatsPage() {
   const [leads, sites, events] = await Promise.all([
-    db.lead.findMany({ select: { websiteStatus: true } }),
+    db.lead.findMany({ select: { websiteStatus: true, outreachStatus: true } }),
     db.site.findMany({
       select: { id: true, businessName: true, slug: true, status: true, _count: { select: { events: true } } },
       orderBy: { createdAt: "desc" },
@@ -40,6 +40,11 @@ export default async function StatsPage() {
     { key: "POOR", label: "Weak website", count: leads.filter((l) => l.websiteStatus === "POOR").length },
     { key: "HAS_SITE", label: "Has a website", count: leads.filter((l) => l.websiteStatus === "HAS_SITE").length },
   ];
+
+  const contacted = leads.filter((l) => l.outreachStatus !== "NEW").length;
+  const responded = leads.filter((l) => l.outreachStatus === "RESPONDED" || l.outreachStatus === "WON").length;
+  const won = leads.filter((l) => l.outreachStatus === "WON").length;
+  const responseRate = contacted > 0 ? Math.round((responded / contacted) * 100) : 0;
 
   const days: { date: string; views: number }[] = [];
   const today = startOfDay(new Date());
@@ -67,6 +72,12 @@ export default async function StatsPage() {
         <StatTile label="Published" value={sitesPublished} />
         <StatTile label="Conversion" value={`${conversionRate}%`} hint="built ÷ opportunities" />
         <StatTile label="Total views" value={totalViews} />
+      </div>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-3">
+        <StatTile label="Contacted" value={contacted} hint="leads past 'New'" />
+        <StatTile label="Response rate" value={`${responseRate}%`} hint="responded or won ÷ contacted" />
+        <StatTile label="Won" value={won} />
       </div>
 
       <StatsCharts days={days} leadsByStatus={leadsByStatus} />

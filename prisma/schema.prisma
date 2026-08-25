@@ -18,6 +18,14 @@ enum LeadSource {
   MOCK
 }
 
+enum OutreachStatus {
+  NEW
+  CONTACTED
+  RESPONDED
+  WON
+  LOST
+}
+
 model Lead {
   id            String        @id @default(cuid())
   name          String
@@ -35,6 +43,11 @@ model Lead {
   placeId       String?       @unique
   createdAt     DateTime      @default(now())
   sites         Site[]
+
+  outreachStatus  OutreachStatus @default(NEW)
+  lastContactedAt DateTime?
+  followUpAt      DateTime?
+  outreachNotes   String?
 }
 
 enum SiteStatus {

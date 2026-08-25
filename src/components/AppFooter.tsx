@@ -2,6 +2,7 @@ import Link from "next/link";
 
 const FOOTER_LINKS = [
   { href: "/leads", label: "Lead Finder" },
+  { href: "/pipeline", label: "Pipeline" },
   { href: "/builder", label: "Site Builder" },
   { href: "/stats", label: "Stats" },
 ];
