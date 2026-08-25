@@ -10,7 +10,13 @@ describe("suggestedServices", () => {
   });
 
   it("matches an exact known category", () => {
-    expect(suggestedServices("plumber")).toEqual(["Drain cleaning", "Water heater repair", "Leak detection", "Repiping"]);
+    expect(suggestedServices("plumber")).toEqual([
+      "Drain cleaning",
+      "Water heater repair",
+      "Leak detection",
+      "Repiping",
+      "Fixture installation",
+    ]);
   });
 
   it("is case-insensitive and trims whitespace", () => {
@@ -39,5 +45,28 @@ describe("suggestedServices", () => {
   it("groups synonym categories onto the same suggestion list", () => {
     expect(suggestedServices("realtor")).toEqual(suggestedServices("real estate"));
     expect(suggestedServices("interior designer")).toEqual(suggestedServices("interior design"));
+  });
+
+  it("covers newly-added categories that have no design-system counterpart", () => {
+    expect(suggestedServices("barber")).toEqual([
+      "Haircuts",
+      "Beard trims",
+      "Hot towel shaves",
+      "Kids' cuts",
+      "Walk-ins welcome",
+    ]);
+    expect(suggestedServices("pest control")).toContain("Termite treatment");
+  });
+
+  it("keeps 'barbershop' and 'tattoo shop' matching their own exact entry, not a shorter substring", () => {
+    // Regression: "barbershop" contains "barber", "tattoo shop" contains
+    // "tattoo" — both must resolve via the exact-match pass since each also
+    // has its own literal category entry, same as the "hair salon" case.
+    expect(suggestedServices("barbershop")).toEqual(suggestedServices("barber"));
+    expect(suggestedServices("tattoo shop")).toEqual(suggestedServices("tattoo"));
+  });
+
+  it("falls back to a substring match for an unlisted variant of a new category", () => {
+    expect(suggestedServices("mobile pet grooming")).toEqual(suggestedServices("pet grooming"));
   });
 });
