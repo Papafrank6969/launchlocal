@@ -249,6 +249,35 @@ export function SiteEditorForm({
             placeholder="100% satisfaction guaranteed"
           />
         </Field>
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Google rating">
+            <input
+              type="number"
+              min={1}
+              max={5}
+              step={0.1}
+              className="input"
+              value={data.rating ?? ""}
+              onChange={(e) => set("rating", e.target.value === "" ? null : Number(e.target.value))}
+              placeholder="4.9"
+            />
+          </Field>
+          <Field label="Google review count">
+            <input
+              type="number"
+              min={0}
+              step={1}
+              className="input"
+              value={data.reviewCount ?? ""}
+              onChange={(e) => set("reviewCount", e.target.value === "" ? null : Number(e.target.value))}
+              placeholder="248"
+            />
+          </Field>
+        </div>
+        <p className="-mt-3 text-xs text-slate-500">
+          Shown on the site as a rating badge. Auto-filled from the lead when built from one — only enter this if it
+          reflects the business&apos;s real Google rating.
+        </p>
         {data.id && (
           <Field label="Inspiration photos">
             <InspirationPhotos siteId={data.id} />

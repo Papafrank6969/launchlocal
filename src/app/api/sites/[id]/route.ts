@@ -31,6 +31,8 @@ const EDITABLE_FIELDS = [
 
 const EDITABLE_BOOLEAN_FIELDS = ["utmTrackingEnabled"] as const;
 
+const EDITABLE_NUMBER_FIELDS = ["rating", "reviewCount"] as const;
+
 type ServiceInput = { name: string; description?: string | null };
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -40,12 +42,22 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const existing = await db.site.findUnique({ where: { id } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const data: Record<string, string | boolean> = {};
+  const data: Record<string, string | boolean | number | null> = {};
   for (const field of EDITABLE_FIELDS) {
     if (field in body) data[field] = body[field];
   }
   for (const field of EDITABLE_BOOLEAN_FIELDS) {
     if (field in body) data[field] = Boolean(body[field]);
+  }
+  for (const field of EDITABLE_NUMBER_FIELDS) {
+    if (!(field in body)) continue;
+    const raw = body[field];
+    if (raw === null || raw === "") {
+      data[field] = null;
+      continue;
+    }
+    const n = Number(raw);
+    data[field] = Number.isNaN(n) ? null : n;
   }
 
   let status = existing.status;

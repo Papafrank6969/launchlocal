@@ -43,6 +43,11 @@ export async function POST(req: NextRequest) {
     });
 
   const category = (body.category ?? "").toString().trim() || null;
+  const rating = body.rating !== undefined && body.rating !== null && body.rating !== "" ? Number(body.rating) : null;
+  const reviewCount =
+    body.reviewCount !== undefined && body.reviewCount !== null && body.reviewCount !== ""
+      ? Number(body.reviewCount)
+      : null;
 
   const site = await db.site.create({
     data: {
@@ -59,6 +64,8 @@ export async function POST(req: NextRequest) {
       facebookUrl: body.facebookUrl || null,
       guaranteeText: body.guaranteeText || null,
       paymentMethods: body.paymentMethods || null,
+      rating: rating !== null && !Number.isNaN(rating) ? rating : null,
+      reviewCount: reviewCount !== null && !Number.isNaN(reviewCount) ? reviewCount : null,
       category,
       leadId: body.leadId || null,
       serviceItems: serviceRows.length > 0 ? { create: serviceRows } : undefined,

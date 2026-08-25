@@ -47,6 +47,8 @@ function NewSiteInner() {
             instagramHandle: d.lead.instagramHandle ?? "",
             tagline: `Your trusted ${d.lead.category} in ${d.lead.city}`,
             category: d.lead.category ?? "",
+            rating: d.lead.rating ?? null,
+            reviewCount: d.lead.reviewCount ?? null,
           }));
         }
       })

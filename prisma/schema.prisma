@@ -72,6 +72,8 @@ model Site {
   guaranteeText String?
   paymentMethods String?
   photoUrl    String?
+  rating      Float?
+  reviewCount Int?
   template    String     @default("classic")
   primaryColor String    @default("#2563eb")
   category    String?

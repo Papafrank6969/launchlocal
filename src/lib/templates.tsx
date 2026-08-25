@@ -18,6 +18,8 @@ export type SiteData = {
   photoUrl?: string | null;
   guaranteeText?: string | null;
   paymentMethods?: string | null;
+  rating?: number | null;
+  reviewCount?: number | null;
   category?: string | null;
   designSystemId?: string | null;
   slug?: string | null;
@@ -67,6 +69,29 @@ function Eyebrow({ children, color, headingFont }: { children: React.ReactNode; 
   );
 }
 
+/** Real Google rating pulled from the originating lead — never fabricated, and simply absent when there's nothing real to show. */
+function RatingBadge({
+  rating,
+  reviewCount,
+  className = "",
+}: {
+  rating?: number | null;
+  reviewCount?: number | null;
+  className?: string;
+}) {
+  if (!rating || !reviewCount) return null;
+  return (
+    <p className={`inline-flex items-center gap-1.5 text-sm font-medium ${className}`}>
+      <svg width="15" height="15" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" className="shrink-0">
+        <path d="M10 1.5l2.6 5.27 5.82.85-4.21 4.1 1 5.8L10 14.9l-5.21 2.62 1-5.8-4.21-4.1 5.82-.85L10 1.5z" />
+      </svg>
+      <span>
+        {rating.toFixed(1)} &middot; {reviewCount.toLocaleString()} Google reviews
+      </span>
+    </p>
+  );
+}
+
 export function SitePreview({ site }: { site: SiteData }) {
   const services = site.serviceItems ?? [];
   const system = resolveDesignSystem(site);
@@ -93,6 +118,7 @@ export function SitePreview({ site }: { site: SiteData }) {
             {site.businessName}
           </h1>
           {site.tagline && <p className="mx-auto mt-5 max-w-xl text-xl font-medium opacity-90">{site.tagline}</p>}
+          <RatingBadge rating={site.rating} reviewCount={site.reviewCount} className="mt-4 opacity-90" />
           <div className="mt-10 flex flex-wrap justify-center gap-4">
             {site.phone && (
               <a
@@ -176,6 +202,7 @@ export function SitePreview({ site }: { site: SiteData }) {
               {site.businessName}
             </h1>
             {site.tagline && <p className="mt-4 text-lg opacity-80">{site.tagline}</p>}
+            <RatingBadge rating={site.rating} reviewCount={site.reviewCount} className="mt-3 opacity-80" />
             <div className="mt-8 flex flex-wrap gap-3">
               {site.phone && (
                 <a
@@ -262,6 +289,7 @@ export function SitePreview({ site }: { site: SiteData }) {
         </h1>
         <div className="mx-auto mt-5 h-0.5 w-16" style={{ backgroundColor: primary }} />
         {site.tagline && <p className="mt-5 text-lg italic opacity-80">{site.tagline}</p>}
+        <RatingBadge rating={site.rating} reviewCount={site.reviewCount} className="mt-4 justify-center opacity-80" />
         {instagramDmUrl(site.instagramHandle) && (
           <a
             href={instagramDmUrl(site.instagramHandle)!}
