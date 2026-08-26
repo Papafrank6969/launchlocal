@@ -184,6 +184,62 @@ async function geocode(address: string, apiKey: string): Promise<{ lat: number; 
   return json.results[0].geometry.location;
 }
 
+const PLACES_PAGE_DELAY_MS = 2000; // Google's documented minimum before a next_page_token *might* be valid.
+// Token readiness is non-deterministic in practice, but on at least one real
+// project next_page_token never became valid even after 12s of polling — so
+// this stays low (not the 3+ retries you'd want for a flaky-but-eventually-
+// works case) to avoid burning several extra seconds of latency on a search
+// that can't paginate at all, while still trying once in case it's fixed.
+const PLACES_PAGE_MAX_RETRIES = 1;
+const MAX_PLACES_PAGES = 3; // Google never returns more than 3 pages (60 results) for search endpoints.
+
+async function fetchPlacesPage(
+  endpoint: "nearbysearch" | "textsearch",
+  params: string
+): Promise<{ status: string; error_message?: string; results?: { place_id: string }[]; next_page_token?: string }> {
+  const res = await fetch(`https://maps.googleapis.com/maps/api/place/${endpoint}/json?${params}`);
+  return res.json();
+}
+
+/**
+ * Follows next_page_token up to Google's 3-page/60-result ceiling. A page
+ * beyond the first failing (token not ready, or — as observed on at least one
+ * real project — never becoming valid at all) keeps whatever pages already
+ * succeeded instead of losing the whole search or hanging indefinitely.
+ */
+async function fetchAllPlacesPages(
+  endpoint: "nearbysearch" | "textsearch",
+  baseParams: string,
+  apiKey: string
+): Promise<{ place_id: string }[]> {
+  const results: { place_id: string }[] = [];
+  let pageToken: string | undefined;
+
+  for (let page = 0; page < MAX_PLACES_PAGES; page++) {
+    let json: Awaited<ReturnType<typeof fetchPlacesPage>> | undefined;
+
+    if (!pageToken) {
+      json = await fetchPlacesPage(endpoint, `${baseParams}&key=${apiKey}`);
+    } else {
+      for (let attempt = 0; attempt < PLACES_PAGE_MAX_RETRIES; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, PLACES_PAGE_DELAY_MS));
+        json = await fetchPlacesPage(endpoint, `pagetoken=${pageToken}&key=${apiKey}`);
+        if (json.status === "OK" || json.status === "ZERO_RESULTS") break;
+      }
+    }
+
+    if (!json || (json.status !== "OK" && json.status !== "ZERO_RESULTS")) {
+      if (page === 0) throw new Error(`Places ${endpoint} error: ${json?.status} ${json?.error_message ?? ""}`);
+      break; // couldn't get this page after retries — stop here, keep what we have.
+    }
+    results.push(...(json.results ?? []));
+    if (!json.next_page_token) break;
+    pageToken = json.next_page_token;
+  }
+
+  return results;
+}
+
 async function findBusinessesViaGooglePlaces(
   city: string,
   category: string,
@@ -195,24 +251,14 @@ async function findBusinessesViaGooglePlaces(
   if (radiusMiles && radiusMiles > 0) {
     const { lat, lng } = await geocode(city, apiKey);
     const radiusMeters = Math.min(Math.round(radiusMiles * 1609.34), MAX_RADIUS_METERS);
-    const searchRes = await fetch(
-      `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radiusMeters}&keyword=${encodeURIComponent(category)}&key=${apiKey}`
+    candidates = await fetchAllPlacesPages(
+      "nearbysearch",
+      `location=${lat},${lng}&radius=${radiusMeters}&keyword=${encodeURIComponent(category)}`,
+      apiKey
     );
-    const searchJson = await searchRes.json();
-    if (searchJson.status !== "OK" && searchJson.status !== "ZERO_RESULTS") {
-      throw new Error(`Places nearbysearch error: ${searchJson.status} ${searchJson.error_message ?? ""}`);
-    }
-    candidates = (searchJson.results ?? []).slice(0, 12);
   } else {
     const query = `${category} in ${city}`;
-    const searchRes = await fetch(
-      `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${apiKey}`
-    );
-    const searchJson = await searchRes.json();
-    if (searchJson.status !== "OK" && searchJson.status !== "ZERO_RESULTS") {
-      throw new Error(`Places textsearch error: ${searchJson.status} ${searchJson.error_message ?? ""}`);
-    }
-    candidates = (searchJson.results ?? []).slice(0, 12);
+    candidates = await fetchAllPlacesPages("textsearch", `query=${encodeURIComponent(query)}`, apiKey);
   }
 
   const detailed = await Promise.all(
