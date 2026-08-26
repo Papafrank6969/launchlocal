@@ -3,12 +3,14 @@
 import { use, useEffect, useState } from "react";
 import { BuilderTabs } from "@/components/BuilderTabs";
 import { FormStatus, autoClearStatus, type StatusMessage } from "@/components/FormStatus";
+import { suggestedFaqs, type FaqSuggestion } from "@/lib/faqSuggestions";
 
 type FaqItem = { id: string; question: string; answer: string; order: number };
 
 export default function FaqAdminPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [items, setItems] = useState<FaqItem[] | null>(null);
+  const [category, setCategory] = useState<string | null>(null);
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [status, setStatus] = useState<StatusMessage>(null);
@@ -18,6 +20,9 @@ export default function FaqAdminPage({ params }: { params: Promise<{ id: string 
     fetch(`/api/sites/${id}/faq`)
       .then((r) => r.json())
       .then((d) => setItems(d.items ?? []));
+    fetch(`/api/sites/${id}`)
+      .then((r) => r.json())
+      .then((d) => setCategory(d.site?.category ?? null));
   }, [id]);
 
   async function handleAdd(e: React.FormEvent) {
@@ -41,6 +46,19 @@ export default function FaqAdminPage({ params }: { params: Promise<{ id: string 
       setAdding(false);
     }
   }
+
+  async function addSuggestion(suggestion: FaqSuggestion) {
+    const res = await fetch(`/api/sites/${id}/faq`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(suggestion),
+    });
+    const data = await res.json();
+    if (res.ok) setItems((prev) => [...(prev ?? []), data.item]);
+  }
+
+  const usedQuestions = new Set((items ?? []).map((it) => it.question.trim().toLowerCase()));
+  const suggestions = suggestedFaqs(category).filter((f) => !usedQuestions.has(f.question.toLowerCase()));
 
   async function updateItem(itemId: string, patch: Partial<FaqItem>) {
     setItems((prev) => (prev ?? []).map((it) => (it.id === itemId ? { ...it, ...patch } : it)));
@@ -87,6 +105,26 @@ export default function FaqAdminPage({ params }: { params: Promise<{ id: string 
       <h1 className="text-2xl font-semibold text-slate-900">FAQ</h1>
       <p className="mt-1 text-slate-600">Questions and answers shown on this site&apos;s FAQ page.</p>
       <BuilderTabs id={id} />
+
+      {suggestions.length > 0 && (
+        <div className="mt-8 space-y-2 rounded-md border border-dashed border-blue-300 bg-blue-50/50 p-4">
+          <p className="text-sm font-medium text-slate-700">
+            Common questions clients ask before booking {category ? `a ${category}` : "this kind of service"}:
+          </p>
+          <div className="flex flex-col gap-2">
+            {suggestions.map((s) => (
+              <button
+                key={s.question}
+                type="button"
+                onClick={() => addSuggestion(s)}
+                className="rounded-md border border-blue-300 bg-white px-3 py-2 text-left text-sm font-medium text-blue-700 hover:bg-blue-50"
+              >
+                + {s.question}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="mt-8 space-y-4">
         {items === null && <p className="text-sm text-slate-500">Loading…</p>}
