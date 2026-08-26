@@ -4,14 +4,16 @@ import { use, useEffect, useState } from "react";
 import { BuilderTabs } from "@/components/BuilderTabs";
 import { FormStatus, type StatusMessage } from "@/components/FormStatus";
 
-type GalleryItem = { id: string; beforeUrl: string; afterUrl: string; caption: string | null };
+type GalleryItem = { id: string; beforeUrl: string; afterUrl: string; caption: string | null; category: string | null };
 
 export default function GalleryAdminPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [items, setItems] = useState<GalleryItem[] | null>(null);
+  const [serviceNames, setServiceNames] = useState<string[]>([]);
   const [before, setBefore] = useState<File | null>(null);
   const [after, setAfter] = useState<File | null>(null);
   const [caption, setCaption] = useState("");
+  const [category, setCategory] = useState("");
   const [uploading, setUploading] = useState(false);
   const [status, setStatus] = useState<StatusMessage>(null);
 
@@ -19,6 +21,9 @@ export default function GalleryAdminPage({ params }: { params: Promise<{ id: str
     fetch(`/api/sites/${id}/gallery`)
       .then((r) => r.json())
       .then((d) => setItems(d.items ?? []));
+    fetch(`/api/sites/${id}`)
+      .then((r) => r.json())
+      .then((d) => setServiceNames((d.site?.serviceItems ?? []).map((s: { name: string }) => s.name)));
   }, [id]);
 
   async function handleAdd(e: React.FormEvent) {
@@ -34,6 +39,7 @@ export default function GalleryAdminPage({ params }: { params: Promise<{ id: str
       body.append("before", before);
       body.append("after", after);
       if (caption.trim()) body.append("caption", caption.trim());
+      if (category.trim()) body.append("category", category.trim());
       const res = await fetch(`/api/sites/${id}/gallery`, { method: "POST", body });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Upload failed");
@@ -41,6 +47,7 @@ export default function GalleryAdminPage({ params }: { params: Promise<{ id: str
       setBefore(null);
       setAfter(null);
       setCaption("");
+      setCategory("");
     } catch (err) {
       setStatus({ type: "error", text: err instanceof Error ? err.message : "Upload failed" });
     } finally {
@@ -70,6 +77,11 @@ export default function GalleryAdminPage({ params }: { params: Promise<{ id: str
               {/* eslint-disable-next-line @next/next/no-img-element -- small local thumbnail, next/image is overkill here */}
               <img src={item.afterUrl} alt="After" className="h-32 w-full object-cover" />
             </div>
+            {item.category && (
+              <span className="mt-2 inline-block rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+                {item.category}
+              </span>
+            )}
             {item.caption && <p className="mt-2 text-sm text-slate-600">{item.caption}</p>}
             <button
               type="button"
@@ -110,6 +122,22 @@ export default function GalleryAdminPage({ params }: { params: Promise<{ id: str
           onChange={(e) => setCaption(e.target.value)}
           placeholder="Caption (optional)"
         />
+        {serviceNames.length > 0 && (
+          <label className="block">
+            <span className="block text-xs font-medium text-slate-500">Group under service (optional)</span>
+            <select className="input mt-1" value={category} onChange={(e) => setCategory(e.target.value)}>
+              <option value="">No grouping</option>
+              {serviceNames.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-slate-500">
+              Organizes the public gallery into sections by service, instead of one flat grid.
+            </p>
+          </label>
+        )}
         <button
           type="submit"
           disabled={uploading}

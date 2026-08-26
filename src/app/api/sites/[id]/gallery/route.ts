@@ -20,6 +20,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const before = formData?.get("before");
   const after = formData?.get("after");
   const caption = formData?.get("caption");
+  const category = formData?.get("category");
 
   if (!before || !(before instanceof File) || !after || !(after instanceof File)) {
     return NextResponse.json({ error: "Both a before and an after photo are required" }, { status: 400 });
@@ -46,6 +47,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       beforeUrl: `/uploads/gallery/${beforeFilename}`,
       afterUrl: `/uploads/gallery/${afterFilename}`,
       caption: typeof caption === "string" && caption.trim() ? caption.trim() : null,
+      category: typeof category === "string" && category.trim() ? category.trim() : null,
       order: count,
     },
   });

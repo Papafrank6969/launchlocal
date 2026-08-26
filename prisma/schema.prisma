@@ -141,6 +141,7 @@ model GalleryItem {
   beforeUrl String
   afterUrl  String
   caption   String?
+  category  String?
   order     Int      @default(0)
   createdAt DateTime @default(now())
 }
