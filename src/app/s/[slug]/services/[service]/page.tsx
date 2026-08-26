@@ -44,6 +44,11 @@ export default async function ServiceDetailPage({
 
   return (
     <SitePageShell title={service.name} system={system}>
+      {service.price && (
+        <p className="text-xl font-semibold" style={{ color }}>
+          {service.price}
+        </p>
+      )}
       {service.description ? (
         <p className="opacity-90">{service.description}</p>
       ) : (

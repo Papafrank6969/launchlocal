@@ -37,9 +37,12 @@ export default async function ServicesIndexPage({ params }: { params: Promise<{ 
             href={`/s/${slug}/services/${s.slug}`}
             className="site-border block rounded-xl border p-6 transition-shadow hover:shadow-md"
           >
-            <h2 className="font-semibold" style={{ color }}>
-              {s.name}
-            </h2>
+            <div className="flex items-baseline justify-between gap-3">
+              <h2 className="font-semibold" style={{ color }}>
+                {s.name}
+              </h2>
+              {s.price && <span className="shrink-0 text-sm font-medium opacity-70">{s.price}</span>}
+            </div>
             {s.description && <p className="mt-2 line-clamp-3 text-sm opacity-80">{s.description}</p>}
           </a>
         ))}

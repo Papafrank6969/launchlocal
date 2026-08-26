@@ -23,7 +23,7 @@ export type SiteData = {
   category?: string | null;
   designSystemId?: string | null;
   slug?: string | null;
-  serviceItems?: { id?: string; slug?: string; name: string; description?: string | null }[];
+  serviceItems?: { id?: string; slug?: string; name: string; description?: string | null; price?: string | null }[];
 };
 
 export function resolveDesignSystem(site: Pick<SiteData, "businessName" | "category" | "designSystemId">): DesignSystem {
@@ -170,7 +170,12 @@ export function SitePreview({ site }: { site: SiteData }) {
                     <span className="text-sm font-extrabold" style={{ color: primary }}>
                       {String(i + 1).padStart(2, "0")}
                     </span>
-                    <p className="mt-2 text-lg font-bold">{s.name}</p>
+                    <p className="mt-2 flex items-baseline justify-between gap-2 text-lg font-bold">
+                      <span>{s.name}</span>
+                      {s.price && (
+                        <span className="shrink-0 text-sm font-semibold opacity-70">{s.price}</span>
+                      )}
+                    </p>
                   </>
                 );
                 return href ? (
@@ -257,7 +262,10 @@ export function SitePreview({ site }: { site: SiteData }) {
                   const inner = (
                     <>
                       <span className="text-xs font-bold opacity-50">{String(i + 1).padStart(2, "0")}</span>
-                      <p className="mt-1 font-semibold">{s.name}</p>
+                      <p className="mt-1 flex items-baseline justify-between gap-2 font-semibold">
+                        <span>{s.name}</span>
+                        {s.price && <span className="shrink-0 text-xs font-medium opacity-60">{s.price}</span>}
+                      </p>
                     </>
                   );
                   return href ? (
@@ -328,6 +336,7 @@ export function SitePreview({ site }: { site: SiteData }) {
                   ) : (
                     s.name
                   )}
+                  {s.price && <span className="ml-2 text-sm font-medium opacity-60">{s.price}</span>}
                 </li>
               );
             })}

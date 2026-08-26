@@ -102,6 +102,7 @@ model Service {
   slug        String
   name        String
   description String?
+  price       String?
   order       Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

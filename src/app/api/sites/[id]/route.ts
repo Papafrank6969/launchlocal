@@ -33,7 +33,7 @@ const EDITABLE_BOOLEAN_FIELDS = ["utmTrackingEnabled"] as const;
 
 const EDITABLE_NUMBER_FIELDS = ["rating", "reviewCount"] as const;
 
-type ServiceInput = { name: string; description?: string | null };
+type ServiceInput = { name: string; description?: string | null; price?: string | null };
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -71,7 +71,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (services) {
       const seen = new Set<string>();
       const rows = services
-        .map((s) => ({ name: (s.name ?? "").trim(), description: (s.description ?? "").trim() || null }))
+        .map((s) => ({
+          name: (s.name ?? "").trim(),
+          description: (s.description ?? "").trim() || null,
+          price: (s.price ?? "").trim() || null,
+        }))
         .filter((s) => s.name.length > 0)
         .map((s, i) => {
           let slug = slugify(s.name) || `service-${i + 1}`;
@@ -81,7 +85,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
             slug = `${slugify(s.name)}-${n}`;
           }
           seen.add(slug);
-          return { siteId: id, slug, name: s.name, description: s.description, order: i };
+          return { siteId: id, slug, name: s.name, description: s.description, price: s.price, order: i };
         });
       await tx.service.deleteMany({ where: { siteId: id } });
       if (rows.length > 0) await tx.service.createMany({ data: rows });

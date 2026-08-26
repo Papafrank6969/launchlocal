@@ -24,12 +24,18 @@ export async function POST(req: NextRequest) {
     return !!existing;
   });
 
-  const rawServices: { name?: string; description?: string | null }[] = Array.isArray(body.serviceItems)
+  const rawServices: { name?: string; description?: string | null; price?: string | null }[] = Array.isArray(
+    body.serviceItems
+  )
     ? body.serviceItems
     : [];
   const seen = new Set<string>();
   const serviceRows = rawServices
-    .map((s) => ({ name: (s.name ?? "").trim(), description: (s.description ?? "").trim() || null }))
+    .map((s) => ({
+      name: (s.name ?? "").trim(),
+      description: (s.description ?? "").trim() || null,
+      price: (s.price ?? "").trim() || null,
+    }))
     .filter((s) => s.name.length > 0)
     .map((s, i) => {
       let itemSlug = slugify(s.name) || `service-${i + 1}`;
@@ -39,7 +45,7 @@ export async function POST(req: NextRequest) {
         itemSlug = `${slugify(s.name)}-${n}`;
       }
       seen.add(itemSlug);
-      return { slug: itemSlug, name: s.name, description: s.description, order: i };
+      return { slug: itemSlug, name: s.name, description: s.description, price: s.price, order: i };
     });
 
   const category = (body.category ?? "").toString().trim() || null;

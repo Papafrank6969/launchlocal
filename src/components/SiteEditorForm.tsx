@@ -378,7 +378,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-type EditableService = { id?: string; slug?: string; name: string; description?: string | null };
+type EditableService = { id?: string; slug?: string; name: string; description?: string | null; price?: string | null };
 
 function ServicesEditor({
   services,
@@ -476,6 +476,12 @@ function ServicesEditor({
               value={s.name}
               onChange={(e) => update(i, { name: e.target.value })}
               placeholder="Service name"
+            />
+            <input
+              className="input w-24 shrink-0"
+              value={s.price ?? ""}
+              onChange={(e) => update(i, { price: e.target.value })}
+              placeholder="$65"
             />
             <div className="flex shrink-0 flex-col gap-1">
               <button
