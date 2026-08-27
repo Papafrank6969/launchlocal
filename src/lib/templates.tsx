@@ -66,6 +66,9 @@ function serviceHref(site: SiteData, item: { slug?: string }): string | null {
   return `/s/${site.slug}/services/${item.slug}`;
 }
 
+/** Rating stars read as a rating in every palette when they're gold — the universal convention. */
+const STAR_GOLD = "#E0A82E";
+
 function Eyebrow({ children, color, headingFont }: { children: React.ReactNode; color: string; headingFont: string }) {
   return (
     <p className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color, fontFamily: headingFont }}>
@@ -87,7 +90,7 @@ function RatingBadge({
   if (!rating || !reviewCount) return null;
   return (
     <p className={`inline-flex items-center gap-1.5 text-sm font-medium ${className}`}>
-      <svg width="15" height="15" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" className="shrink-0">
+      <svg width="15" height="15" viewBox="0 0 20 20" fill={STAR_GOLD} aria-hidden="true" className="shrink-0">
         <path d="M10 1.5l2.6 5.27 5.82.85-4.21 4.1 1 5.8L10 14.9l-5.21 2.62 1-5.8-4.21-4.1 5.82-.85L10 1.5z" />
       </svg>
       <span>
@@ -408,7 +411,7 @@ export function SitePreview({ site }: { site: SiteData }) {
   );
 }
 
-function ReviewStars({ rating, color }: { rating: number; color: string }) {
+function ReviewStars({ rating }: { rating: number }) {
   return (
     <span className="inline-flex gap-0.5" aria-label={`${rating} out of 5 stars`}>
       {[1, 2, 3, 4, 5].map((n) => (
@@ -417,7 +420,7 @@ function ReviewStars({ rating, color }: { rating: number; color: string }) {
           width="14"
           height="14"
           viewBox="0 0 20 20"
-          fill={n <= rating ? color : "currentColor"}
+          fill={n <= rating ? STAR_GOLD : "currentColor"}
           className={n <= rating ? "" : "opacity-20"}
           aria-hidden="true"
         >
@@ -440,11 +443,13 @@ function ReviewsSection({ site, system }: { site: SiteData; system: DesignSystem
   const primary = system.colorPrimary;
   const headingFont = fontCssValue(system.fontHeading);
   const mapsUrl = site.googleMapsUrl?.trim() || null;
+  // Match the page's alignment — the split hero is left-aligned, the others center.
+  const centered = system.heroStyle !== "split";
 
   return (
-    <section id="reviews" className="site-card-bg scroll-mt-20 px-8 py-20">
+    <section id="reviews" className="site-card-bg scroll-mt-20 px-8 py-16 sm:py-20">
       <div className="mx-auto max-w-4xl">
-        <div className="text-center">
+        <div className={centered ? "text-center" : ""}>
           <Eyebrow color={primary} headingFont={headingFont}>
             Reviews
           </Eyebrow>
@@ -455,7 +460,7 @@ function ReviewsSection({ site, system }: { site: SiteData; system: DesignSystem
         <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {reviews.map((r, i) => (
             <figure key={i} className="site-border flex flex-col rounded-xl border bg-[var(--site-bg)] p-5 text-left">
-              <ReviewStars rating={r.rating} color={primary} />
+              <ReviewStars rating={r.rating} />
               <blockquote className="mt-3 line-clamp-6 text-sm leading-relaxed opacity-90">{r.text}</blockquote>
               <figcaption className="mt-4 text-xs font-medium opacity-70">
                 {r.author}
@@ -464,7 +469,7 @@ function ReviewsSection({ site, system }: { site: SiteData; system: DesignSystem
             </figure>
           ))}
         </div>
-        <div className="mt-8 text-center">
+        <div className={`mt-8 ${centered ? "text-center" : ""}`}>
           {mapsUrl && (
             <a
               href={mapsUrl}
