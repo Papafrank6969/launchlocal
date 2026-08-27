@@ -3,6 +3,7 @@ import { parseHours, isOpenNow } from "@/lib/hours";
 import { getDesignSystem, deterministicDesignSystem, fontCssValue, type DesignSystem } from "@/lib/designSystems";
 import { readableTextColor } from "@/lib/contrast";
 import { normalizeBookingUrl } from "@/lib/bookingUrl";
+import { parseGoogleReviews } from "@/lib/googleReviews";
 import { SiteIdentity } from "@/components/site/SiteFonts";
 
 export type SiteData = {
@@ -22,6 +23,8 @@ export type SiteData = {
   paymentMethods?: string | null;
   rating?: number | null;
   reviewCount?: number | null;
+  googleReviewsJson?: string | null;
+  googleMapsUrl?: string | null;
   category?: string | null;
   designSystemId?: string | null;
   slug?: string | null;
@@ -209,6 +212,7 @@ export function SitePreview({ site }: { site: SiteData }) {
             </div>
           </section>
         )}
+        <ReviewsSection site={site} system={system} />
         <Footer site={site} system={system} variant="dark" />
       </div>
     );
@@ -315,6 +319,7 @@ export function SitePreview({ site }: { site: SiteData }) {
             </div>
           )}
         </div>
+        <ReviewsSection site={site} system={system} />
         <Footer site={site} system={system} variant="left" />
       </div>
     );
@@ -391,8 +396,84 @@ export function SitePreview({ site }: { site: SiteData }) {
           </ul>
         </section>
       )}
+      <ReviewsSection site={site} system={system} />
       <Footer site={site} system={system} />
     </div>
+  );
+}
+
+function ReviewStars({ rating, color }: { rating: number; color: string }) {
+  return (
+    <span className="inline-flex gap-0.5" aria-label={`${rating} out of 5 stars`}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <svg
+          key={n}
+          width="14"
+          height="14"
+          viewBox="0 0 20 20"
+          fill={n <= rating ? color : "currentColor"}
+          className={n <= rating ? "" : "opacity-20"}
+          aria-hidden="true"
+        >
+          <path d="M10 1.5l2.6 5.27 5.82.85-4.21 4.1 1 5.8L10 14.9l-5.21 2.62 1-5.8-4.21-4.1 5.82-.85L10 1.5z" />
+        </svg>
+      ))}
+    </span>
+  );
+}
+
+/**
+ * Real Google reviews, verbatim, newest first, with a link back to the Google
+ * listing. Renders nothing when there are none — never a placeholder or a
+ * fabricated quote (see `docs/SITE-QUALITY-CHECKLIST.md`).
+ */
+function ReviewsSection({ site, system }: { site: SiteData; system: DesignSystem }) {
+  const reviews = parseGoogleReviews(site.googleReviewsJson);
+  if (reviews.length === 0) return null;
+
+  const primary = system.colorPrimary;
+  const headingFont = fontCssValue(system.fontHeading);
+  const mapsUrl = site.googleMapsUrl?.trim() || null;
+
+  return (
+    <section id="reviews" className="site-card-bg scroll-mt-20 px-8 py-20">
+      <div className="mx-auto max-w-4xl">
+        <div className="text-center">
+          <Eyebrow color={primary} headingFont={headingFont}>
+            Reviews
+          </Eyebrow>
+          <h2 className="mt-2 text-3xl font-extrabold tracking-tight" style={{ fontFamily: headingFont }}>
+            What clients say
+          </h2>
+        </div>
+        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {reviews.map((r, i) => (
+            <figure key={i} className="site-border flex flex-col rounded-xl border bg-[var(--site-bg)] p-5 text-left">
+              <ReviewStars rating={r.rating} color={primary} />
+              <blockquote className="mt-3 line-clamp-6 text-sm leading-relaxed opacity-90">{r.text}</blockquote>
+              <figcaption className="mt-4 text-xs font-medium opacity-70">
+                {r.author}
+                {r.relativeTime ? ` · ${r.relativeTime}` : ""}
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+        <div className="mt-8 text-center">
+          {mapsUrl && (
+            <a
+              href={mapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-semibold underline-offset-4 hover:underline"
+              style={{ color: primary }}
+            >
+              Read all reviews on Google →
+            </a>
+          )}
+          <p className="mt-2 text-xs opacity-50">Reviews pulled from Google.</p>
+        </div>
+      </div>
+    </section>
   );
 }
 

@@ -78,6 +78,10 @@ model Site {
   template    String     @default("classic")
   primaryColor String    @default("#2563eb")
   category    String?
+  googlePlaceId String?
+  googleReviewsJson String?
+  googleReviewsUpdatedAt DateTime?
+  googleMapsUrl String?
   designSystemId String?
   designRationale String?
   status      SiteStatus @default(DRAFT)

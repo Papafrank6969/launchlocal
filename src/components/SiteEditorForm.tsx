@@ -15,6 +15,8 @@ export type EditableSite = SiteData & {
   utmTrackingEnabled?: boolean;
   googleSiteVerification?: string | null;
   designRationale?: string | null;
+  googlePlaceId?: string | null;
+  googleReviewsUpdatedAt?: string | Date | null;
 };
 
 export function SiteEditorForm({
@@ -31,6 +33,8 @@ export function SiteEditorForm({
   const [photoMessage, setPhotoMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [regenerating, setRegenerating] = useState(false);
   const [designMessage, setDesignMessage] = useState<StatusMessage>(null);
+  const [pullingReviews, setPullingReviews] = useState(false);
+  const [reviewsMessage, setReviewsMessage] = useState<StatusMessage>(null);
 
   function set<K extends keyof EditableSite>(key: K, value: EditableSite[K]) {
     setData((d) => ({ ...d, [key]: value }));
@@ -59,6 +63,61 @@ export function SiteEditorForm({
     } finally {
       setRegenerating(false);
       setTimeout(() => setDesignMessage(null), 4000);
+    }
+  }
+
+  async function pullGoogleReviews() {
+    if (!data.id) return;
+    setPullingReviews(true);
+    setReviewsMessage(null);
+    try {
+      const res = await fetch(`/api/sites/${data.id}/google-reviews`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ placeId: data.googlePlaceId ?? "" }),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error ?? "Couldn't pull reviews");
+      setData((d) => ({
+        ...d,
+        googlePlaceId: result.site.googlePlaceId,
+        googleReviewsJson: result.site.googleReviewsJson,
+        googleReviewsUpdatedAt: result.site.googleReviewsUpdatedAt,
+        googleMapsUrl: result.site.googleMapsUrl,
+        rating: result.site.rating,
+        reviewCount: result.site.reviewCount,
+      }));
+      setReviewsMessage({
+        type: "success",
+        text: result.count > 0 ? `Pulled ${result.count} review${result.count === 1 ? "" : "s"}.` : "Google returned no reviews for this place.",
+      });
+    } catch (err) {
+      setReviewsMessage({ type: "error", text: err instanceof Error ? err.message : "Something went wrong" });
+    } finally {
+      setPullingReviews(false);
+      setTimeout(() => setReviewsMessage(null), 5000);
+    }
+  }
+
+  async function clearGoogleReviews() {
+    if (!data.id) return;
+    setPullingReviews(true);
+    setReviewsMessage(null);
+    try {
+      const res = await fetch(`/api/sites/${data.id}/google-reviews`, { method: "DELETE" });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error ?? "Couldn't clear reviews");
+      setData((d) => ({
+        ...d,
+        googleReviewsJson: null,
+        googleReviewsUpdatedAt: null,
+        googleMapsUrl: null,
+      }));
+    } catch (err) {
+      setReviewsMessage({ type: "error", text: err instanceof Error ? err.message : "Something went wrong" });
+      setTimeout(() => setReviewsMessage(null), 5000);
+    } finally {
+      setPullingReviews(false);
     }
   }
 
@@ -101,6 +160,8 @@ export function SiteEditorForm({
       setUploading(false);
     }
   }
+
+  const reviewsPulled = Boolean(data.googleReviewsJson && data.googleReviewsJson !== "[]");
 
   return (
     <div className="grid gap-8 lg:grid-cols-2">
@@ -288,6 +349,51 @@ export function SiteEditorForm({
           Shown on the site as a rating badge. Auto-filled from the lead when built from one — only enter this if it
           reflects the business&apos;s real Google rating.
         </p>
+        <Field label="Google reviews">
+          {!data.id ? (
+            <p className="text-sm text-slate-500">Save the site first, then pull reviews here.</p>
+          ) : (
+            <div className="rounded-md border border-slate-300 p-3">
+              <input
+                className="input"
+                value={data.googlePlaceId ?? ""}
+                onChange={(e) => set("googlePlaceId", e.target.value)}
+                placeholder="Google Place ID (ChIJ…)"
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                Auto-filled when the site is built from a Google lead. Pulls up to 5 real reviews and shows them
+                verbatim on the home page, linked back to Google.
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={pullGoogleReviews}
+                  disabled={pullingReviews || !(data.googlePlaceId ?? "").trim()}
+                  className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                >
+                  {pullingReviews ? "Working…" : reviewsPulled ? "Refresh reviews" : "Pull Google reviews"}
+                </button>
+                {reviewsPulled && (
+                  <button
+                    type="button"
+                    onClick={clearGoogleReviews}
+                    disabled={pullingReviews}
+                    className="text-xs font-medium text-slate-500 hover:text-red-600 disabled:opacity-50"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+              {data.googleReviewsUpdatedAt && (
+                <p className="mt-2 text-xs text-slate-500">
+                  Last pulled {daysAgoLabel(data.googleReviewsUpdatedAt)}. Google&apos;s terms ask you to refresh
+                  cached reviews at least monthly.
+                </p>
+              )}
+              <FormStatus status={reviewsMessage} className="mt-2" />
+            </div>
+          )}
+        </Field>
         {data.id && (
           <Field label="Inspiration photos">
             <InspirationPhotos siteId={data.id} />
@@ -377,6 +483,17 @@ export function SiteEditorForm({
       </div>
     </div>
   );
+}
+
+function daysAgoLabel(when: string | Date): string {
+  const then = new Date(when).getTime();
+  if (Number.isNaN(then)) return "recently";
+  const days = Math.floor((Date.now() - then) / 86_400_000);
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  if (days < 30) return `${days} days ago`;
+  const months = Math.floor(days / 30);
+  return months === 1 ? "a month ago" : `${months} months ago`;
 }
 
 function BookingLinkHint({ value }: { value?: string | null }) {

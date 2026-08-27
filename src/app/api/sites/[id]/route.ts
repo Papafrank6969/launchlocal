@@ -28,6 +28,7 @@ const EDITABLE_FIELDS = [
   "paymentMethods",
   "googleSiteVerification",
   "category",
+  "googlePlaceId",
 ] as const;
 
 const EDITABLE_BOOLEAN_FIELDS = ["utmTrackingEnabled"] as const;

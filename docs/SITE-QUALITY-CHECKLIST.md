@@ -14,7 +14,10 @@ of these, it's a bug, not a feature:
 
 - Purple/gradient hero backgrounds as a default look
 - Stock "AI slop" photography instead of the business's own photo (or none)
-- Fake reviews, fake testimonials, or fabricated review counts
+- Fake reviews, fake testimonials, or fabricated review counts — the Reviews
+  section on the home page renders ONLY real Google reviews pulled through
+  `src/lib/googleReviews.ts` (verbatim, newest-first, never filtered by star
+  rating), and renders nothing at all when there are none
 - Fake visitor counters, fake "X people viewed this," fake urgency ("3 left!")
 - Fake or padded metrics ("10,000+ happy customers") with no source
 - Emoji used as icons in place of real iconography

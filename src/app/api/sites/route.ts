@@ -75,6 +75,7 @@ export async function POST(req: NextRequest) {
       rating: rating !== null && !Number.isNaN(rating) ? rating : null,
       reviewCount: reviewCount !== null && !Number.isNaN(reviewCount) ? reviewCount : null,
       category,
+      googlePlaceId: body.googlePlaceId || null,
       leadId: body.leadId || null,
       serviceItems: serviceRows.length > 0 ? { create: serviceRows } : undefined,
     },
