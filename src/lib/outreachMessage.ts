@@ -23,10 +23,26 @@ const CLOSERS = [
   "I design sites specifically for local businesses like yours — would you want to see a quick free mockup?",
 ];
 
-export function generateOutreachMessage(lead: OutreachLead, variant: number): string {
+// Used once a draft is already built — the pitch is a link, not a maybe.
+const PREVIEW_CLOSERS = [
+  (url: string) =>
+    `I actually went ahead and built one for you — take a look: ${url}. No obligation, but if you like it we can have it live on your own domain in a day.`,
+  (url: string) =>
+    `Rather than just describe it, I put a real site together for you: ${url}. Let me know what you think — easy to tweak anything or get it published.`,
+  (url: string) =>
+    `Here's a free sample I made for you: ${url}. It's ready to go live whenever you are — happy to adjust the photos, services, or wording first.`,
+];
+
+export function generateOutreachMessage(
+  lead: OutreachLead,
+  variant: number,
+  opts: { previewUrl?: string | null } = {}
+): string {
   const openers = lead.websiteStatus === "NONE" ? NO_SITE_OPENERS : POOR_SITE_OPENERS;
   const opener = openers[variant % openers.length](lead);
-  const closer = CLOSERS[variant % CLOSERS.length];
+  const closer = opts.previewUrl
+    ? PREVIEW_CLOSERS[variant % PREVIEW_CLOSERS.length](opts.previewUrl)
+    : CLOSERS[variant % CLOSERS.length];
   return `${opener} ${closer}`;
 }
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { isUnclaimedPitchSite } from "@/lib/siteVisibility";
 
 function url(base: string, path: string): string {
   return `${base}${path}`;
@@ -14,10 +15,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
       blogPosts: { where: { published: true }, orderBy: { createdAt: "desc" } },
       galleryItems: { select: { id: true } },
       faqItems: { select: { id: true } },
+      lead: { select: { outreachStatus: true } },
     },
   });
 
-  if (!site || site.status !== "PUBLISHED") {
+  if (!site || site.status !== "PUBLISHED" || isUnclaimedPitchSite(site.leadId, site.lead?.outreachStatus)) {
     return new NextResponse("Not found", { status: 404 });
   }
 

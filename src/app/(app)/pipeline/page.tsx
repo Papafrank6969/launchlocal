@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { OutreachControls } from "@/components/OutreachControls";
+import { DraftSiteButton } from "@/components/DraftSiteButton";
 import { OUTREACH_LABEL, OUTREACH_STYLE, isOverdue, type OutreachStatus } from "@/lib/outreachStatus";
 
 type Lead = {
@@ -45,6 +46,10 @@ export default function PipelinePage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(patch),
     }).catch(() => {});
+  }
+
+  function markDrafted(leadId: string, site: { id: string; slug: string; status: string }) {
+    setLeads((prev) => (prev ?? []).map((l) => (l.id === leadId ? { ...l, sites: [site] } : l)));
   }
 
   const overdueCount = (leads ?? []).filter((l) => isOverdue(l.followUpAt)).length;
@@ -95,15 +100,11 @@ export default function PipelinePage() {
             />
 
             <div className="mt-4">
-              {lead.sites && lead.sites.length > 0 ? (
-                <Link href={`/builder/${lead.sites[0].id}`} className="text-sm font-medium text-slate-700 hover:underline">
-                  Edit site →
-                </Link>
-              ) : (
-                <Link href={`/builder/new?leadId=${lead.id}`} className="text-sm font-medium text-blue-600 hover:underline">
-                  Build a site →
-                </Link>
-              )}
+              <DraftSiteButton
+                leadId={lead.id}
+                site={lead.sites?.[0]}
+                onCreated={(site) => markDrafted(lead.id, site)}
+              />
             </div>
           </div>
         ))}

@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { SitePreview } from "@/lib/templates";
 import { pageMetadata } from "@/lib/seo";
 import { localBusinessJsonLd } from "@/lib/jsonLd";
+import { isUnclaimedPitchSite } from "@/lib/siteVisibility";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,10 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const site = await db.site.findUnique({ where: { slug } });
+  const site = await db.site.findUnique({
+    where: { slug },
+    include: { lead: { select: { outreachStatus: true } } },
+  });
 
   if (!site) return { title: "Site not found" };
 
@@ -26,6 +30,10 @@ export async function generateMetadata({
     }),
     title: { absolute: site.businessName },
     verification: site.googleSiteVerification ? { google: site.googleSiteVerification } : undefined,
+    // A site drafted for a sales pitch stays out of search until the lead closes.
+    robots: isUnclaimedPitchSite(site.leadId, site.lead?.outreachStatus)
+      ? { index: false, follow: false }
+      : undefined,
   };
 }
 

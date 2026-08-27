@@ -1,12 +1,18 @@
 "use client";
 
 import { useId, useState } from "react";
-import Link from "next/link";
 import { RefreshCw, Star } from "lucide-react";
 import { instagramDmUrl } from "@/lib/templates";
 import { generateOutreachMessage, OUTREACH_VARIANT_COUNT } from "@/lib/outreachMessage";
 import { FormStatus } from "@/components/FormStatus";
 import { OutreachControls } from "@/components/OutreachControls";
+import { DraftSiteButton } from "@/components/DraftSiteButton";
+
+function previewUrlFor(slug?: string | null): string | undefined {
+  if (!slug) return undefined;
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  return `${origin}/s/${slug}`;
+}
 import { OUTREACH_LABEL, OUTREACH_STYLE, type OutreachStatus } from "@/lib/outreachStatus";
 import { TRADE_OPTIONS } from "@/lib/serviceSuggestions";
 
@@ -120,6 +126,10 @@ export default function LeadsPage() {
     }).catch(() => {});
   }
 
+  function markLeadDrafted(leadId: string, site: { id: string; slug: string; status: string }) {
+    setLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, sites: [site] } : l)));
+  }
+
   const visibleLeads = onlyOpportunities
     ? leads.filter((l) => l.websiteStatus !== "HAS_SITE")
     : leads;
@@ -217,6 +227,7 @@ export default function LeadsPage() {
             onSaveInstagram={updateInstagramHandle}
             onSaveEmail={updateEmail}
             onOutreachChange={updateOutreach}
+            onSiteCreated={markLeadDrafted}
           />
         ))}
         {visibleLeads.length === 0 && !loading && (
@@ -232,19 +243,22 @@ function LeadCard({
   onSaveInstagram,
   onSaveEmail,
   onOutreachChange,
+  onSiteCreated,
 }: {
   lead: Lead;
   onSaveInstagram: (leadId: string, handle: string) => Promise<boolean>;
   onSaveEmail: (leadId: string, email: string) => Promise<boolean>;
   onOutreachChange: (leadId: string, patch: { outreachStatus?: OutreachStatus; followUpAt?: string | null }) => void;
+  onSiteCreated: (leadId: string, site: { id: string; slug: string; status: string }) => void;
 }) {
   const uid = useId();
+  const previewUrl = previewUrlFor(lead.sites?.[0]?.slug);
   const [handle, setHandle] = useState(lead.instagramHandle ?? "");
   const [email, setEmail] = useState(lead.email ?? "");
   const [looking, setLooking] = useState(false);
   const [lookupMessage, setLookupMessage] = useState<string | null>(null);
   const [variant, setVariant] = useState(0);
-  const [message, setMessage] = useState(() => generateOutreachMessage(lead, 0));
+  const [message, setMessage] = useState(() => generateOutreachMessage(lead, 0, { previewUrl }));
   const [copied, setCopied] = useState(false);
   const [instagramSaveState, setInstagramSaveState] = useState<"saved" | "error" | null>(null);
   const [emailSaveState, setEmailSaveState] = useState<"saved" | "error" | null>(null);
@@ -267,7 +281,7 @@ function LeadCard({
   function regenerateMessage() {
     const next = variant + 1;
     setVariant(next);
-    setMessage(generateOutreachMessage(lead, next));
+    setMessage(generateOutreachMessage(lead, next, { previewUrl }));
   }
 
   async function copyMessage() {
@@ -441,18 +455,14 @@ function LeadCard({
       )}
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        {lead.sites && lead.sites.length > 0 ? (
-          <Link href={`/builder/${lead.sites[0].id}`} className="text-sm font-medium text-slate-700 hover:underline">
-            Edit site →
-          </Link>
-        ) : (
-          <Link
-            href={`/builder/new?leadId=${lead.id}`}
-            className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            Build a site
-          </Link>
-        )}
+        <DraftSiteButton
+          leadId={lead.id}
+          site={lead.sites?.[0]}
+          onCreated={(site) => {
+            onSiteCreated(lead.id, site);
+            setMessage(generateOutreachMessage(lead, variant, { previewUrl: previewUrlFor(site.slug) }));
+          }}
+        />
         {dmUrl && (
           <a
             href={dmUrl}

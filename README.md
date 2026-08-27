@@ -9,6 +9,13 @@ them one, and tracking how it's doing.
   API if `GOOGLE_PLACES_API_KEY` is set in `.env`; otherwise falls back to
   generated sample data so the app works out of the box. Each result is scored
   `NONE` / `POOR` / `HAS_SITE` based on whether it has a real website.
+- **Draft site in one click** — the "Draft site" button on any lead (Lead Finder
+  or Pipeline) builds a real, published site from the business's Google data
+  alone: name, contact, address, rating, up to 5 real Google reviews, a bespoke
+  design, and category-typical services. The lead's DM message rewrites itself
+  to lead with the live link ("I went ahead and built you one — take a look:
+  …"). These pitch sites are `noindex` until the lead is marked `WON`, at which
+  point the site becomes a normal indexed one.
 - **Site Builder** (`/builder`) — turn a lead (or a blank form) into a real
   small multi-page site with a live preview, then publish it to a public URL
   at `/s/[slug]`. Each site gets whatever pages it actually has content for —
