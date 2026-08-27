@@ -129,3 +129,31 @@ match it in the operator app.
 **Contrast** — 4.5:1 body text both themes. Generated sites are gated by
 `src/lib/contrast.ts`; hold the operator app to the same bar by eye + a checker
 when picking any non-Tailwind color.
+
+## Audit log
+
+### 2026-08-27 — full design-system library audit
+
+All 12 systems in `designSystems.ts` checked against the skill's `--domain color`
+and `--domain typography` for their niche.
+
+- **Palettes and font pairings kept as-is.** The hand-curated pairings are as
+  strong as or stronger than the skill's generic suggestions, and two of the
+  skill's picks would have *broken* the checklist:
+  - `studio-beauty` — skill proposed `#EC4899` (hot pink) primary + `#8B5CF6`
+    (purple) accent + `#FDF2F8` background. That is exactly the "purple/pink
+    sell.app tell" the checklist forbids. Current near-black + muted rose on warm
+    cream is the deliberate opposite and stays.
+  - `crafted-artisan` — skill proposed the `Amatic SC` handwriting display font.
+    Script/handwriting display fonts are a checklist "never." Zilla Slab stays.
+- **`studio-beauty` accent nudged** `#B8828A → #AE7680` — the old value was
+  2.91:1 on the light neutral, below the 3:1 UI bar the test now enforces.
+- **Routing gaps closed.** ~90 additional `categories` strings added across the
+  12 systems so trades and services that were falling through to the hashed
+  fallback (roofers, barbers, chiropractors, movers, tattoo shops, yoga studios,
+  photographers, cocktail bars, …) now land on a system whose look fits. No new
+  systems — the 12 cover the aesthetic space. `designSystems.test.ts` locks a
+  representative sample of the new routes.
+
+Takeaway: the curated list is doing its job. Use the skill to *check* a system
+and to route new niches, not to recolor what already passes.

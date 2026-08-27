@@ -88,6 +88,42 @@ describe("DESIGN_SYSTEMS catalog integrity", () => {
   });
 });
 
+describe("category routing coverage", () => {
+  // Each of these was previously falling through to the hashed fallback (a
+  // roofer could land on Warm Editorial's bakery fonts). They now route to a
+  // system whose aesthetic actually fits the trade.
+  const cases: [category: string, expectedId: string][] = [
+    ["barbershop", "friendly-approachable"],
+    ["chiropractor", "friendly-approachable"],
+    ["pet grooming", "friendly-approachable"],
+    ["daycare", "friendly-approachable"],
+    ["roofing", "technical-precision"],
+    ["house painter", "technical-precision"],
+    ["locksmith", "technical-precision"],
+    ["moving company", "technical-precision"],
+    ["pest control", "technical-precision"],
+    ["yoga studio", "playful-bold"],
+    ["martial arts", "playful-bold"],
+    ["tailor", "minimal-luxury"],
+    ["med spa", "minimal-luxury"],
+    ["wedding planner", "minimal-luxury"],
+    ["tattoo shop", "studio-beauty"],
+    ["tree service", "natural-organic"],
+    ["screen printing", "crafted-artisan"],
+    ["coffee roaster", "crafted-artisan"],
+    ["cocktail bar", "midnight-dining"],
+    ["architecture firm", "considered-modern"],
+    ["photography studio", "considered-modern"],
+    ["bookstore", "warm-editorial"],
+    ["bookkeeping", "sharp-corporate"],
+    ["watch repair", "gilded-atelier"],
+  ];
+
+  it.each(cases)("routes %s to %s", (category, expectedId) => {
+    expect(deterministicDesignSystem("Acme", category).id).toBe(expectedId);
+  });
+});
+
 describe("beauty-tech niche routing", () => {
   it("routes nail, lash, and brow technicians to the dedicated Studio Beauty system", () => {
     expect(deterministicDesignSystem("Glow Bar", "nail technician").id).toBe("studio-beauty");
