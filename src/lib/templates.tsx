@@ -492,7 +492,7 @@ function AboutSection({
     return (
       <section id="about" className="scroll-mt-20 px-8 py-16 sm:py-20">
         <div className="mx-auto grid max-w-5xl items-center gap-10 sm:grid-cols-2">
-          <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl shadow-lg">
+          <div className="relative aspect-[3/2] w-full overflow-hidden rounded-2xl shadow-lg">
             <Image
               src={img}
               alt={site.businessName}

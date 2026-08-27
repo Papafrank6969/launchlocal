@@ -18,7 +18,15 @@ These are the tells of a lazy AI-generated storefront. If a change introduces an
 of these, it's a bug, not a feature:
 
 - Purple/gradient hero backgrounds as a default look
-- Stock "AI slop" photography instead of the business's own photo (or none)
+- The brand/primary color used as a large body-area fill. It's for CTAs, badges,
+  accents, and hover states. The full-bleed hero band and the single pre-footer
+  CTA banner are the only whole-section fills — never a third.
+- Stock "AI slop" photography instead of the business's own photo (or none).
+  Places photos pulled via `POST /api/sites/[id]/photos` are the *business's own*
+  Google photos, shown with the "Photos via Google — <names>" attribution
+  `src/lib/placesPhotos.ts` builds; they're starting imagery the operator
+  replaces with the business's real photos before the site goes to the client.
+  A service card with no image gets a branded color block, never a stock photo.
 - Fake reviews, fake testimonials, or fabricated review counts — the Reviews
   section on the home page renders ONLY real Google reviews pulled through
   `src/lib/googleReviews.ts` (verbatim, newest-first, never filtered by star
@@ -62,10 +70,23 @@ system, picked per-business by `src/lib/generateDesign.ts` (AI-driven when
 
 Confirmed working, verified live in the browser (not just typechecked):
 
+- The home page has, in order: sticky nav w/ CTA → hero → trust bar → service
+  cards → about → reviews → CTA banner → footer. `src/lib/templates.tsx` is one
+  `SitePreview` = one of three enriched heroes + a shared `SiteSections` tail.
+  Sections that have no real content (no rating → no trust bar, no services →
+  no services section, etc.) render nothing.
+- Every hero has an eyebrow, a headline, a trust badge (when there's a real
+  rating), one primary CTA, and a "View services" secondary link. Primary
+  buttons clear ~24px horizontal / 12px vertical padding.
+- Home-page services render as a **card grid** (image or branded color block +
+  title + description + price + Book/View button), never a plain list. The
+  `/services` price-menu page is a deliberately different, scannable surface.
+- Every interactive element has a hover state and a visible focus ring; touch
+  targets are ≥44px.
 - Real per-site favicon generated from the business's initial + resolved
   design system color, with contrast-safe text (`s/[slug]/icon.tsx`)
 - Uploaded photos are compressed (`src/lib/imageUpload.ts`, shared by the hero
-  photo and gallery uploads)
+  photo, story photo, service-card images, gallery, and Places photo pulls)
 - Every page in the nav actually exists — `buildSiteNav` only links to pages
   with real content, never a stub
 - When an online booking link is set, "Book Now" is the primary CTA (sticky

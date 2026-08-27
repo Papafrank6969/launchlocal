@@ -183,3 +183,20 @@ Still open (bigger, not in this pass): the Category / Trades pickers are
 `<select multiple>` — hard to discover and easy to lose selections; a
 checkbox group would be the fix. The operator app is also effectively
 light-only despite a theme toggle in the header.
+
+### 2026-08-27 — richer generated-site template
+
+A landing-page design brief (2-col hero, trust bar, image service cards,
+about-with-image, CTA banner) was applied as a **content model**, not a
+literal template — the 12 curated design systems, their palettes, font
+pairings, and three hero layouts stay. `SitePreview` was refactored from
+three duplicated branches into `hero + SiteSections`, and the sections from
+the brief were added once. Photos come from an **opt-in** "Pull photos from
+Google" editor button (not auto on every draft), stored with attribution and
+meant to be replaced before the site goes to the client.
+
+The literal parts of the brief that were *not* adopted, and why: fixed
+`#F8FAFC` backgrounds (each system has its own WCAG-checked neutral), a
+mandatory serif headline (several systems are sans+sans), `py-20` section
+spacing (kept the tighter `py-14 sm:py-20` from the F10 fix),
+`border-slate-200` dividers (sites use the palette-tinted `site-border`).

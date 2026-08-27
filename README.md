@@ -32,6 +32,15 @@ them one, and tracking how it's doing.
   lead) and they render verbatim on the home page, attributed and linked back
   to the Google listing. Never generated, never filtered by rating; the editor
   shows when the cached copy was last refreshed.
+- **Section-rich pages** — each generated site has a sticky nav, an enriched
+  hero (one of three curated layouts), a trust bar (real rating + top review),
+  a service-card grid, an about section, the reviews section, and a
+  pre-footer CTA banner. Sections with no real content don't render.
+- **Photos from Google** — with `GOOGLE_PLACES_API_KEY` set, a "Pull photos
+  from Google" button in the editor fetches the business's own Google photos
+  (compressed + stored, shown with attribution) to fill the hero, about, and
+  service cards. Starting imagery, meant to be swapped for the business's real
+  photos before the site is handed off.
 - **Bespoke design generation** — every site's fonts, colors, and layout come
   from a curated design system (`src/lib/designSystems.ts`) picked for that
   specific business. With `ANTHROPIC_API_KEY` set, an AI call picks the best
