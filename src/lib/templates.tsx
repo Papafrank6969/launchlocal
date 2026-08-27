@@ -117,7 +117,7 @@ export function SitePreview({ site }: { site: SiteData }) {
       <div className="min-h-screen bg-[var(--site-bg)] text-[var(--site-fg)]" style={rootStyle}>
         <SiteIdentity system={system} />
         <section
-          className="relative overflow-hidden border-b-4 border-[var(--site-fg)] px-8 py-24 text-center"
+          className="relative overflow-hidden border-b-4 border-[var(--site-fg)] px-8 py-14 text-center sm:py-20"
           style={{ backgroundColor: primary, color: primaryText }}
         >
           <h1 className="break-words text-5xl font-extrabold leading-[0.95] tracking-tight sm:text-7xl" style={headingStyle}>
@@ -165,7 +165,7 @@ export function SitePreview({ site }: { site: SiteData }) {
         </section>
         <Photo site={site} />
         {aboutText && (
-          <section id="about" className="mx-auto max-w-3xl scroll-mt-20 px-8 py-20 text-center">
+          <section id="about" className="mx-auto max-w-3xl scroll-mt-20 px-8 py-16 text-center sm:py-20">
             <Eyebrow color={primary} headingFont={headingFont}>
               About
             </Eyebrow>
@@ -173,7 +173,7 @@ export function SitePreview({ site }: { site: SiteData }) {
           </section>
         )}
         {services.length > 0 && (
-          <section id="services" className="site-card-bg scroll-mt-20 px-8 py-20">
+          <section id="services" className="site-card-bg scroll-mt-20 px-8 py-16 sm:py-20">
             <div className="mx-auto max-w-4xl text-center">
               <Eyebrow color={primary} headingFont={headingFont}>
                 Services
@@ -222,8 +222,14 @@ export function SitePreview({ site }: { site: SiteData }) {
     return (
       <div className="min-h-screen bg-[var(--site-bg)] text-[var(--site-fg)]" style={rootStyle}>
         <SiteIdentity system={system} />
-        <section className="mx-auto grid max-w-5xl gap-10 px-8 py-24 sm:grid-cols-5 sm:items-center">
-          <div className="sm:col-span-3">
+        <section
+          className={
+            site.photoUrl
+              ? "mx-auto grid max-w-5xl gap-10 px-8 py-14 sm:grid-cols-5 sm:items-center sm:py-20"
+              : "mx-auto max-w-5xl px-8 py-14 sm:py-20"
+          }
+        >
+          <div className={site.photoUrl ? "sm:col-span-3" : "max-w-2xl"}>
             <div className="h-1 w-12 rounded-full" style={{ backgroundColor: primary }} />
             <h1 className="mt-5 break-words text-5xl font-bold leading-[1.05] tracking-tight" style={headingStyle}>
               {site.businessName}
@@ -278,7 +284,7 @@ export function SitePreview({ site }: { site: SiteData }) {
             </div>
           )}
         </section>
-        <div className="mx-auto max-w-5xl px-8 pb-20">
+        <div className="mx-auto max-w-5xl px-8 pb-16 sm:pb-20">
           {aboutText && (
             <div id="about" className="scroll-mt-20 max-w-2xl">
               <Eyebrow color={primary} headingFont={headingFont}>
@@ -329,7 +335,7 @@ export function SitePreview({ site }: { site: SiteData }) {
   return (
     <div className="min-h-screen bg-[var(--site-bg)] text-[var(--site-fg)]" style={rootStyle}>
       <SiteIdentity system={system} />
-      <section className="px-8 py-28 text-center">
+      <section className="px-8 py-14 text-center sm:py-20">
         <h1 className="break-words text-5xl font-bold tracking-tight" style={headingStyle}>
           {site.businessName}
         </h1>
