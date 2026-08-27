@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { slugify } from "@/lib/slug";
 import { normalizeBookingUrl } from "@/lib/bookingUrl";
+import { reconcileServices, type IncomingService } from "@/lib/serviceReconcile";
+import { deleteUploadedFile } from "@/lib/imageUpload";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -35,7 +36,6 @@ const EDITABLE_BOOLEAN_FIELDS = ["utmTrackingEnabled"] as const;
 
 const EDITABLE_NUMBER_FIELDS = ["rating", "reviewCount"] as const;
 
-type ServiceInput = { name: string; description?: string | null; price?: string | null };
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -69,30 +69,31 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     status = body.status;
   }
 
-  const services: ServiceInput[] | undefined = Array.isArray(body.serviceItems) ? body.serviceItems : undefined;
+  const services: IncomingService[] | undefined = Array.isArray(body.serviceItems) ? body.serviceItems : undefined;
+  const orphanedImages: string[] = [];
 
   const site = await db.$transaction(async (tx) => {
     if (services) {
-      const seen = new Set<string>();
-      const rows = services
-        .map((s) => ({
-          name: (s.name ?? "").trim(),
-          description: (s.description ?? "").trim() || null,
-          price: (s.price ?? "").trim() || null,
-        }))
-        .filter((s) => s.name.length > 0)
-        .map((s, i) => {
-          let slug = slugify(s.name) || `service-${i + 1}`;
-          let n = 1;
-          while (seen.has(slug)) {
-            n += 1;
-            slug = `${slugify(s.name)}-${n}`;
-          }
-          seen.add(slug);
-          return { siteId: id, slug, name: s.name, description: s.description, price: s.price, order: i };
-        });
-      await tx.service.deleteMany({ where: { siteId: id } });
-      if (rows.length > 0) await tx.service.createMany({ data: rows });
+      const current = await tx.service.findMany({
+        where: { siteId: id },
+        select: { id: true, slug: true, imageUrl: true },
+      });
+      const { create, update, deleteIds } = reconcileServices(current, services);
+      const oldImageById = new Map(current.map((c) => [c.id, c.imageUrl]));
+
+      for (const delId of deleteIds) {
+        const img = oldImageById.get(delId);
+        if (img) orphanedImages.push(img);
+      }
+      if (deleteIds.length > 0) await tx.service.deleteMany({ where: { id: { in: deleteIds } } });
+      for (const u of update) {
+        const oldImg = oldImageById.get(u.id);
+        if (oldImg && oldImg !== u.data.imageUrl) orphanedImages.push(oldImg);
+        await tx.service.update({ where: { id: u.id }, data: u.data });
+      }
+      if (create.length > 0) {
+        await tx.service.createMany({ data: create.map((row) => ({ ...row, siteId: id })) });
+      }
     }
 
     const updated = await tx.site.update({
@@ -107,6 +108,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     return updated;
   });
+
+  // Prune image files no longer referenced by any service (best-effort, post-commit).
+  await Promise.all(orphanedImages.map((url) => deleteUploadedFile(url)));
 
   return NextResponse.json({ site });
 }

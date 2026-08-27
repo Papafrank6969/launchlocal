@@ -312,6 +312,7 @@ export function SiteEditorForm({
             services={data.serviceItems ?? []}
             onChange={(items) => set("serviceItems", items)}
             category={data.category}
+            siteId={data.id}
           />
         </Field>
         <Field label="Hours">
@@ -631,17 +632,42 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-type EditableService = { id?: string; slug?: string; name: string; description?: string | null; price?: string | null };
+type EditableService = {
+  id?: string;
+  slug?: string;
+  name: string;
+  description?: string | null;
+  price?: string | null;
+  imageUrl?: string | null;
+};
 
 function ServicesEditor({
   services,
   onChange,
   category,
+  siteId,
 }: {
   services: EditableService[];
   onChange: (services: EditableService[]) => void;
   category?: string | null;
+  siteId?: string;
 }) {
+  const [uploadingRow, setUploadingRow] = useState<number | null>(null);
+
+  async function uploadImage(index: number, file: File) {
+    if (!siteId) return;
+    setUploadingRow(index);
+    try {
+      const fd = new FormData();
+      fd.append("photo", file);
+      const res = await fetch(`/api/sites/${siteId}/service-photo`, { method: "POST", body: fd });
+      const result = await res.json();
+      if (res.ok && result.url) update(index, { imageUrl: result.url });
+    } finally {
+      setUploadingRow(null);
+    }
+  }
+
   function update(index: number, patch: Partial<EditableService>) {
     onChange(services.map((s, i) => (i === index ? { ...s, ...patch } : s)));
   }
@@ -771,6 +797,45 @@ function ServicesEditor({
             onChange={(e) => update(i, { description: e.target.value })}
             placeholder="Optional longer description — gives this service its own page"
           />
+          <div className="mt-2 flex items-center gap-2">
+            {s.imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- small local thumbnail preview
+              <img src={s.imageUrl} alt="" className="h-10 w-10 rounded border border-slate-200 object-cover" />
+            ) : (
+              <span className="flex h-10 w-10 items-center justify-center rounded border border-dashed border-slate-300 text-[10px] text-slate-400">
+                img
+              </span>
+            )}
+            {siteId ? (
+              <>
+                <label className="cursor-pointer text-xs font-medium text-blue-700 hover:underline">
+                  {uploadingRow === i ? "Uploading…" : s.imageUrl ? "Replace image" : "Add image"}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    className="hidden"
+                    disabled={uploadingRow === i}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      e.target.value = "";
+                      if (f) uploadImage(i, f);
+                    }}
+                  />
+                </label>
+                {s.imageUrl && (
+                  <button
+                    type="button"
+                    onClick={() => update(i, { imageUrl: null })}
+                    className="text-xs font-medium text-slate-400 hover:text-red-600"
+                  >
+                    Remove
+                  </button>
+                )}
+              </>
+            ) : (
+              <span className="text-xs text-slate-400">Save the site to add service images</span>
+            )}
+          </div>
         </div>
       ))}
       <button
