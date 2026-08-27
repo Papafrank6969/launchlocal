@@ -47,9 +47,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Google has no photos for this business." }, { status: 404 });
   }
 
-  // Download + compress each; keep whatever succeeds.
+  // Only fetch as many as we'll actually place: hero + story + one per
+  // image-less service. Otherwise the extras just leak onto disk.
+  const slotsNeeded =
+    (site.photoUrl ? 0 : 1) +
+    (site.storyPhotoUrl ? 0 : 1) +
+    site.serviceItems.filter((s) => !s.imageUrl).length;
+
   const saved: string[] = [];
   for (const ref of parsed.refs) {
+    if (saved.length >= slotsNeeded) break;
     const bytes = await fetchPlacePhotoBytes(ref, apiKey);
     if (!bytes) continue;
     const compressed = await compressImage(bytes);
