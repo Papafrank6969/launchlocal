@@ -7,6 +7,11 @@ sites it builds look like a real business made them — not like a template mill
 or an AI slop generator. Every item here should stay true; if a change would
 violate one, don't make it without calling it out first.
 
+Design decisions draw on the `ui-ux-pro-max` skill as a reference DB — see
+[`DESIGN-PROCESS.md`](DESIGN-PROCESS.md). **This checklist outranks any skill
+recommendation.** The skill will suggest scroll storytelling, parallax, and
+animate-everything motion; none of it ships here.
+
 ## Never do this (the sell.app tell)
 
 These are the tells of a lazy AI-generated storefront. If a change introduces any

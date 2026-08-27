@@ -1,3 +1,7 @@
+// Adding or revising a system here: follow `docs/DESIGN-PROCESS.md` §1 — query
+// the ui-ux-pro-max skill for palette + font-pairing candidates, hand-build the
+// 4-role color system, then WCAG-gate it (`npm test` covers the whole list).
+
 export type HeroStyle = "centered" | "split" | "full-bleed";
 
 export type FontChoice = { family: string; weight: string; fallback: "serif" | "sans-serif" };
@@ -101,7 +105,7 @@ export const DESIGN_SYSTEMS: DesignSystem[] = [
     fontHeading: { family: "Bodoni Moda", weight: "600", fallback: "serif" },
     fontBody: { family: "Inter", weight: "400", fallback: "sans-serif" },
     colorPrimary: "#2B2320",
-    colorAccent: "#B8828A",
+    colorAccent: "#AE7680",
     colorNeutralDark: "#211B19",
     colorNeutralLight: "#FBF3F0",
     heroStyle: "split",

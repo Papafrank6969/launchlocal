@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { meetsAA } from "./contrast";
+import { meetsAA, contrastRatio } from "./contrast";
 import {
   DESIGN_SYSTEMS,
   DEFAULT_DESIGN_SYSTEM_ID,
@@ -64,6 +64,26 @@ describe("DESIGN_SYSTEMS catalog integrity", () => {
     for (const system of DESIGN_SYSTEMS) {
       expect(meetsAA(system.colorPrimary, system.colorNeutralLight)).toBe(true);
       expect(meetsAA(system.colorNeutralDark, system.colorNeutralLight)).toBe(true);
+    }
+  });
+
+  it("passes WCAG AA (normal text) for dark-mode body text (light neutral on dark neutral)", () => {
+    // The site chrome swaps --site-bg/--site-fg to these in .dark — body copy
+    // has to stay readable in both modes, not just light.
+    for (const system of DESIGN_SYSTEMS) {
+      expect(meetsAA(system.colorNeutralLight, system.colorNeutralDark)).toBe(true);
+    }
+  });
+
+  it("keeps the accent color at the 3:1 large-text / UI bar against its neutral", () => {
+    // Accent is decoration only (split-variant service-card top border) — never
+    // body text, and eyebrows use the primary color. It only ever sits on one
+    // neutral at a time depending on theme, so it has to clear 3:1 (WCAG
+    // large-text / non-text-contrast) against at least one of them.
+    for (const system of DESIGN_SYSTEMS) {
+      const onLight = contrastRatio(system.colorAccent, system.colorNeutralLight);
+      const onDark = contrastRatio(system.colorAccent, system.colorNeutralDark);
+      expect(Math.max(onLight, onDark)).toBeGreaterThanOrEqual(3);
     }
   });
 });
