@@ -500,6 +500,8 @@ function Footer({
   const dmUrl = instagramDmUrl(site.instagramHandle);
   const bookingUrl = normalizeBookingUrl(site.bookingUrl);
   const year = new Date().getFullYear();
+  // Business names ending in "Co." / "LLC." shouldn't render "Name.. All rights reserved."
+  const legalName = site.businessName.replace(/\.\s*$/, "");
   const ranges = parseHours(site.hours);
   const openNow = ranges ? isOpenNow(ranges) : null;
   const payments = (site.paymentMethods ?? "")
@@ -595,7 +597,7 @@ function Footer({
             </p>
           )}
           <p className="mt-2 text-xs opacity-60">
-            © {year} {site.businessName}. All rights reserved.
+            © {year} {legalName}. All rights reserved.
           </p>
         </div>
       </div>
