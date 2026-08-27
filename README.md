@@ -16,7 +16,15 @@ them one, and tracking how it's doing.
   form), Privacy Policy, and Terms of Service. Nav only ever links to pages
   that exist. Manage FAQ, Blog posts, and before/after Gallery photos from
   their own tabs on the site editor; contact-form messages show up in an
-  inbox on the same page.
+  inbox on the same page. Set an **online booking link** (Vagaro, Booksy,
+  Square, GlossGenius, Calendly, Fresha…) and "Book Now" becomes the primary
+  call to action across the whole site. The Services page renders as a
+  printable price-menu.
+- **Real Google reviews** — with `GOOGLE_PLACES_API_KEY` set, the operator can
+  pull up to 5 real reviews for a site (by Place ID, auto-filled from a Google
+  lead) and they render verbatim on the home page, attributed and linked back
+  to the Google listing. Never generated, never filtered by rating; the editor
+  shows when the cached copy was last refreshed.
 - **Bespoke design generation** — every site's fonts, colors, and layout come
   from a curated design system (`src/lib/designSystems.ts`) picked for that
   specific business. With `ANTHROPIC_API_KEY` set, an AI call picks the best
