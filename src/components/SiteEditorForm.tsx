@@ -418,7 +418,8 @@ export function SiteEditorForm({
                   {regenerating ? "Generating…" : "Regenerate design"}
                 </button>
                 <select
-                  className="rounded-md border border-slate-300 px-2 py-1.5 text-xs text-slate-700"
+                  aria-label="Switch design system"
+                  className="select-compact font-normal"
                   value=""
                   onChange={(e) => {
                     if (e.target.value) regenerateDesign(e.target.value);

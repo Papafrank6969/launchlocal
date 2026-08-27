@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import Link from "next/link";
+import { RefreshCw, Star } from "lucide-react";
 import { instagramDmUrl } from "@/lib/templates";
 import { generateOutreachMessage, OUTREACH_VARIANT_COUNT } from "@/lib/outreachMessage";
 import { FormStatus } from "@/components/FormStatus";
@@ -130,24 +131,30 @@ export default function LeadsPage() {
         Search businesses by city and category. We flag the ones with no website or a weak one.
       </p>
 
-      <form onSubmit={handleSearch} className="mt-6 flex flex-wrap items-end gap-4">
+      <form onSubmit={handleSearch} className="mt-6 flex flex-wrap items-start gap-4">
         <div>
-          <label className="block text-sm font-medium text-slate-700">City</label>
+          <label htmlFor="lead-city" className="block text-sm font-medium text-slate-700">
+            City
+          </label>
           <input
+            id="lead-city"
             value={city}
             onChange={(e) => setCity(e.target.value)}
-            className="mt-1 w-56 rounded-md border border-slate-300 px-3 py-2 text-sm"
+            className="input mt-1 w-56"
             placeholder="Austin, TX"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700">Category</label>
+          <label htmlFor="lead-category" className="block text-sm font-medium text-slate-700">
+            Category
+          </label>
           <select
+            id="lead-category"
             multiple
             size={5}
             value={categories}
             onChange={(e) => setCategories(Array.from(e.target.selectedOptions, (o) => o.value))}
-            className="mt-1 w-56 rounded-md border border-indigo-300 bg-indigo-50 px-3 py-2 text-sm text-indigo-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="mt-1 w-56 rounded-md border border-indigo-300 bg-indigo-50 px-3 py-2 text-sm text-indigo-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
           >
             {TRADE_OPTIONS.map((t) => (
               <option key={t.id} value={t.id}>
@@ -158,25 +165,28 @@ export default function LeadsPage() {
           <p className="mt-1 text-xs text-slate-500">Hold Ctrl (⌘ on Mac) to search more than one trade at once.</p>
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700">Radius (miles)</label>
+          <label htmlFor="lead-radius" className="block text-sm font-medium text-slate-700">
+            Radius (miles)
+          </label>
           <input
+            id="lead-radius"
             type="number"
             min={1}
             max={31}
             value={radiusMiles}
             onChange={(e) => setRadiusMiles(e.target.value)}
-            className="mt-1 w-28 rounded-md border border-slate-300 px-3 py-2 text-sm"
+            className="input mt-1 w-28"
             placeholder="any"
           />
         </div>
         <button
           type="submit"
           disabled={loading || categories.length === 0}
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+          className="mt-6 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
         >
           {loading ? "Searching…" : "Search"}
         </button>
-        <label className="flex items-center gap-2 pb-2 text-sm text-slate-600">
+        <label className="mt-[1.9rem] flex items-center gap-2 text-sm text-slate-600">
           <input
             type="checkbox"
             checked={onlyOpportunities}
@@ -228,6 +238,7 @@ function LeadCard({
   onSaveEmail: (leadId: string, email: string) => Promise<boolean>;
   onOutreachChange: (leadId: string, patch: { outreachStatus?: OutreachStatus; followUpAt?: string | null }) => void;
 }) {
+  const uid = useId();
   const [handle, setHandle] = useState(lead.instagramHandle ?? "");
   const [email, setEmail] = useState(lead.email ?? "");
   const [looking, setLooking] = useState(false);
@@ -309,8 +320,9 @@ function LeadCard({
         </a>
       )}
       {lead.rating != null && (
-        <p className="mt-1 text-sm text-slate-500">
-          ⭐ {lead.rating} ({lead.reviewCount ?? 0} reviews)
+        <p className="mt-1 flex items-center gap-1 text-sm text-slate-500">
+          <Star size={14} className="fill-amber-400 text-amber-400" aria-hidden="true" />
+          {lead.rating} ({lead.reviewCount ?? 0} reviews)
         </p>
       )}
       {lead.existingUrl && (
@@ -325,15 +337,18 @@ function LeadCard({
       )}
 
       <div className="mt-3">
-        <label className="block text-xs font-medium text-slate-500">Email</label>
+        <label htmlFor={`${uid}-email`} className="block text-xs font-medium text-slate-500">
+          Email
+        </label>
         <div className="mt-1 flex items-center gap-2">
           <input
+            id={`${uid}-email`}
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             onBlur={handleEmailBlur}
             placeholder="owner@business.com"
-            className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+            className="input py-1.5"
           />
           {email && (
             <a
@@ -352,14 +367,17 @@ function LeadCard({
       </div>
 
       <div className="mt-3">
-        <label className="block text-xs font-medium text-slate-500">Instagram handle</label>
+        <label htmlFor={`${uid}-ig`} className="block text-xs font-medium text-slate-500">
+          Instagram handle
+        </label>
         <div className="mt-1 flex gap-2">
           <input
+            id={`${uid}-ig`}
             value={handle}
             onChange={(e) => setHandle(e.target.value)}
             onBlur={handleInstagramBlur}
             placeholder="@business_handle"
-            className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+            className="input py-1.5"
           />
           {!handle && (
             <button
@@ -393,22 +411,24 @@ function LeadCard({
       {lead.websiteStatus !== "HAS_SITE" && (
         <div className="mt-3">
           <div className="flex items-center justify-between">
-            <label className="block text-xs font-medium text-slate-500">
+            <label htmlFor={`${uid}-dm`} className="block text-xs font-medium text-slate-500">
               DM message · v{(variant % OUTREACH_VARIANT_COUNT) + 1}
             </label>
             <button
               type="button"
               onClick={regenerateMessage}
-              className="text-xs font-medium text-slate-500 hover:text-slate-700"
+              className="flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-700"
             >
-              🔄 Try another
+              <RefreshCw size={12} aria-hidden="true" />
+              Try another
             </button>
           </div>
           <textarea
+            id={`${uid}-dm`}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             rows={4}
-            className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+            className="input mt-1 py-1.5"
           />
           <button
             type="button"

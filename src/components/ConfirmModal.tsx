@@ -37,10 +37,13 @@ export function ConfirmModal({
       onClick={(e) => {
         if (e.target === ref.current) onCancel();
       }}
+      aria-labelledby="confirm-modal-title"
       className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-0 shadow-lg backdrop:bg-slate-900/40"
     >
       <div className="p-5">
-        <h2 className="text-base font-semibold text-slate-900">{title}</h2>
+        <h2 id="confirm-modal-title" className="text-base font-semibold text-slate-900">
+          {title}
+        </h2>
         {description && <p className="mt-2 text-sm text-slate-600">{description}</p>}
         <div className="mt-5 flex justify-end gap-2">
           <button
@@ -54,7 +57,7 @@ export function ConfirmModal({
             type="button"
             onClick={onConfirm}
             className={`rounded-md px-3 py-1.5 text-sm font-medium text-white ${
-              danger ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700"
+              danger ? "bg-red-700 hover:bg-red-800" : "bg-blue-600 hover:bg-blue-700"
             }`}
           >
             {confirmLabel}

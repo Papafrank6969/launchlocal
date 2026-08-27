@@ -157,3 +157,29 @@ and `--domain typography` for their niche.
 
 Takeaway: the curated list is doing its job. Use the skill to *check* a system
 and to route new niches, not to recolor what already passes.
+
+### 2026-08-27 — operator app pass
+
+Ran the skill's `--domain ux` guidelines against `/leads`, `/pipeline`,
+`/stats`, `/builder`. `--design-system` auto-matched the app as a
+"Marketplace/Directory" with a green palette — ignored per the precedence rule.
+Existing palette (`blue-600` / `slate-*` / `emerald-600`), tables (already
+`overflow-x-auto` + `min-w`), empty states, `ConfirmModal`, and `FormStatus`
+auto-clear all held up. Fixed:
+
+- `.input` and a new `.select-compact` component class now carry a visible
+  focus ring (`focus:ring-2 ring-blue-500/40`) — the app had no focus styling
+  on most fields. Standing reference in this doc updated to match.
+- Emoji-as-icon removed: `⭐` → Lucide `Star`, `🔄` → Lucide `RefreshCw`,
+  `×` → Lucide `X`. `AppHeader`'s hand-rolled hamburger SVG → Lucide
+  `Menu`/`X` to match the site header's icon set.
+- Lead Finder search + card fields: `<label htmlFor>` / input `id` wired up
+  (were unassociated), fields moved onto `.input`, and the search row
+  top-aligns instead of bottom-aligning against the tall multi-select.
+- `ConfirmModal` danger button `bg-red-600` → `bg-red-700` (the 600 shade is
+  ~3.9:1 on white, under the 4.5 bar) and got `aria-labelledby`.
+
+Still open (bigger, not in this pass): the Category / Trades pickers are
+`<select multiple>` — hard to discover and easy to lose selections; a
+checkbox group would be the fix. The operator app is also effectively
+light-only despite a theme toggle in the header.

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Menu, X } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 const NAV_LINKS = [
@@ -49,15 +50,7 @@ export function AppHeader() {
             aria-label={menuOpen ? "Close menu" : "Open menu"}
             className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 text-slate-600 dark:border-slate-700 dark:text-slate-300"
           >
-            {menuOpen ? (
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-                <path d="M1 1L17 17M17 1L1 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            ) : (
-              <svg width="18" height="14" viewBox="0 0 18 14" fill="none" aria-hidden="true">
-                <path d="M0 1H18M0 7H18M0 13H18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            )}
+            {menuOpen ? <X size={18} aria-hidden="true" /> : <Menu size={18} aria-hidden="true" />}
           </button>
         </div>
       </div>

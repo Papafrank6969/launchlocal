@@ -1,5 +1,6 @@
 "use client";
 
+import { X } from "lucide-react";
 import { OUTREACH_LABEL, OUTREACH_STATUSES, isOverdue, type OutreachStatus } from "@/lib/outreachStatus";
 
 /** Parent owns persistence — onChange is expected to both update local state and PATCH the server. */
@@ -27,9 +28,10 @@ export function OutreachControls({
   return (
     <div className="mt-3 flex flex-wrap items-center gap-2">
       <select
+        aria-label="Outreach status"
         value={outreachStatus}
         onChange={(e) => patch({ outreachStatus: e.target.value as OutreachStatus })}
-        className="rounded-md border border-slate-300 px-2 py-1.5 text-xs font-medium text-slate-700"
+        className="select-compact"
       >
         {OUTREACH_STATUSES.map((s) => (
           <option key={s} value={s}>
@@ -49,9 +51,9 @@ export function OutreachControls({
             type="button"
             onClick={() => patch({ followUpAt: null })}
             aria-label="Clear follow-up date"
-            className="ml-1.5 text-slate-400 hover:text-slate-600"
+            className="ml-1 inline-flex align-middle text-slate-400 hover:text-slate-600"
           >
-            ×
+            <X size={13} aria-hidden="true" />
           </button>
         </span>
       ) : (
