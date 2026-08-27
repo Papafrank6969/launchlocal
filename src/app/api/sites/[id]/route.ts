@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { slugify } from "@/lib/slug";
+import { normalizeBookingUrl } from "@/lib/bookingUrl";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -46,6 +47,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   for (const field of EDITABLE_FIELDS) {
     if (field in body) data[field] = body[field];
   }
+  // Booking URL is validated/normalised, never stored as pasted.
+  if ("bookingUrl" in body) data.bookingUrl = normalizeBookingUrl(body.bookingUrl);
   for (const field of EDITABLE_BOOLEAN_FIELDS) {
     if (field in body) data[field] = Boolean(body[field]);
   }

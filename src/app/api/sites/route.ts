@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { uniqueSlug, slugify } from "@/lib/slug";
 import { chooseDesign } from "@/lib/generateDesign";
+import { normalizeBookingUrl } from "@/lib/bookingUrl";
 
 export async function GET() {
   const sites = await db.site.findMany({
@@ -68,6 +69,7 @@ export async function POST(req: NextRequest) {
       address: body.address || null,
       instagramHandle: body.instagramHandle || null,
       facebookUrl: body.facebookUrl || null,
+      bookingUrl: normalizeBookingUrl(body.bookingUrl),
       guaranteeText: body.guaranteeText || null,
       paymentMethods: body.paymentMethods || null,
       rating: rating !== null && !Number.isNaN(rating) ? rating : null,

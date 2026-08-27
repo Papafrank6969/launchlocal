@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { SitePageShell } from "@/components/site/SitePageShell";
 import { pageMetadata } from "@/lib/seo";
 import { resolveDesignSystem } from "@/lib/templates";
+import { normalizeBookingUrl } from "@/lib/bookingUrl";
 import { readableTextColor } from "@/lib/contrast";
 
 async function getService(slug: string, serviceSlug: string) {
@@ -41,6 +42,7 @@ export default async function ServiceDetailPage({
   const system = resolveDesignSystem(site);
   const color = system.colorPrimary;
   const buttonText = readableTextColor(color);
+  const bookingUrl = normalizeBookingUrl(site.bookingUrl);
 
   return (
     <SitePageShell title={service.name} system={system}>
@@ -55,11 +57,26 @@ export default async function ServiceDetailPage({
         <p className="opacity-70">Contact {site.businessName} to learn more about this service.</p>
       )}
       <div className="mt-8 flex flex-wrap gap-3">
+        {bookingUrl && (
+          <a
+            href={bookingUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block rounded-md px-5 py-2.5 font-medium transition-opacity hover:opacity-90"
+            style={{ backgroundColor: color, color: buttonText }}
+          >
+            Book Now
+          </a>
+        )}
         {site.phone && (
           <a
             href={`tel:${site.phone}`}
-            className="inline-block rounded-md px-5 py-2.5 font-medium transition-opacity hover:opacity-90"
-            style={{ backgroundColor: color, color: buttonText }}
+            className={
+              bookingUrl
+                ? "site-border inline-block rounded-md border px-5 py-2.5 font-medium transition-opacity hover:opacity-80"
+                : "inline-block rounded-md px-5 py-2.5 font-medium transition-opacity hover:opacity-90"
+            }
+            style={bookingUrl ? { color } : { backgroundColor: color, color: buttonText }}
           >
             Call {site.phone}
           </a>

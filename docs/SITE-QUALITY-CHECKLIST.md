@@ -60,6 +60,11 @@ Confirmed working, verified live in the browser (not just typechecked):
   photo and gallery uploads)
 - Every page in the nav actually exists — `buildSiteNav` only links to pages
   with real content, never a stub
+- When an online booking link is set, "Book Now" is the primary CTA (sticky
+  header, hero, floating button, service pages) and the phone button steps down
+  to secondary styling. The operator-pasted link is always normalised and
+  scheme-checked through `src/lib/bookingUrl.ts` — never rendered as a raw
+  `href`, never anything but `http(s)`
 - Contact form has real client + server-side validation, labels properly
   associated with inputs (`htmlFor`/`id`, `aria-invalid`, `aria-describedby`),
   and a Google Maps embed when an address exists

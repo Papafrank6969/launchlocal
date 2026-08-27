@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { instagramDmUrl, resolveDesignSystem } from "@/lib/templates";
+import { normalizeBookingUrl } from "@/lib/bookingUrl";
 import { buildSiteNav } from "@/lib/siteNav";
 import { StickyHeader } from "@/components/site/StickyHeader";
 import { BackToTopButton } from "@/components/site/BackToTopButton";
@@ -33,6 +34,7 @@ export default async function PublicSiteLayout({
 
   const system = resolveDesignSystem(site);
   const color = system.colorPrimary;
+  const bookingUrl = normalizeBookingUrl(site.bookingUrl);
   const navLinks = buildSiteNav(slug, {
     hasAbout: Boolean(site.story || site.about),
     hasServices: site._count.serviceItems > 0,
@@ -50,10 +52,21 @@ export default async function PublicSiteLayout({
       >
         Skip to content
       </a>
-      <StickyHeader businessName={site.businessName} color={color} homeHref={`/s/${slug}`} navLinks={navLinks} />
+      <StickyHeader
+        businessName={site.businessName}
+        color={color}
+        homeHref={`/s/${slug}`}
+        navLinks={navLinks}
+        bookingUrl={bookingUrl}
+      />
       <main id="top">{children}</main>
       <BackToTopButton color={color} />
-      <FloatingContactButton phone={site.phone} dmUrl={instagramDmUrl(site.instagramHandle)} color={color} />
+      <FloatingContactButton
+        bookingUrl={bookingUrl}
+        phone={site.phone}
+        dmUrl={instagramDmUrl(site.instagramHandle)}
+        color={color}
+      />
       <CookieConsentBanner />
     </>
   );

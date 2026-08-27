@@ -5,6 +5,7 @@ import { SitePreview, type SiteData } from "@/lib/templates";
 import { FormStatus, type StatusMessage } from "@/components/FormStatus";
 import { DESIGN_SYSTEMS, getDesignSystem } from "@/lib/designSystems";
 import { TRADE_OPTIONS, resolveTradeId, getServicesForTrades } from "@/lib/serviceSuggestions";
+import { normalizeBookingUrl, bookingProviderLabel } from "@/lib/bookingUrl";
 import { InspirationPhotos } from "@/components/InspirationPhotos";
 
 export type EditableSite = SiteData & {
@@ -233,6 +234,15 @@ export function SiteEditorForm({
             placeholder="https://facebook.com/yourbusiness"
           />
         </Field>
+        <Field label="Online booking link">
+          <input
+            className="input"
+            value={data.bookingUrl ?? ""}
+            onChange={(e) => set("bookingUrl", e.target.value)}
+            placeholder="https://vagaro.com/yourstudio"
+          />
+          <BookingLinkHint value={data.bookingUrl} />
+        </Field>
         <Field label="Payment methods (comma-separated)">
           <input
             className="input"
@@ -366,6 +376,29 @@ export function SiteEditorForm({
         </div>
       </div>
     </div>
+  );
+}
+
+function BookingLinkHint({ value }: { value?: string | null }) {
+  if (!value?.trim()) {
+    return (
+      <p className="mt-1 text-xs text-slate-500">
+        Adds a prominent &ldquo;Book Now&rdquo; button to the header, hero, and floating button. Paste the link
+        from Vagaro, Booksy, Square, GlossGenius, Calendly, Fresha, and similar.
+      </p>
+    );
+  }
+  const normalized = normalizeBookingUrl(value);
+  if (!normalized) {
+    return (
+      <p className="mt-1 text-xs text-red-600">
+        That doesn&apos;t look like a valid web link — it won&apos;t be saved until it does.
+      </p>
+    );
+  }
+  const provider = bookingProviderLabel(normalized);
+  return (
+    <p className="mt-1 text-xs text-emerald-600">{provider ? `${provider} link ✓` : "Looks good ✓"}</p>
   );
 }
 

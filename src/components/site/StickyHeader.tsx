@@ -4,19 +4,23 @@ import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ScrollProgressBar } from "@/components/site/ScrollProgressBar";
+import { readableTextColor } from "@/lib/contrast";
 
 export function StickyHeader({
   businessName,
   color,
   homeHref,
   navLinks,
+  bookingUrl,
 }: {
   businessName: string;
   color: string;
   homeHref: string;
   navLinks: { href: string; label: string }[];
+  bookingUrl?: string | null;
 }) {
   const [open, setOpen] = useState(false);
+  const bookingTextColor = readableTextColor(color);
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur print:hidden dark:border-slate-800 dark:bg-slate-950/90">
@@ -33,9 +37,31 @@ export function StickyHeader({
               </a>
             ))}
             <ThemeToggle />
+            {bookingUrl && (
+              <a
+                href={bookingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-md px-3.5 py-1.5 text-sm font-semibold shadow-sm transition-transform hover:-translate-y-0.5"
+                style={{ backgroundColor: color, color: bookingTextColor }}
+              >
+                Book Now
+              </a>
+            )}
           </nav>
 
           <div className="flex items-center gap-2 sm:hidden">
+            {bookingUrl && (
+              <a
+                href={bookingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-md px-3 py-1.5 text-xs font-semibold"
+                style={{ backgroundColor: color, color: bookingTextColor }}
+              >
+                Book
+              </a>
+            )}
             <ThemeToggle />
             {navLinks.length > 0 && (
               <button

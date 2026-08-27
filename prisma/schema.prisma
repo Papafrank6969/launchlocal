@@ -69,6 +69,7 @@ model Site {
   address     String?
   instagramHandle String?
   facebookUrl String?
+  bookingUrl  String?
   guaranteeText String?
   paymentMethods String?
   photoUrl    String?

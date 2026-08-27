@@ -1,4 +1,5 @@
 import { parseHours, DAY_NAMES } from "@/lib/hours";
+import { normalizeBookingUrl } from "@/lib/bookingUrl";
 
 const FULL_DAY_NAMES: Record<string, string> = {
   Sun: "Sunday",
@@ -36,6 +37,7 @@ export type LocalBusinessInput = {
   address?: string | null;
   hours?: string | null;
   photoUrl?: string | null;
+  bookingUrl?: string | null;
 };
 
 export function localBusinessJsonLd(site: LocalBusinessInput, baseUrl: string, path: string): Record<string, unknown> {
@@ -53,6 +55,15 @@ export function localBusinessJsonLd(site: LocalBusinessInput, baseUrl: string, p
   if (site.email) json.email = site.email;
   if (site.address) json.address = site.address;
   if (site.photoUrl) json.image = `${baseUrl}${site.photoUrl}`;
+
+  const bookingUrl = normalizeBookingUrl(site.bookingUrl);
+  if (bookingUrl) {
+    json.potentialAction = {
+      "@type": "ReserveAction",
+      name: "Book an appointment",
+      target: bookingUrl,
+    };
+  }
   if (ranges) {
     json.openingHoursSpecification = ranges.map((r) => ({
       "@type": "OpeningHoursSpecification",

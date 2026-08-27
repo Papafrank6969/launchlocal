@@ -2,6 +2,7 @@ import Image from "next/image";
 import { parseHours, isOpenNow } from "@/lib/hours";
 import { getDesignSystem, deterministicDesignSystem, fontCssValue, type DesignSystem } from "@/lib/designSystems";
 import { readableTextColor } from "@/lib/contrast";
+import { normalizeBookingUrl } from "@/lib/bookingUrl";
 import { SiteIdentity } from "@/components/site/SiteFonts";
 
 export type SiteData = {
@@ -14,6 +15,7 @@ export type SiteData = {
   address?: string | null;
   instagramHandle?: string | null;
   facebookUrl?: string | null;
+  bookingUrl?: string | null;
   email?: string | null;
   photoUrl?: string | null;
   guaranteeText?: string | null;
@@ -102,6 +104,7 @@ export function SitePreview({ site }: { site: SiteData }) {
   const headingFont = fontCssValue(system.fontHeading);
   const bodyFont = fontCssValue(system.fontBody);
   const aboutText = site.about || site.story;
+  const bookingUrl = normalizeBookingUrl(site.bookingUrl);
 
   const rootStyle: React.CSSProperties = { fontFamily: bodyFont };
   const headingStyle: React.CSSProperties = { fontFamily: headingFont };
@@ -120,11 +123,26 @@ export function SitePreview({ site }: { site: SiteData }) {
           {site.tagline && <p className="mx-auto mt-5 max-w-xl text-xl font-medium opacity-90">{site.tagline}</p>}
           <RatingBadge rating={site.rating} reviewCount={site.reviewCount} className="mt-4 opacity-90" />
           <div className="mt-10 flex flex-wrap justify-center gap-4">
+            {bookingUrl && (
+              <a
+                href={bookingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block rounded-md px-7 py-3.5 text-base font-bold shadow-[4px_4px_0_rgba(0,0,0,0.25)] transition-transform hover:-translate-y-0.5"
+                style={{ backgroundColor: neutralLight, color: primary }}
+              >
+                Book Now
+              </a>
+            )}
             {site.phone && (
               <a
                 href={`tel:${site.phone}`}
-                className="inline-block rounded-md px-7 py-3.5 text-base font-bold shadow-[4px_4px_0_rgba(0,0,0,0.25)] transition-transform hover:-translate-y-0.5"
-                style={{ backgroundColor: neutralLight, color: primary }}
+                className={
+                  bookingUrl
+                    ? "inline-block rounded-md border-2 px-7 py-3.5 text-base font-bold transition-colors hover:bg-white/10"
+                    : "inline-block rounded-md px-7 py-3.5 text-base font-bold shadow-[4px_4px_0_rgba(0,0,0,0.25)] transition-transform hover:-translate-y-0.5"
+                }
+                style={bookingUrl ? { borderColor: primaryText, color: primaryText } : { backgroundColor: neutralLight, color: primary }}
               >
                 Call {site.phone}
               </a>
@@ -209,11 +227,26 @@ export function SitePreview({ site }: { site: SiteData }) {
             {site.tagline && <p className="mt-4 text-lg opacity-80">{site.tagline}</p>}
             <RatingBadge rating={site.rating} reviewCount={site.reviewCount} className="mt-3 opacity-80" />
             <div className="mt-8 flex flex-wrap gap-3">
+              {bookingUrl && (
+                <a
+                  href={bookingUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block rounded-lg px-5 py-2.5 font-medium shadow-sm transition-shadow hover:shadow-md"
+                  style={{ backgroundColor: primary, color: primaryText }}
+                >
+                  Book Now
+                </a>
+              )}
               {site.phone && (
                 <a
                   href={`tel:${site.phone}`}
-                  className="inline-block rounded-lg px-5 py-2.5 font-medium shadow-sm transition-shadow hover:shadow-md"
-                  style={{ backgroundColor: primary, color: primaryText }}
+                  className={
+                    bookingUrl
+                      ? "site-border inline-block rounded-lg border px-5 py-2.5 font-medium transition-opacity hover:opacity-80"
+                      : "inline-block rounded-lg px-5 py-2.5 font-medium shadow-sm transition-shadow hover:shadow-md"
+                  }
+                  style={bookingUrl ? { color: primary } : { backgroundColor: primary, color: primaryText }}
                 >
                   Call {site.phone}
                 </a>
@@ -298,16 +331,31 @@ export function SitePreview({ site }: { site: SiteData }) {
         <div className="mx-auto mt-5 h-0.5 w-16" style={{ backgroundColor: primary }} />
         {site.tagline && <p className="mt-5 text-lg italic opacity-80">{site.tagline}</p>}
         <RatingBadge rating={site.rating} reviewCount={site.reviewCount} className="mt-4 justify-center opacity-80" />
-        {instagramDmUrl(site.instagramHandle) && (
-          <a
-            href={instagramDmUrl(site.instagramHandle)!}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-8 inline-block rounded-full border px-6 py-3 text-sm font-semibold uppercase tracking-widest transition-opacity hover:opacity-80"
-            style={{ borderColor: primary, color: primary }}
-          >
-            DM on Instagram
-          </a>
+        {(bookingUrl || instagramDmUrl(site.instagramHandle)) && (
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            {bookingUrl && (
+              <a
+                href={bookingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block rounded-full px-6 py-3 text-sm font-semibold uppercase tracking-widest transition-opacity hover:opacity-90"
+                style={{ backgroundColor: primary, color: primaryText }}
+              >
+                Book Now
+              </a>
+            )}
+            {instagramDmUrl(site.instagramHandle) && (
+              <a
+                href={instagramDmUrl(site.instagramHandle)!}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block rounded-full border px-6 py-3 text-sm font-semibold uppercase tracking-widest transition-opacity hover:opacity-80"
+                style={{ borderColor: primary, color: primary }}
+              >
+                DM on Instagram
+              </a>
+            )}
+          </div>
         )}
       </section>
       <Photo site={site} />
@@ -358,6 +406,7 @@ function Footer({
   variant?: "center" | "left" | "dark";
 }) {
   const dmUrl = instagramDmUrl(site.instagramHandle);
+  const bookingUrl = normalizeBookingUrl(site.bookingUrl);
   const year = new Date().getFullYear();
   const ranges = parseHours(site.hours);
   const openNow = ranges ? isOpenNow(ranges) : null;
@@ -381,6 +430,19 @@ function Footer({
     >
       <div className={left ? "mx-auto flex max-w-5xl flex-wrap items-start justify-between gap-8" : ""}>
         <div>
+          {bookingUrl && (
+            <p>
+              <a
+                href={bookingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: dark ? undefined : primary }}
+                className="font-semibold transition-opacity hover:opacity-80"
+              >
+                Book an appointment
+              </a>
+            </p>
+          )}
           {site.address && <p>{site.address}</p>}
           {site.phone && (
             <p>

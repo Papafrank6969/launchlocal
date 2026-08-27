@@ -16,6 +16,7 @@ const BLANK: EditableSite = {
   address: "",
   instagramHandle: "",
   facebookUrl: "",
+  bookingUrl: "",
   guaranteeText: "",
   paymentMethods: "",
   category: "",
