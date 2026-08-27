@@ -46,23 +46,6 @@ export function resolveDesignSystem(site: Pick<SiteData, "businessName" | "categ
     : deterministicDesignSystem(site.businessName, site.category);
 }
 
-function Photo({
-  site,
-  className = "relative h-64 w-full sm:h-96",
-  sizes = "100vw",
-}: {
-  site: SiteData;
-  className?: string;
-  sizes?: string;
-}) {
-  if (!site.photoUrl) return null;
-  return (
-    <div className={className}>
-      <Image src={site.photoUrl} alt={site.businessName} fill className="object-cover" sizes={sizes} priority />
-    </div>
-  );
-}
-
 export function instagramDmUrl(handle?: string | null): string | null {
   if (!handle) return null;
   const clean = handle.trim().replace(/^@/, "").replace(/^https?:\/\/(www\.)?instagram\.com\//, "").replace(/\/$/, "");
@@ -77,6 +60,24 @@ function serviceHref(site: SiteData, item: { slug?: string }): string | null {
 
 /** Rating stars read as a rating in every palette when they're gold — the universal convention. */
 const STAR_GOLD = "#E0A82E";
+
+function titleCase(s: string): string {
+  if (s.toLowerCase() === "hvac contractor") return "HVAC Contractor";
+  return s.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function palette(system: DesignSystem) {
+  const primary = system.colorPrimary;
+  const headingFont = fontCssValue(system.fontHeading);
+  return {
+    primary,
+    accent: system.colorAccent,
+    neutralLight: system.colorNeutralLight,
+    primaryText: readableTextColor(primary),
+    headingFont,
+    headingStyle: { fontFamily: headingFont } as React.CSSProperties,
+  };
+}
 
 function Eyebrow({ children, color, headingFont }: { children: React.ReactNode; color: string; headingFont: string }) {
   return (
@@ -110,313 +111,454 @@ function RatingBadge({
 }
 
 export function SitePreview({ site }: { site: SiteData }) {
-  const services = site.serviceItems ?? [];
   const system = resolveDesignSystem(site);
-  const primary = system.colorPrimary;
-  const accent = system.colorAccent;
-  const neutralLight = system.colorNeutralLight;
-  const primaryText = readableTextColor(primary);
-  const headingFont = fontCssValue(system.fontHeading);
-  const bodyFont = fontCssValue(system.fontBody);
-  const aboutText = site.about || site.story;
-  const bookingUrl = normalizeBookingUrl(site.bookingUrl);
-
-  const rootStyle: React.CSSProperties = { fontFamily: bodyFont };
-  const headingStyle: React.CSSProperties = { fontFamily: headingFont };
-
-  if (system.heroStyle === "full-bleed") {
-    return (
-      <div className="min-h-screen bg-[var(--site-bg)] text-[var(--site-fg)]" style={rootStyle}>
-        <SiteIdentity system={system} />
-        <section
-          className="relative overflow-hidden border-b-4 border-[var(--site-fg)] px-8 py-14 text-center sm:py-20"
-          style={{ backgroundColor: primary, color: primaryText }}
-        >
-          <h1 className="break-words text-5xl font-extrabold leading-[0.95] tracking-tight sm:text-7xl" style={headingStyle}>
-            {site.businessName}
-          </h1>
-          {site.tagline && <p className="mx-auto mt-5 max-w-xl text-xl font-medium opacity-90">{site.tagline}</p>}
-          <RatingBadge rating={site.rating} reviewCount={site.reviewCount} className="mt-4 opacity-90" />
-          <div className="mt-10 flex flex-wrap justify-center gap-4">
-            {bookingUrl && (
-              <a
-                href={bookingUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block rounded-md px-7 py-3.5 text-base font-bold shadow-[4px_4px_0_rgba(0,0,0,0.25)] transition-transform hover:-translate-y-0.5"
-                style={{ backgroundColor: neutralLight, color: primary }}
-              >
-                Book Now
-              </a>
-            )}
-            {site.phone && (
-              <a
-                href={`tel:${site.phone}`}
-                className={
-                  bookingUrl
-                    ? "inline-block rounded-md border-2 px-7 py-3.5 text-base font-bold transition-colors hover:bg-white/10"
-                    : "inline-block rounded-md px-7 py-3.5 text-base font-bold shadow-[4px_4px_0_rgba(0,0,0,0.25)] transition-transform hover:-translate-y-0.5"
-                }
-                style={bookingUrl ? { borderColor: primaryText, color: primaryText } : { backgroundColor: neutralLight, color: primary }}
-              >
-                Call {site.phone}
-              </a>
-            )}
-            {instagramDmUrl(site.instagramHandle) && (
-              <a
-                href={instagramDmUrl(site.instagramHandle)!}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block rounded-md border-2 px-7 py-3.5 text-base font-bold transition-colors hover:bg-white/10"
-                style={{ borderColor: primaryText, color: primaryText }}
-              >
-                DM us on Instagram
-              </a>
-            )}
-          </div>
-        </section>
-        <Photo site={site} />
-        {aboutText && (
-          <section id="about" className="mx-auto max-w-3xl scroll-mt-20 px-8 py-16 text-center sm:py-20">
-            <Eyebrow color={primary} headingFont={headingFont}>
-              About
-            </Eyebrow>
-            <p className="mt-4 text-2xl font-medium leading-snug">{aboutText}</p>
-          </section>
-        )}
-        {services.length > 0 && (
-          <section id="services" className="site-card-bg scroll-mt-20 px-8 py-16 sm:py-20">
-            <div className="mx-auto max-w-4xl text-center">
-              <Eyebrow color={primary} headingFont={headingFont}>
-                Services
-              </Eyebrow>
-              <h2 className="mt-2 text-3xl font-extrabold tracking-tight" style={headingStyle}>
-                What we do
-              </h2>
-            </div>
-            <div className="mx-auto mt-10 grid max-w-4xl gap-4 sm:grid-cols-3">
-              {services.map((s, i) => {
-                const href = serviceHref(site, s);
-                const cardClass = "site-border block border-2 bg-[var(--site-bg)] p-6 text-left transition-transform hover:-translate-y-1";
-                const inner = (
-                  <>
-                    <span className="text-sm font-extrabold" style={{ color: primary }}>
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                    <p className="mt-2 flex items-baseline justify-between gap-2 text-lg font-bold">
-                      <span>{s.name}</span>
-                      {s.price && (
-                        <span className="shrink-0 text-sm font-semibold opacity-70">{s.price}</span>
-                      )}
-                    </p>
-                  </>
-                );
-                return href ? (
-                  <a key={s.id ?? s.slug ?? i} href={href} className={cardClass}>
-                    {inner}
-                  </a>
-                ) : (
-                  <div key={s.id ?? s.slug ?? i} className={cardClass}>
-                    {inner}
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        )}
-        <ReviewsSection site={site} system={system} />
-        <Footer site={site} system={system} variant="dark" />
-      </div>
-    );
-  }
-
-  if (system.heroStyle === "split") {
-    return (
-      <div className="min-h-screen bg-[var(--site-bg)] text-[var(--site-fg)]" style={rootStyle}>
-        <SiteIdentity system={system} />
-        <section
-          className={
-            site.photoUrl
-              ? "mx-auto grid max-w-5xl gap-10 px-8 py-14 sm:grid-cols-5 sm:items-center sm:py-20"
-              : "mx-auto max-w-5xl px-8 py-14 sm:py-20"
-          }
-        >
-          <div className={site.photoUrl ? "sm:col-span-3" : "max-w-2xl"}>
-            <div className="h-1 w-12 rounded-full" style={{ backgroundColor: primary }} />
-            <h1 className="mt-5 break-words text-5xl font-bold leading-[1.05] tracking-tight" style={headingStyle}>
-              {site.businessName}
-            </h1>
-            {site.tagline && <p className="mt-4 text-lg opacity-80">{site.tagline}</p>}
-            <RatingBadge rating={site.rating} reviewCount={site.reviewCount} className="mt-3 opacity-80" />
-            <div className="mt-8 flex flex-wrap gap-3">
-              {bookingUrl && (
-                <a
-                  href={bookingUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-block rounded-lg px-5 py-2.5 font-medium shadow-sm transition-shadow hover:shadow-md"
-                  style={{ backgroundColor: primary, color: primaryText }}
-                >
-                  Book Now
-                </a>
-              )}
-              {site.phone && (
-                <a
-                  href={`tel:${site.phone}`}
-                  className={
-                    bookingUrl
-                      ? "site-border inline-block rounded-lg border px-5 py-2.5 font-medium transition-opacity hover:opacity-80"
-                      : "inline-block rounded-lg px-5 py-2.5 font-medium shadow-sm transition-shadow hover:shadow-md"
-                  }
-                  style={bookingUrl ? { color: primary } : { backgroundColor: primary, color: primaryText }}
-                >
-                  Call {site.phone}
-                </a>
-              )}
-              {instagramDmUrl(site.instagramHandle) && (
-                <a
-                  href={instagramDmUrl(site.instagramHandle)!}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="site-border inline-block rounded-lg border px-5 py-2.5 font-medium transition-opacity hover:opacity-80"
-                  style={{ color: primary }}
-                >
-                  DM us on Instagram
-                </a>
-              )}
-            </div>
-          </div>
-          {site.photoUrl && (
-            <div className="sm:col-span-2">
-              <Photo
-                site={site}
-                className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl shadow-lg"
-                sizes="(min-width: 640px) 40vw, 100vw"
-              />
-            </div>
-          )}
-        </section>
-        <div className="mx-auto max-w-5xl px-8 pb-16 sm:pb-20">
-          {aboutText && (
-            <div id="about" className="scroll-mt-20 max-w-2xl">
-              <Eyebrow color={primary} headingFont={headingFont}>
-                About
-              </Eyebrow>
-              <p className="mt-3 text-lg leading-relaxed opacity-90">{aboutText}</p>
-            </div>
-          )}
-          {services.length > 0 && (
-            <div id="services" className={`scroll-mt-20 ${aboutText ? "mt-16" : ""}`}>
-              <Eyebrow color={primary} headingFont={headingFont}>
-                Services
-              </Eyebrow>
-              <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                {services.map((s, i) => {
-                  const href = serviceHref(site, s);
-                  const cardClass = "site-card-bg block rounded-xl border-t-4 p-5 shadow-sm transition-shadow hover:shadow-md";
-                  const inner = (
-                    <>
-                      <span className="text-xs font-bold opacity-50">{String(i + 1).padStart(2, "0")}</span>
-                      <p className="mt-1 flex items-baseline justify-between gap-2 font-semibold">
-                        <span>{s.name}</span>
-                        {s.price && <span className="shrink-0 text-xs font-medium opacity-60">{s.price}</span>}
-                      </p>
-                    </>
-                  );
-                  return href ? (
-                    <a key={s.id ?? s.slug ?? i} href={href} className={cardClass} style={{ borderTopColor: accent }}>
-                      {inner}
-                    </a>
-                  ) : (
-                    <div key={s.id ?? s.slug ?? i} className={cardClass} style={{ borderTopColor: accent }}>
-                      {inner}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-        <ReviewsSection site={site} system={system} />
-        <Footer site={site} system={system} variant="left" />
-      </div>
-    );
-  }
-
-  // centered (default)
   return (
-    <div className="min-h-screen bg-[var(--site-bg)] text-[var(--site-fg)]" style={rootStyle}>
+    <div
+      className="min-h-screen bg-[var(--site-bg)] text-[var(--site-fg)]"
+      style={{ fontFamily: fontCssValue(system.fontBody) }}
+    >
       <SiteIdentity system={system} />
+      {system.heroStyle === "full-bleed" ? (
+        <HeroFullBleed site={site} system={system} />
+      ) : system.heroStyle === "split" ? (
+        <HeroSplit site={site} system={system} />
+      ) : (
+        <HeroCentered site={site} system={system} />
+      )}
+      <SiteSections site={site} system={system} />
+    </div>
+  );
+}
+
+function HeroImageCard({ src, alt, ratio }: { src: string; alt: string; ratio: string }) {
+  return (
+    <div className={`relative ${ratio} w-full overflow-hidden rounded-2xl shadow-xl`}>
+      <Image src={src} alt={alt} fill className="object-cover" sizes="(min-width: 896px) 896px, 90vw" priority />
+    </div>
+  );
+}
+
+/** Book / Call / DM + a "View services" text link. One primary action, the rest secondary. */
+function HeroCtaRow({
+  site,
+  system,
+  shape,
+  onDark = false,
+  align = "left",
+}: {
+  site: SiteData;
+  system: DesignSystem;
+  shape: "block" | "soft" | "pill";
+  onDark?: boolean;
+  align?: "left" | "center";
+}) {
+  const { primary, primaryText, neutralLight } = palette(system);
+  const bookingUrl = normalizeBookingUrl(site.bookingUrl);
+  const dmUrl = instagramDmUrl(site.instagramHandle);
+  const services = site.serviceItems ?? [];
+  const secondaryHref = services.length > 0 ? "#services" : site.slug ? `/s/${site.slug}/contact` : null;
+  const secondaryLabel = services.length > 0 ? "View services" : "Get in touch";
+
+  const base = {
+    block: "inline-block rounded-md px-7 py-3.5 text-base font-bold",
+    soft: "inline-block rounded-lg px-6 py-3 font-medium",
+    pill: "inline-block rounded-full px-6 py-3 text-sm font-semibold uppercase tracking-widest",
+  }[shape];
+  const fillExtra = {
+    block: "shadow-[4px_4px_0_rgba(0,0,0,0.25)] transition-transform hover:-translate-y-0.5",
+    soft: "shadow-sm transition-shadow hover:shadow-md",
+    pill: "transition-opacity hover:opacity-90",
+  }[shape];
+  const outlineExtra =
+    shape === "block"
+      ? `border-2 transition-colors ${onDark ? "hover:bg-white/10" : "hover:bg-black/5"}`
+      : "border transition-opacity hover:opacity-80";
+
+  const fillStyle: React.CSSProperties = onDark
+    ? { backgroundColor: neutralLight, color: primary }
+    : { backgroundColor: primary, color: primaryText };
+  const outlineStyle: React.CSSProperties = onDark
+    ? { borderColor: primaryText, color: primaryText }
+    : { borderColor: primary, color: primary };
+
+  const primaryAction = bookingUrl
+    ? { href: bookingUrl, ext: true, label: "Book Now" }
+    : site.phone
+      ? { href: `tel:${site.phone}`, ext: false, label: `Call ${site.phone}` }
+      : null;
+
+  const secondaryButtons: { href: string; ext: boolean; label: string }[] = [];
+  if (bookingUrl && site.phone) secondaryButtons.push({ href: `tel:${site.phone}`, ext: false, label: `Call ${site.phone}` });
+  if (dmUrl) secondaryButtons.push({ href: dmUrl, ext: true, label: "DM us on Instagram" });
+
+  if (!primaryAction && secondaryButtons.length === 0 && !secondaryHref) return null;
+
+  return (
+    <div className={`mt-8 flex flex-wrap items-center gap-x-4 gap-y-3 ${align === "center" ? "justify-center" : ""}`}>
+      {primaryAction && (
+        <a
+          href={primaryAction.href}
+          {...(primaryAction.ext ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+          className={`${base} ${fillExtra}`}
+          style={fillStyle}
+        >
+          {primaryAction.label}
+        </a>
+      )}
+      {secondaryButtons.map((b) => (
+        <a
+          key={b.href}
+          href={b.href}
+          {...(b.ext ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+          className={`${base} ${outlineExtra}`}
+          style={outlineStyle}
+        >
+          {b.label}
+        </a>
+      ))}
+      {secondaryHref && (
+        <a
+          href={secondaryHref}
+          className="text-sm font-semibold underline-offset-4 hover:underline"
+          style={{ color: onDark ? primaryText : primary }}
+        >
+          {secondaryLabel} &rarr;
+        </a>
+      )}
+    </div>
+  );
+}
+
+function HeroFullBleed({ site, system }: { site: SiteData; system: DesignSystem }) {
+  const { primary, primaryText, headingFont, headingStyle } = palette(system);
+  return (
+    <>
+      <section
+        className="relative overflow-hidden border-b-4 border-[var(--site-fg)] px-8 py-14 text-center sm:py-20"
+        style={{ backgroundColor: primary, color: primaryText }}
+      >
+        {site.category && (
+          <Eyebrow color={primaryText} headingFont={headingFont}>
+            {titleCase(site.category)}
+          </Eyebrow>
+        )}
+        <h1
+          className="mt-3 break-words text-5xl font-extrabold leading-[0.95] tracking-tight sm:text-7xl"
+          style={headingStyle}
+        >
+          {site.businessName}
+        </h1>
+        {site.tagline && <p className="mx-auto mt-5 max-w-xl text-xl font-medium opacity-90">{site.tagline}</p>}
+        <RatingBadge rating={site.rating} reviewCount={site.reviewCount} className="mt-4 opacity-90" />
+        <div className="flex justify-center">
+          <HeroCtaRow site={site} system={system} shape="block" onDark align="center" />
+        </div>
+      </section>
+      {site.photoUrl && (
+        <div className="mx-auto -mt-8 max-w-4xl px-8">
+          <HeroImageCard src={site.photoUrl} alt={site.businessName} ratio="aspect-[16/9]" />
+        </div>
+      )}
+    </>
+  );
+}
+
+function HeroSplit({ site, system }: { site: SiteData; system: DesignSystem }) {
+  const { primary, headingFont, headingStyle } = palette(system);
+  const hasPhoto = Boolean(site.photoUrl);
+  return (
+    <section
+      className={
+        hasPhoto
+          ? "mx-auto grid max-w-5xl gap-10 px-8 py-14 sm:grid-cols-5 sm:items-center sm:py-20"
+          : "mx-auto max-w-5xl px-8 py-14 sm:py-20"
+      }
+    >
+      <div className={hasPhoto ? "sm:col-span-3" : "max-w-2xl"}>
+        {site.category ? (
+          <Eyebrow color={primary} headingFont={headingFont}>
+            {titleCase(site.category)}
+          </Eyebrow>
+        ) : (
+          <div className="h-1 w-12 rounded-full" style={{ backgroundColor: primary }} />
+        )}
+        <h1 className="mt-4 break-words text-5xl font-bold leading-[1.05] tracking-tight" style={headingStyle}>
+          {site.businessName}
+        </h1>
+        {site.tagline && <p className="mt-4 text-lg opacity-80">{site.tagline}</p>}
+        <RatingBadge rating={site.rating} reviewCount={site.reviewCount} className="mt-3 opacity-80" />
+        <HeroCtaRow site={site} system={system} shape="soft" align="left" />
+      </div>
+      {site.photoUrl && (
+        <div className="sm:col-span-2">
+          <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl shadow-lg">
+            <Image
+              src={site.photoUrl}
+              alt={site.businessName}
+              fill
+              className="object-cover"
+              sizes="(min-width: 640px) 40vw, 100vw"
+              priority
+            />
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function HeroCentered({ site, system }: { site: SiteData; system: DesignSystem }) {
+  const { primary, headingFont, headingStyle } = palette(system);
+  return (
+    <>
       <section className="px-8 py-14 text-center sm:py-20">
-        <h1 className="break-words text-5xl font-bold tracking-tight" style={headingStyle}>
+        {site.category && (
+          <Eyebrow color={primary} headingFont={headingFont}>
+            {titleCase(site.category)}
+          </Eyebrow>
+        )}
+        <h1 className="mt-3 break-words text-5xl font-bold tracking-tight" style={headingStyle}>
           {site.businessName}
         </h1>
         <div className="mx-auto mt-5 h-0.5 w-16" style={{ backgroundColor: primary }} />
         {site.tagline && <p className="mt-5 text-lg italic opacity-80">{site.tagline}</p>}
-        <RatingBadge rating={site.rating} reviewCount={site.reviewCount} className="mt-4 justify-center opacity-80" />
-        {(bookingUrl || instagramDmUrl(site.instagramHandle)) && (
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
-            {bookingUrl && (
-              <a
-                href={bookingUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block rounded-full px-6 py-3 text-sm font-semibold uppercase tracking-widest transition-opacity hover:opacity-90"
-                style={{ backgroundColor: primary, color: primaryText }}
-              >
-                Book Now
-              </a>
-            )}
-            {instagramDmUrl(site.instagramHandle) && (
-              <a
-                href={instagramDmUrl(site.instagramHandle)!}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block rounded-full border px-6 py-3 text-sm font-semibold uppercase tracking-widest transition-opacity hover:opacity-80"
-                style={{ borderColor: primary, color: primary }}
-              >
-                DM on Instagram
-              </a>
-            )}
+        <RatingBadge rating={site.rating} reviewCount={site.reviewCount} className="mt-4 opacity-80" />
+        <div className="flex justify-center">
+          <HeroCtaRow site={site} system={system} shape="pill" align="center" />
+        </div>
+      </section>
+      {site.photoUrl && (
+        <div className="mx-auto max-w-4xl px-8">
+          <HeroImageCard src={site.photoUrl} alt={site.businessName} ratio="aspect-[16/9]" />
+        </div>
+      )}
+    </>
+  );
+}
+
+/** The common tail every site shares, below whichever hero ran. */
+function SiteSections({ site, system }: { site: SiteData; system: DesignSystem }) {
+  const centered = system.heroStyle !== "split";
+  const footerVariant = system.heroStyle === "full-bleed" ? "dark" : system.heroStyle === "split" ? "left" : "center";
+  return (
+    <>
+      <TrustBar site={site} />
+      <ServicesSection site={site} system={system} centered={centered} />
+      <AboutSection site={site} system={system} centered={centered} />
+      <ReviewsSection site={site} system={system} />
+      <CtaBanner site={site} system={system} />
+      <Footer site={site} system={system} variant={footerVariant} />
+    </>
+  );
+}
+
+/** Rating + a snippet from the top real review, directly under the hero. Never a fabricated quote. */
+function TrustBar({ site }: { site: SiteData }) {
+  if (!site.rating || !site.reviewCount) return null;
+  const top = parseGoogleReviews(site.googleReviewsJson)[0];
+  return (
+    <section className="site-border site-card-bg border-y px-8 py-4">
+      <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm">
+        <span className="inline-flex items-center gap-1.5 font-semibold">
+          <ReviewStars rating={Math.round(site.rating)} />
+          {site.rating.toFixed(1)}
+        </span>
+        <span className="opacity-70">{site.reviewCount.toLocaleString()} Google reviews</span>
+        {top && (
+          <span className="hidden max-w-md truncate opacity-70 md:inline">
+            &ldquo;{top.text}&rdquo; &mdash; {top.author}
+          </span>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function ServiceCard({
+  site,
+  system,
+  service,
+  bookingUrl,
+}: {
+  site: SiteData;
+  system: DesignSystem;
+  service: NonNullable<SiteData["serviceItems"]>[number];
+  bookingUrl: string | null;
+}) {
+  const { primary, primaryText, accent, neutralLight, headingStyle } = palette(system);
+  const href = serviceHref(site, service);
+  return (
+    <div className="site-border flex flex-col overflow-hidden rounded-2xl border bg-[var(--site-bg)] shadow-sm transition-shadow hover:shadow-md">
+      <div className="relative aspect-[16/10] w-full overflow-hidden" style={{ backgroundColor: neutralLight }}>
+        {service.imageUrl ? (
+          <Image
+            src={service.imageUrl}
+            alt={service.name}
+            fill
+            className="object-cover"
+            sizes="(min-width: 1024px) 30vw, (min-width: 640px) 45vw, 90vw"
+          />
+        ) : (
+          <div
+            className="flex h-full items-center justify-center"
+            style={{ background: `linear-gradient(135deg, ${accent}33, ${primary}1f)` }}
+          >
+            <span className="text-6xl font-bold opacity-30" style={{ ...headingStyle, color: primary }}>
+              {service.name.charAt(0).toUpperCase()}
+            </span>
           </div>
         )}
-      </section>
-      <Photo site={site} />
-      {aboutText && (
-        <section id="about" className="mx-auto max-w-xl scroll-mt-20 px-8 py-16 text-center">
-          <Eyebrow color={primary} headingFont={headingFont}>
-            About Us
-          </Eyebrow>
-          <p className="mt-4 text-lg leading-relaxed opacity-90">{aboutText}</p>
-        </section>
-      )}
-      {services.length > 0 && (
-        <section id="services" className="site-border mx-auto max-w-xl scroll-mt-20 border-t px-8 py-16 text-center">
-          <Eyebrow color={primary} headingFont={headingFont}>
-            Our Services
-          </Eyebrow>
-          <ul className="site-border mt-4 divide-y">
-            {services.map((s, i) => {
-              const href = serviceHref(site, s);
-              return (
-                <li key={s.id ?? s.slug ?? i} className="py-3 text-lg">
-                  {href ? (
-                    <a href={href} className="underline-offset-4 hover:underline">
-                      {s.name}
-                    </a>
-                  ) : (
-                    s.name
-                  )}
-                  {s.price && <span className="ml-2 text-sm font-medium opacity-60">{s.price}</span>}
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      )}
-      <ReviewsSection site={site} system={system} />
-      <Footer site={site} system={system} />
+      </div>
+      <div className="flex flex-1 flex-col p-5">
+        <div className="flex items-baseline justify-between gap-2">
+          <h3 className="font-semibold" style={{ ...headingStyle, color: primary }}>
+            {service.name}
+          </h3>
+          {service.price && <span className="shrink-0 text-sm font-semibold opacity-70">{service.price}</span>}
+        </div>
+        {service.description && <p className="mt-2 line-clamp-2 text-sm opacity-70">{service.description}</p>}
+        <div className="mt-4 flex-1" />
+        {bookingUrl ? (
+          <a
+            href={bookingUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="self-start rounded-md px-4 py-2 text-sm font-medium transition-opacity hover:opacity-90"
+            style={{ backgroundColor: primary, color: primaryText }}
+          >
+            Book
+          </a>
+        ) : href ? (
+          <a
+            href={href}
+            className="site-border self-start rounded-md border px-4 py-2 text-sm font-medium transition-opacity hover:opacity-80"
+            style={{ color: primary }}
+          >
+            View details
+          </a>
+        ) : null}
+      </div>
     </div>
+  );
+}
+
+function ServicesSection({
+  site,
+  system,
+  centered,
+}: {
+  site: SiteData;
+  system: DesignSystem;
+  centered: boolean;
+}) {
+  const services = site.serviceItems ?? [];
+  if (services.length === 0) return null;
+  const { primary, headingFont, headingStyle } = palette(system);
+  const bookingUrl = normalizeBookingUrl(site.bookingUrl);
+  return (
+    <section id="services" className="site-card-bg scroll-mt-20 px-8 py-16 sm:py-20">
+      <div className={`mx-auto max-w-5xl ${centered ? "text-center" : ""}`}>
+        <Eyebrow color={primary} headingFont={headingFont}>
+          Services
+        </Eyebrow>
+        <h2 className="mt-2 text-3xl font-extrabold tracking-tight" style={headingStyle}>
+          What we offer
+        </h2>
+      </div>
+      <div className="mx-auto mt-10 grid max-w-5xl gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {services.map((s, i) => (
+          <ServiceCard key={s.id ?? s.slug ?? i} site={site} system={system} service={s} bookingUrl={bookingUrl} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function AboutSection({
+  site,
+  system,
+  centered,
+}: {
+  site: SiteData;
+  system: DesignSystem;
+  centered: boolean;
+}) {
+  const text = site.about || site.story;
+  if (!text) return null;
+  const { primary, headingFont } = palette(system);
+  const img = site.storyPhotoUrl?.trim() || null;
+
+  if (img) {
+    return (
+      <section id="about" className="scroll-mt-20 px-8 py-16 sm:py-20">
+        <div className="mx-auto grid max-w-5xl items-center gap-10 sm:grid-cols-2">
+          <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl shadow-lg">
+            <Image
+              src={img}
+              alt={site.businessName}
+              fill
+              className="object-cover"
+              sizes="(min-width: 640px) 45vw, 90vw"
+            />
+          </div>
+          <div>
+            <Eyebrow color={primary} headingFont={headingFont}>
+              About
+            </Eyebrow>
+            <p className="mt-3 text-lg leading-relaxed opacity-90">{text}</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section
+      id="about"
+      className={`mx-auto max-w-2xl scroll-mt-20 px-8 py-16 sm:py-20 ${centered ? "text-center" : ""}`}
+    >
+      <Eyebrow color={primary} headingFont={headingFont}>
+        About
+      </Eyebrow>
+      <p className="mt-3 text-lg leading-relaxed opacity-90">{text}</p>
+    </section>
+  );
+}
+
+/** The one intentional saturated band — before the footer, never repeated. */
+function CtaBanner({ site, system }: { site: SiteData; system: DesignSystem }) {
+  const bookingUrl = normalizeBookingUrl(site.bookingUrl);
+  if (!bookingUrl && !site.phone) return null;
+  const { primary, primaryText, neutralLight, headingStyle } = palette(system);
+  const legalName = site.businessName.replace(/\.\s*$/, "");
+  return (
+    <section className="px-8 py-16 text-center" style={{ backgroundColor: primary, color: primaryText }}>
+      <h2 className="mx-auto max-w-2xl text-3xl font-bold tracking-tight" style={headingStyle}>
+        Ready to book with {legalName}?
+      </h2>
+      <div className="mt-6 flex flex-wrap justify-center gap-4">
+        {bookingUrl && (
+          <a
+            href={bookingUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block rounded-md px-7 py-3 text-base font-bold transition-transform hover:-translate-y-0.5"
+            style={{ backgroundColor: neutralLight, color: primary }}
+          >
+            Book Now
+          </a>
+        )}
+        {site.phone && (
+          <a
+            href={`tel:${site.phone}`}
+            className="inline-block rounded-md border-2 px-7 py-3 text-base font-bold transition-colors hover:bg-white/10"
+            style={{ borderColor: primaryText, color: primaryText }}
+          >
+            Call {site.phone}
+          </a>
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -608,6 +750,7 @@ function Footer({
           <p className="mt-2 text-xs opacity-60">
             © {year} {legalName}. All rights reserved.
           </p>
+          {site.photoAttribution && <p className="mt-1 text-xs opacity-50">{site.photoAttribution}</p>}
         </div>
       </div>
     </footer>
