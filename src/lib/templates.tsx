@@ -19,6 +19,8 @@ export type SiteData = {
   bookingUrl?: string | null;
   email?: string | null;
   photoUrl?: string | null;
+  storyPhotoUrl?: string | null;
+  photoAttribution?: string | null;
   guaranteeText?: string | null;
   paymentMethods?: string | null;
   rating?: number | null;
@@ -28,7 +30,14 @@ export type SiteData = {
   category?: string | null;
   designSystemId?: string | null;
   slug?: string | null;
-  serviceItems?: { id?: string; slug?: string; name: string; description?: string | null; price?: string | null }[];
+  serviceItems?: {
+    id?: string;
+    slug?: string;
+    name: string;
+    description?: string | null;
+    price?: string | null;
+    imageUrl?: string | null;
+  }[];
 };
 
 export function resolveDesignSystem(site: Pick<SiteData, "businessName" | "category" | "designSystemId">): DesignSystem {

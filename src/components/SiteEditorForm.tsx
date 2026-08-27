@@ -19,6 +19,10 @@ export type EditableSite = SiteData & {
   googleReviewsUpdatedAt?: string | Date | null;
 };
 
+function serviceImageCount(items: EditableSite["serviceItems"]): number {
+  return (items ?? []).filter((s) => s.imageUrl).length;
+}
+
 export function SiteEditorForm({
   initial,
   onSave,
@@ -35,6 +39,8 @@ export function SiteEditorForm({
   const [designMessage, setDesignMessage] = useState<StatusMessage>(null);
   const [pullingReviews, setPullingReviews] = useState(false);
   const [reviewsMessage, setReviewsMessage] = useState<StatusMessage>(null);
+  const [pullingPhotos, setPullingPhotos] = useState(false);
+  const [photosMessage, setPhotosMessage] = useState<StatusMessage>(null);
 
   function set<K extends keyof EditableSite>(key: K, value: EditableSite[K]) {
     setData((d) => ({ ...d, [key]: value }));
@@ -118,6 +124,63 @@ export function SiteEditorForm({
       setTimeout(() => setReviewsMessage(null), 5000);
     } finally {
       setPullingReviews(false);
+    }
+  }
+
+  function applyPhotoResult(site: {
+    photoUrl?: string | null;
+    storyPhotoUrl?: string | null;
+    photoAttribution?: string | null;
+    serviceItems?: { imageUrl?: string | null }[];
+  }) {
+    setData((d) => ({
+      ...d,
+      photoUrl: site.photoUrl ?? null,
+      storyPhotoUrl: site.storyPhotoUrl ?? null,
+      photoAttribution: site.photoAttribution ?? null,
+      serviceItems: (d.serviceItems ?? []).map((s, i) => ({
+        ...s,
+        imageUrl: site.serviceItems?.[i]?.imageUrl ?? s.imageUrl ?? null,
+      })),
+    }));
+  }
+
+  async function pullPlacesPhotos() {
+    if (!data.id) return;
+    setPullingPhotos(true);
+    setPhotosMessage(null);
+    try {
+      const res = await fetch(`/api/sites/${data.id}/photos`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ placeId: data.googlePlaceId ?? "" }),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error ?? "Couldn't pull photos");
+      applyPhotoResult(result.site);
+      setPhotosMessage({ type: "success", text: `Pulled ${result.count} photo${result.count === 1 ? "" : "s"} from Google.` });
+    } catch (err) {
+      setPhotosMessage({ type: "error", text: err instanceof Error ? err.message : "Something went wrong" });
+    } finally {
+      setPullingPhotos(false);
+      setTimeout(() => setPhotosMessage(null), 5000);
+    }
+  }
+
+  async function clearPlacesPhotos() {
+    if (!data.id) return;
+    setPullingPhotos(true);
+    setPhotosMessage(null);
+    try {
+      const res = await fetch(`/api/sites/${data.id}/photos`, { method: "DELETE" });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error ?? "Couldn't remove photos");
+      applyPhotoResult(result.site);
+    } catch (err) {
+      setPhotosMessage({ type: "error", text: err instanceof Error ? err.message : "Something went wrong" });
+      setTimeout(() => setPhotosMessage(null), 5000);
+    } finally {
+      setPullingPhotos(false);
     }
   }
 
@@ -391,6 +454,45 @@ export function SiteEditorForm({
                 </p>
               )}
               <FormStatus status={reviewsMessage} className="mt-2" />
+            </div>
+          )}
+        </Field>
+        <Field label="Photos from Google">
+          {!data.id ? (
+            <p className="text-sm text-slate-500">Save the site first, then pull photos here.</p>
+          ) : (
+            <div className="rounded-md border border-slate-300 p-3">
+              <p className="text-xs text-slate-500">
+                Pulls the business&apos;s own Google photos as a starting point — hero, About, and any service
+                without an image. Swap in the business&apos;s real photos before you publish for the client.
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={pullPlacesPhotos}
+                  disabled={pullingPhotos || !(data.googlePlaceId ?? "").trim()}
+                  className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                >
+                  {pullingPhotos ? "Working…" : data.photoAttribution ? "Refresh photos" : "Pull photos from Google"}
+                </button>
+                {data.photoAttribution && (
+                  <button
+                    type="button"
+                    onClick={clearPlacesPhotos}
+                    disabled={pullingPhotos}
+                    className="text-xs font-medium text-slate-500 hover:text-red-600 disabled:opacity-50"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+              {data.photoAttribution && (
+                <p className="mt-2 text-xs text-slate-500">
+                  {data.photoAttribution} · {serviceImageCount(data.serviceItems)} service image
+                  {serviceImageCount(data.serviceItems) === 1 ? "" : "s"} set.
+                </p>
+              )}
+              <FormStatus status={photosMessage} className="mt-2" />
             </div>
           )}
         </Field>
