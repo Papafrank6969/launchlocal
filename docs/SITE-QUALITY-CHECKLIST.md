@@ -74,6 +74,14 @@ system, picked per-business by `src/lib/generateDesign.ts` (AI-driven when
 - **Category-based matching must check exact matches before substrings.**
   `deterministicDesignSystem` does this — a naive substring check let "hair
   salon" get shadowed by "salon" from an unrelated, earlier-in-the-list system.
+- **Same-niche sites must not share a palette.** Each system carries 6
+  per-business color variants (`variantsOf`) — the accent hue and a faint paper
+  tint move within a per-system arc; primary, fonts, layout, and the dark
+  neutral stay fixed. The variant is chosen from the dominant color of the
+  business's own Google/inspiration photo, or a hash of its name. All 6 × 12 are
+  WCAG-AA-verified by `designSystems.test.ts` (the same sweep as the base
+  palettes) — this is a hard gate, not a nice-to-have. A variant may never widen
+  to touch the primary color or fonts.
 
 ## Always true for a published site
 
