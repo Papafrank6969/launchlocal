@@ -72,6 +72,16 @@ them one, and tracking how it's doing.
   2. **On-demand lookup** — click "Find it" on a lead with no handle yet to
      search Google (via the Custom Search API, restricted to
      `site:instagram.com`) for it. Requires the two env vars below.
+- **Outreach Console** (`/outreach`) — a keyboard-driven queue for working
+  through Instagram outreach one lead at a time. Loads every un-contacted lead
+  that has a handle (drafted-site leads first, then by rating), shows the
+  pre-composed DM in an editable box, and collapses the whole loop to four
+  keys: `Enter` copies the message and opens the real `ig.me` DM thread, `1`
+  logs it sent (moves the lead to the Pipeline with a 3-day follow-up), `2`
+  skips, `3` marks not a fit. There is **no auto-send** — Instagram's terms
+  forbid automated messaging, so you still paste and send each DM yourself. A
+  session counter warns as you approach ~40 DMs/day, the point where Instagram
+  starts rate-limiting cold outreach.
 
 ## Getting started
 

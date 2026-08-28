@@ -132,6 +132,33 @@ when picking any non-Tailwind color.
 
 ## Audit log
 
+### 2026-08-28 — Outreach Console (`/outreach`)
+
+New operator page: a single-lead, keyboard-driven queue for Instagram outreach.
+Ran the skill's `--domain ux` guidelines for "keyboard driven review queue",
+"keyboard shortcuts discoverability" and "progress indicator queue remaining".
+Applied:
+
+- **Complete keyboard nav + visible focus** (skill: Keyboard Navigation, High).
+  Every action is a real `<button>` in tab order; the four shortcuts
+  (`Enter`/`1`/`2`/`3`) are also handled on `window` for speed. Shortcuts are
+  suppressed while the message textarea has focus; `Esc` blurs it. No trap.
+- **On-screen shortcut legend** under the card — the skill flags hidden
+  shortcuts as a discoverability miss.
+- **"Lead N of M" + progress bar** (skill: Progress Indicators, Medium).
+- Kept the operator palette (`blue-600` primary, `emerald-600` for the positive
+  "Sent" action, `pink-600` for the Instagram "Open DM" verb matching the
+  existing "DM on Instagram" button on `/leads`), `.input`, Lucide icons.
+
+`--design-system` auto-matched this as a "Productivity/Inbox" pattern with a
+keyboard-first motion spec — ignored per the precedence rule; the page uses the
+same static Tailwind chrome as the rest of the operator app.
+
+Pure queue logic (eligibility, ordering, key→action map, send/reject patch,
+daily pacing thresholds) lives in `src/lib/outreachQueue.ts` with full test
+coverage. No auto-send: Instagram's TOS forbids automated messaging, so the
+console opens the real DM thread and the operator sends by hand.
+
 ### 2026-08-27 — full design-system library audit
 
 All 12 systems in `designSystems.ts` checked against the skill's `--domain color`
