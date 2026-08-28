@@ -5,6 +5,27 @@ import { chooseDesign } from "@/lib/generateDesign";
 import { normalizeBookingUrl } from "@/lib/bookingUrl";
 import { fetchGoogleReviews } from "@/lib/googleReviews";
 import { leadToDraftSite } from "@/lib/leadToSite";
+import { fetchPlacePhotoRefs, fetchPlacePhotoBytes } from "@/lib/placesPhotos";
+import { dominantHueOf } from "@/lib/imageColor";
+
+/**
+ * Best-effort: pull one of the business's own Google photos and read its
+ * dominant hue, so the design's color variant can be matched to the real
+ * storefront. Any failure just means we fall back to a name hash.
+ */
+async function dominantHueFromPlace(placeId: string | null | undefined): Promise<number | null> {
+  const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+  if (!apiKey || !placeId) return null;
+  try {
+    const { refs } = await fetchPlacePhotoRefs(placeId, apiKey);
+    if (refs.length === 0) return null;
+    const bytes = await fetchPlacePhotoBytes(refs[0], apiKey, 640);
+    if (!bytes) return null;
+    return dominantHueOf(bytes);
+  } catch {
+    return null;
+  }
+}
 
 export async function GET() {
   const sites = await db.site.findMany({
@@ -106,16 +127,22 @@ async function createSite(input: SiteInput) {
     await db.event.create({ data: { type: "SITE_PUBLISHED", siteId: site.id } });
   }
 
+  const dominantHue = await dominantHueFromPlace(site.googlePlaceId);
   const choice = await chooseDesign({
     businessName: site.businessName,
     category: site.category,
     tagline: site.tagline,
     about: site.about,
     serviceNames: site.serviceItems.map((s) => s.name),
+    dominantHue,
   });
   await db.site.update({
     where: { id: site.id },
-    data: { designSystemId: choice.system.id, designRationale: choice.rationale },
+    data: {
+      designSystemId: choice.system.id,
+      designRationale: choice.rationale,
+      colorVariant: choice.variant,
+    },
   });
 
   // A draft that leads outreach converts better with real social proof already

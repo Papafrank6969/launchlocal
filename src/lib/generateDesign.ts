@@ -1,11 +1,19 @@
 import { readFile } from "fs/promises";
 import path from "path";
-import { DESIGN_SYSTEMS, deterministicDesignSystem, type DesignSystem } from "@/lib/designSystems";
+import {
+  DESIGN_SYSTEMS,
+  deterministicDesignSystem,
+  pickColorVariant,
+  variantsOf,
+  type DesignSystem,
+} from "@/lib/designSystems";
 
 export type DesignChoice = {
   system: DesignSystem;
   rationale: string;
   aiGenerated: boolean;
+  /** Index into `variantsOf(system)` — the per-business accent + paper tint. */
+  variant: number;
 };
 
 export type BusinessBrief = {
@@ -18,14 +26,37 @@ export type BusinessBrief = {
    *  reference photos (commonly screenshots from the business's Instagram) —
    *  read from disk and sent to the model as real images, never fabricated. */
   inspirationImageUrls?: string[];
+  /** Dominant hue (0-360) of the business's own photo, when we have one — used
+   *  to match the color variant to the real storefront. Null → hash the name. */
+  dominantHue?: number | null;
 };
+
+function variantFor(system: DesignSystem, brief: BusinessBrief): number {
+  return pickColorVariant(system, {
+    dominantHue: brief.dominantHue,
+    businessName: brief.businessName,
+  });
+}
+
+function variantNote(system: DesignSystem, variant: number, fromPhoto: boolean): string {
+  if (variant === 0) return "";
+  const name = variantsOf(system)[variant]?.name;
+  if (!name) return "";
+  return fromPhoto
+    ? ` Accent tuned to a ${name.toLowerCase()} tone from the business's own photo.`
+    : ` Accent set to a ${name.toLowerCase()} tone for this business.`;
+}
 
 function fallback(brief: BusinessBrief): DesignChoice {
   const system = deterministicDesignSystem(brief.businessName, brief.category);
+  const variant = variantFor(system, brief);
   return {
     system,
-    rationale: `Picked "${system.name}" based on business category — set an ANTHROPIC_API_KEY to enable AI-driven selection.`,
+    rationale:
+      `Picked "${system.name}" based on business category — set an ANTHROPIC_API_KEY to enable AI-driven selection.` +
+      variantNote(system, variant, brief.dominantHue != null),
     aiGenerated: false,
+    variant,
   };
 }
 
@@ -134,5 +165,11 @@ Pick the single design system id that best fits this specific business's categor
   const system = DESIGN_SYSTEMS.find((s) => s.id === systemId);
   if (!system) throw new Error(`Model returned unknown systemId: ${systemId}`);
 
-  return { system, rationale, aiGenerated: true };
+  const variant = variantFor(system, brief);
+  return {
+    system,
+    rationale: rationale + variantNote(system, variant, brief.dominantHue != null),
+    aiGenerated: true,
+    variant,
+  };
 }
