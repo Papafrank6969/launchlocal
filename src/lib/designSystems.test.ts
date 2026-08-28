@@ -3,9 +3,14 @@ import { meetsAA, contrastRatio } from "./contrast";
 import {
   DESIGN_SYSTEMS,
   DEFAULT_DESIGN_SYSTEM_ID,
+  VARIANT_COUNT,
   getDesignSystem,
   deterministicDesignSystem,
+  variantsOf,
+  applyColorVariant,
+  pickColorVariant,
 } from "./designSystems";
+import { hueOf, hueDistance } from "./color";
 
 describe("getDesignSystem", () => {
   it("returns the matching system by id", () => {
@@ -85,6 +90,96 @@ describe("DESIGN_SYSTEMS catalog integrity", () => {
       const onDark = contrastRatio(system.colorAccent, system.colorNeutralDark);
       expect(Math.max(onLight, onDark)).toBeGreaterThanOrEqual(3);
     }
+  });
+});
+
+describe("color variants (per-business accent + paper)", () => {
+  it("gives every system exactly VARIANT_COUNT variants, index 0 = the base palette", () => {
+    for (const system of DESIGN_SYSTEMS) {
+      const variants = variantsOf(system);
+      expect(variants).toHaveLength(VARIANT_COUNT);
+      expect(variants[0].colorAccent).toBe(system.colorAccent);
+      expect(variants[0].colorNeutralLight).toBe(system.colorNeutralLight);
+      expect(variants[0].colorNeutralDark).toBe(system.colorNeutralDark);
+      expect(variants[0].name.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("every system × every variant still passes the catalog's WCAG AA gate", () => {
+    // This is the safety boundary: a variant can never ship a palette the base
+    // catalog test would reject. Same four assertions, run across all 6 × 12.
+    for (const system of DESIGN_SYSTEMS) {
+      variantsOf(system).forEach((v, idx) => {
+        const where = `${system.id} variant ${idx} (${v.name})`;
+        expect(meetsAA(system.colorPrimary, v.colorNeutralLight), `primary-on-light ${where}`).toBe(true);
+        expect(meetsAA(v.colorNeutralDark, v.colorNeutralLight), `dark-on-light ${where}`).toBe(true);
+        expect(meetsAA(v.colorNeutralLight, v.colorNeutralDark), `dark-mode body ${where}`).toBe(true);
+        const onLight = contrastRatio(v.colorAccent, v.colorNeutralLight);
+        const onDark = contrastRatio(v.colorAccent, v.colorNeutralDark);
+        expect(Math.max(onLight, onDark), `accent 3:1 ${where}`).toBeGreaterThanOrEqual(3);
+      });
+    }
+  });
+
+  it("keeps neutralDark fixed and moves the accent hue for non-base variants", () => {
+    for (const system of DESIGN_SYSTEMS) {
+      const variants = variantsOf(system);
+      const baseHue = hueOf(system.colorAccent);
+      for (let i = 1; i < variants.length; i++) {
+        expect(variants[i].colorNeutralDark).toBe(system.colorNeutralDark);
+        expect(hueDistance(hueOf(variants[i].colorAccent), baseHue)).toBeGreaterThan(3);
+      }
+      // At least a couple of distinct accent hues across the set.
+      const hues = new Set(variants.map((v) => Math.round(hueOf(v.colorAccent) / 10)));
+      expect(hues.size).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it("applyColorVariant is a no-op for index 0, null, or out of range", () => {
+    const system = getDesignSystem("studio-beauty");
+    expect(applyColorVariant(system, 0)).toBe(system);
+    expect(applyColorVariant(system, null)).toBe(system);
+    expect(applyColorVariant(system, 99)).toBe(system);
+    expect(applyColorVariant(system, 1).colorAccent).not.toBe(system.colorAccent);
+  });
+
+  it("pickColorVariant picks the nearest accent hue when a dominant hue is known", () => {
+    const system = getDesignSystem("studio-beauty");
+    const variants = variantsOf(system);
+    for (const target of [10, 90, 200, 300]) {
+      const idx = pickColorVariant(system, { dominantHue: target });
+      const chosen = hueDistance(hueOf(variants[idx].colorAccent), target);
+      for (const v of variants) {
+        expect(chosen).toBeLessThanOrEqual(hueDistance(hueOf(v.colorAccent), target) + 0.001);
+      }
+    }
+  });
+
+  it("pickColorVariant spreads same-hue same-niche shops via a name jitter", () => {
+    const system = getDesignSystem("studio-beauty");
+    // Every warm-toned studio photo reads ~hue 25; without the jitter they'd all
+    // collapse onto one variant.
+    const picks = new Set(
+      ["Lisa's Nails", "Lash Genie", "Ruvé Nail Salon", "Blink Bar", "Gilded Lash"].map((businessName) =>
+        pickColorVariant(system, { dominantHue: 25, businessName }),
+      ),
+    );
+    expect(picks.size).toBeGreaterThan(1);
+  });
+
+  it("pickColorVariant falls back to a stable in-range hash of the business name", () => {
+    const system = getDesignSystem("studio-beauty");
+    const a = pickColorVariant(system, { businessName: "Lash & Co" });
+    const b = pickColorVariant(system, { businessName: "Lash & Co" });
+    expect(a).toBe(b);
+    expect(a).toBeGreaterThanOrEqual(0);
+    expect(a).toBeLessThan(VARIANT_COUNT);
+    const spread = new Set(
+      ["Lash Loft", "Brow Bar", "Nail Nook", "Glow Studio", "Wink"].map((n) =>
+        pickColorVariant(system, { businessName: n }),
+      ),
+    );
+    expect(spread.size).toBeGreaterThan(1);
   });
 });
 

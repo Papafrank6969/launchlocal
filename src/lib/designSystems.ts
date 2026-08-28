@@ -2,6 +2,9 @@
 // the ui-ux-pro-max skill for palette + font-pairing candidates, hand-build the
 // 4-role color system, then WCAG-gate it (`npm test` covers the whole list).
 
+import { contrastRatio } from "@/lib/contrast";
+import { hexToHsl, hslToHex, hueOf, hueDistance, rotateHue, adjustLightnessToContrast } from "@/lib/color";
+
 export type HeroStyle = "centered" | "split" | "full-bleed";
 
 export type FontChoice = { family: string; weight: string; fallback: "serif" | "sans-serif" };
@@ -18,6 +21,8 @@ export type DesignSystem = {
   colorNeutralDark: string;
   colorNeutralLight: string;
   heroStyle: HeroStyle;
+  /** Total degrees the accent hue may swing across color variants (default 65). */
+  accentArc?: number;
 };
 
 export const DESIGN_SYSTEMS: DesignSystem[] = [
@@ -124,6 +129,7 @@ export const DESIGN_SYSTEMS: DesignSystem[] = [
     colorNeutralDark: "#201A17",
     colorNeutralLight: "#FFF8F3",
     heroStyle: "full-bleed",
+    accentArc: 90,
   },
   {
     id: "minimal-luxury",
@@ -151,6 +157,7 @@ export const DESIGN_SYSTEMS: DesignSystem[] = [
     colorNeutralDark: "#1A1A1A",
     colorNeutralLight: "#F7F4EF",
     heroStyle: "centered",
+    accentArc: 45,
   },
   {
     id: "studio-beauty",
@@ -312,6 +319,7 @@ export const DESIGN_SYSTEMS: DesignSystem[] = [
     colorNeutralDark: "#1B1814",
     colorNeutralLight: "#FAF7F2",
     heroStyle: "split",
+    accentArc: 38,
   },
   {
     id: "midnight-dining",
@@ -336,6 +344,7 @@ export const DESIGN_SYSTEMS: DesignSystem[] = [
     colorNeutralDark: "#0C0C0B",
     colorNeutralLight: "#F3EDE1",
     heroStyle: "full-bleed",
+    accentArc: 40,
   },
   {
     id: "considered-modern",
@@ -391,6 +400,160 @@ export function deterministicDesignSystem(businessName: string, category?: strin
     hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
   }
   return DESIGN_SYSTEMS[hash % DESIGN_SYSTEMS.length];
+}
+
+/**
+ * A per-business color variant of a design system. Only the accent hue and the
+ * page's paper tint move; primary, fonts, and layout stay fixed so the system
+ * keeps its identity. Index 0 of `variantsOf` is always the base palette.
+ */
+export type ColorVariant = {
+  name: string;
+  colorAccent: string;
+  colorNeutralLight: string;
+  colorNeutralDark: string;
+};
+
+export const DEFAULT_ACCENT_ARC = 80;
+export const VARIANT_COUNT = 6;
+
+/** Where variants 1-5 sit, as a fraction of the arc from the base accent hue. */
+const VARIANT_HUE_FACTORS = [-0.5, -0.25, 0.15, 0.35, 0.5] as const;
+
+/** Rough hue → colour-name for labelling a variant in the editor. */
+function hueName(hue: number): string {
+  const h = ((hue % 360) + 360) % 360;
+  if (h < 16 || h >= 345) return "Rose";
+  if (h < 45) return "Terracotta";
+  if (h < 70) return "Amber";
+  if (h < 100) return "Citron";
+  if (h < 160) return "Sage";
+  if (h < 200) return "Teal";
+  if (h < 250) return "Indigo";
+  if (h < 290) return "Violet";
+  if (h < 320) return "Plum";
+  return "Magenta";
+}
+
+function deriveVariants(system: DesignSystem): ColorVariant[] {
+  const arc = system.accentArc ?? DEFAULT_ACCENT_ARC;
+  const paperL = hexToHsl(system.colorNeutralLight).l;
+
+  const base: ColorVariant = {
+    name: hueName(hueOf(system.colorAccent)),
+    colorAccent: system.colorAccent,
+    colorNeutralLight: system.colorNeutralLight,
+    colorNeutralDark: system.colorNeutralDark,
+  };
+
+  const baseSat = hexToHsl(system.colorAccent).s;
+
+  const rest = VARIANT_HUE_FACTORS.map((factor): ColorVariant => {
+    const rotatedHsl = hexToHsl(rotateHue(system.colorAccent, factor * arc));
+    // Lift saturation a little so the hue shift actually reads — a rotated but
+    // washed-out accent barely looks different from the base.
+    const punchier = hslToHex({
+      h: rotatedHsl.h,
+      s: Math.min(0.55, Math.max(baseSat * 1.5, 0.3)),
+      l: rotatedHsl.l,
+    });
+    // Keep the accent readable on whichever neutral it already reads better on
+    // — the same "large-text 3:1 on at least one surface" bar the catalog test
+    // enforces for the base palettes.
+    const readsOnLight =
+      contrastRatio(punchier, system.colorNeutralLight) >= contrastRatio(punchier, system.colorNeutralDark);
+    const against = readsOnLight ? system.colorNeutralLight : system.colorNeutralDark;
+    const accent = adjustLightnessToContrast(punchier, against, 3);
+
+    // Paper picks up a barely-there wash of the accent's hue family. Lightness
+    // is held exactly so the body-text contrast can't regress; if the tint
+    // still costs too much contrast anywhere, fall back to the base paper.
+    let paper = hslToHex({ h: hueOf(accent), s: 0.06, l: paperL });
+    if (
+      contrastRatio(system.colorPrimary, paper) < 4.5 ||
+      contrastRatio(system.colorNeutralDark, paper) < 4.5
+    ) {
+      paper = system.colorNeutralLight;
+    }
+
+    return {
+      name: hueName(hueOf(accent)),
+      colorAccent: accent,
+      colorNeutralLight: paper,
+      colorNeutralDark: system.colorNeutralDark,
+    };
+  });
+
+  return [base, ...rest];
+}
+
+const variantCache = new Map<string, ColorVariant[]>();
+
+/** The 6 pre-verified color variants for a system (memoized). Index 0 is the base. */
+export function variantsOf(system: DesignSystem): ColorVariant[] {
+  let cached = variantCache.get(system.id);
+  if (!cached) {
+    cached = deriveVariants(system);
+    variantCache.set(system.id, cached);
+  }
+  return cached;
+}
+
+/** Merge a variant's colors onto a system. Index 0 (or out of range) → the system unchanged. */
+export function applyColorVariant(system: DesignSystem, variant?: number | null): DesignSystem {
+  const variants = variantsOf(system);
+  const idx = variant ?? 0;
+  if (!Number.isInteger(idx) || idx <= 0 || idx >= variants.length) return system;
+  const v = variants[idx];
+  return {
+    ...system,
+    colorAccent: v.colorAccent,
+    colorNeutralLight: v.colorNeutralLight,
+    colorNeutralDark: v.colorNeutralDark,
+  };
+}
+
+function hashString(s: string): number {
+  let hash = 0;
+  for (let i = 0; i < s.length; i++) {
+    hash = (hash * 31 + s.charCodeAt(i)) >>> 0;
+  }
+  return hash;
+}
+
+/**
+ * Choose a variant index for a business: the nearest accent hue to the shop's
+ * own dominant photo color when we have one, otherwise a stable hash of the
+ * business name so same-niche shops still spread across the set.
+ *
+ * The photo's modal color is only a soft signal — real interiors trend
+ * warm/brown regardless of the brand — so when a name is also given we nudge
+ * the target hue by a small deterministic per-business offset. Two warm-toned
+ * studios still land on different variants instead of collapsing onto one.
+ */
+export function pickColorVariant(
+  system: DesignSystem,
+  opts: { dominantHue?: number | null; businessName?: string | null },
+): number {
+  const variants = variantsOf(system);
+  const nameHash = hashString(opts.businessName ?? "");
+
+  if (opts.dominantHue != null && Number.isFinite(opts.dominantHue)) {
+    const jitter = opts.businessName ? (nameHash % 57) - 28 : 0;
+    const target = (((opts.dominantHue + jitter) % 360) + 360) % 360;
+    let bestIdx = 0;
+    let bestDist = Infinity;
+    variants.forEach((v, i) => {
+      const d = hueDistance(hueOf(v.colorAccent), target);
+      if (d < bestDist) {
+        bestDist = d;
+        bestIdx = i;
+      }
+    });
+    return bestIdx;
+  }
+
+  return nameHash % variants.length;
 }
 
 export function fontCssValue(font: FontChoice): string {

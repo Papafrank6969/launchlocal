@@ -86,6 +86,7 @@ model Site {
   googleMapsUrl String?
   designSystemId String?
   designRationale String?
+  colorVariant Int?
   status      SiteStatus @default(DRAFT)
   utmTrackingEnabled Boolean @default(false)
   googleSiteVerification String?
