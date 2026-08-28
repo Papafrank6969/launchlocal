@@ -40,7 +40,9 @@ them one, and tracking how it's doing.
   from Google" button in the editor fetches the business's own Google photos
   (compressed + stored, shown with attribution) to fill the hero, about, and
   service cards. Starting imagery, meant to be swapped for the business's real
-  photos before the site is handed off.
+  photos before the site is handed off. A separate "Fill blank service images"
+  button drops generic Pexels stock onto image-less service cards (needs a free
+  `PEXELS_API_KEY`) — placeholder-only, credited, and never used for the hero.
 - **Bespoke design generation** — every site's fonts, colors, and layout come
   from a curated design system (`src/lib/designSystems.ts`) picked for that
   specific business. With `ANTHROPIC_API_KEY` set, an AI call picks the best
@@ -84,6 +86,14 @@ To use live business search instead of sample data, add to `.env`:
 
 ```
 GOOGLE_PLACES_API_KEY=your-key-here
+```
+
+The same key powers "Pull photos from Google" and real-review pulls in the site
+editor. For the "Fill blank service images" button, add a free Pexels key
+([pexels.com/api](https://www.pexels.com/api/), instant):
+
+```
+PEXELS_API_KEY=your-key-here
 ```
 
 To enable AI-driven bespoke design selection instead of the deterministic

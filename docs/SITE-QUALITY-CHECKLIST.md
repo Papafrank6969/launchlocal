@@ -22,11 +22,20 @@ of these, it's a bug, not a feature:
   accents, and hover states. The full-bleed hero band and the single pre-footer
   CTA banner are the only whole-section fills — never a third.
 - Stock "AI slop" photography instead of the business's own photo (or none).
-  Places photos pulled via `POST /api/sites/[id]/photos` are the *business's own*
-  Google photos, shown with the "Photos via Google — <names>" attribution
-  `src/lib/placesPhotos.ts` builds; they're starting imagery the operator
-  replaces with the business's real photos before the site goes to the client.
-  A service card with no image gets a branded color block, never a stock photo.
+  Rules for the photo slots:
+  - **Hero and About** are statements about *this* business — real photo
+    (operator upload or the business's own Google photos via
+    `POST /api/sites/[id]/photos`) or the typographic layout. Never stock,
+    never AI.
+  - **Service cards** default to a branded color block. An operator can
+    *opt in* per site to generic Pexels photos for blank cards
+    (`POST /api/sites/[id]/stock-images`) — a labelled placeholder for a
+    pitch, shown with a "Photos via Pexels — <names>" credit, meant to be
+    replaced with the business's real work before publishing for the client.
+    This is a deliberate, operator-triggered choice, not a template default.
+  - Never AI-generated photos of people, places, or products anywhere.
+  Places/Pexels credits share one footer line via
+  `src/lib/photoAttribution.ts`.
 - Fake reviews, fake testimonials, or fabricated review counts — the Reviews
   section on the home page renders ONLY real Google reviews pulled through
   `src/lib/googleReviews.ts` (verbatim, newest-first, never filtered by star

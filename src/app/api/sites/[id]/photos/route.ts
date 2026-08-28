@@ -3,8 +3,10 @@ import path from "path";
 import { db } from "@/lib/db";
 import { compressImage, deleteUploadedFile, saveCompressedImage } from "@/lib/imageUpload";
 import { fetchPlacePhotoRefs, fetchPlacePhotoBytes } from "@/lib/placesPhotos";
+import { mergeAttribution, removeAttribution } from "@/lib/photoAttribution";
 
 const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "sites");
+const ATTR_PREFIX = "Photos via Google";
 
 /**
  * Pull the business's own photos from Google Places as starting imagery:
@@ -75,7 +77,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   await db.$transaction(async (tx) => {
     await tx.site.update({
       where: { id },
-      data: { photoUrl: heroUrl, storyPhotoUrl: storyUrl, photoAttribution: parsed.attribution },
+      data: {
+        photoUrl: heroUrl,
+        storyPhotoUrl: storyUrl,
+        photoAttribution: mergeAttribution(site.photoAttribution, parsed.attribution),
+      },
     });
     for (const service of site.serviceItems) {
       if (service.imageUrl || pool.length === 0) continue;
@@ -102,7 +108,9 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   const isPlaces = (u: string | null | undefined) => !!u && u.includes("-places-");
 
   await db.$transaction(async (tx) => {
-    const data: { photoUrl?: null; storyPhotoUrl?: null; photoAttribution: null } = { photoAttribution: null };
+    const data: { photoUrl?: null; storyPhotoUrl?: null; photoAttribution: string | null } = {
+      photoAttribution: removeAttribution(site.photoAttribution, ATTR_PREFIX),
+    };
     if (isPlaces(site.photoUrl)) {
       await deleteUploadedFile(site.photoUrl);
       data.photoUrl = null;

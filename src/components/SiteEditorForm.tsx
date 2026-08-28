@@ -41,6 +41,8 @@ export function SiteEditorForm({
   const [reviewsMessage, setReviewsMessage] = useState<StatusMessage>(null);
   const [pullingPhotos, setPullingPhotos] = useState(false);
   const [photosMessage, setPhotosMessage] = useState<StatusMessage>(null);
+  const [pullingStock, setPullingStock] = useState(false);
+  const [stockMessage, setStockMessage] = useState<StatusMessage>(null);
 
   function set<K extends keyof EditableSite>(key: K, value: EditableSite[K]) {
     setData((d) => ({ ...d, [key]: value }));
@@ -181,6 +183,26 @@ export function SiteEditorForm({
       setTimeout(() => setPhotosMessage(null), 5000);
     } finally {
       setPullingPhotos(false);
+    }
+  }
+
+  async function stockRequest(method: "POST" | "DELETE") {
+    if (!data.id) return;
+    setPullingStock(true);
+    setStockMessage(null);
+    try {
+      const res = await fetch(`/api/sites/${data.id}/stock-images`, { method });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error ?? "Couldn't update stock images");
+      applyPhotoResult(result.site);
+      if (method === "POST") {
+        setStockMessage({ type: "success", text: `Filled ${result.count} service image${result.count === 1 ? "" : "s"}.` });
+      }
+    } catch (err) {
+      setStockMessage({ type: "error", text: err instanceof Error ? err.message : "Something went wrong" });
+    } finally {
+      setPullingStock(false);
+      setTimeout(() => setStockMessage(null), 5000);
     }
   }
 
@@ -494,6 +516,40 @@ export function SiteEditorForm({
                 </p>
               )}
               <FormStatus status={photosMessage} className="mt-2" />
+            </div>
+          )}
+        </Field>
+        <Field label="Stock service images">
+          {!data.id ? (
+            <p className="text-sm text-slate-500">Save the site first.</p>
+          ) : (
+            <div className="rounded-md border border-slate-300 p-3">
+              <p className="text-xs text-slate-500">
+                Drops generic Pexels photos onto service cards that don&apos;t have an image yet — a placeholder for
+                the pitch, not the business&apos;s real work. Swap them for real photos before publishing for the
+                client. Needs a free <code>PEXELS_API_KEY</code> in <code>.env</code>.
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => stockRequest("POST")}
+                  disabled={pullingStock}
+                  className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                >
+                  {pullingStock ? "Working…" : "Fill blank service images"}
+                </button>
+                {(data.photoAttribution ?? "").includes("Pexels") && (
+                  <button
+                    type="button"
+                    onClick={() => stockRequest("DELETE")}
+                    disabled={pullingStock}
+                    className="text-xs font-medium text-slate-500 hover:text-red-600 disabled:opacity-50"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+              <FormStatus status={stockMessage} className="mt-2" />
             </div>
           )}
         </Field>
