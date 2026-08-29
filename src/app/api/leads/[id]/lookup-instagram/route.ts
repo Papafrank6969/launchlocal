@@ -12,29 +12,65 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     result = await lookupInstagramHandle(lead.name, lead.city);
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Lookup failed" },
+      {
+        error: "Instagram lookup failed — enter the handle manually.",
+        reason: "error",
+        detail: err instanceof Error ? err.message : "Lookup failed",
+      },
       { status: 502 }
     );
+  }
+
+  if (result.status === "found") {
+    const updated = await db.lead.update({
+      where: { id },
+      data: { instagramHandle: result.handle },
+    });
+    return NextResponse.json({ lead: updated, found: true });
+  }
+
+  if (result.status === "not_found") {
+    return NextResponse.json({ lead, found: false, reason: "not_found" }, { status: 200 });
   }
 
   if (result.status === "not_configured") {
     return NextResponse.json(
       {
         error:
-          "Instagram lookup isn't configured yet — add GOOGLE_CUSTOM_SEARCH_API_KEY and GOOGLE_CUSTOM_SEARCH_ENGINE_ID to .env.",
+          "Instagram lookup isn't configured — add GOOGLE_CUSTOM_SEARCH_API_KEY and GOOGLE_CUSTOM_SEARCH_ENGINE_ID to .env.",
+        reason: "not_configured",
       },
       { status: 400 }
     );
   }
 
-  if (result.status === "not_found") {
-    return NextResponse.json({ lead, found: false });
+  if (result.status === "api_disabled") {
+    return NextResponse.json(
+      {
+        error:
+          "The Custom Search API is disabled for this Google project — enable 'Custom Search API' in the Cloud console, or enter the handle manually.",
+        reason: "api_disabled",
+      },
+      { status: 503 }
+    );
   }
 
-  const updated = await db.lead.update({
-    where: { id },
-    data: { instagramHandle: result.handle },
-  });
+  if (result.status === "rate_limited") {
+    return NextResponse.json(
+      {
+        error: "Instagram lookup is rate-limited right now — try again later or enter the handle manually.",
+        reason: "rate_limited",
+      },
+      { status: 429 }
+    );
+  }
 
-  return NextResponse.json({ lead: updated, found: true });
+  return NextResponse.json(
+    {
+      error: "Instagram lookup failed — enter the handle manually.",
+      reason: "error",
+      detail: result.detail,
+    },
+    { status: 502 }
+  );
 }
