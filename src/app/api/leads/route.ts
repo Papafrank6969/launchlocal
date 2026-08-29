@@ -12,6 +12,10 @@ export async function GET(req: NextRequest) {
     orderBy: pipeline
       ? [{ followUpAt: { sort: "asc", nulls: "last" } }, { createdAt: "desc" }]
       : { createdAt: "desc" },
+    // v1: cap the backlog payload at 500 so an unbounded table can't blow up the
+    // response. Filtering/sorting is client-side (see /leads); pagination over
+    // the cap is a known follow-up, not done here.
+    take: 500,
     include: { sites: { select: { id: true, slug: true, status: true } } },
   });
   return NextResponse.json({ leads });
