@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import type { OutreachStatus } from "@prisma/client";
+import type { EventType, OutreachStatus } from "@prisma/client";
+
+const OUTREACH_TO_EVENT: Partial<Record<OutreachStatus, EventType>> = {
+  CONTACTED: "LEAD_CONTACTED",
+  RESPONDED: "LEAD_RESPONDED",
+  WON: "LEAD_WON",
+  LOST: "LEAD_LOST",
+};
 
 const OUTREACH_STATUSES: OutreachStatus[] = ["NEW", "CONTACTED", "RESPONDED", "WON", "LOST"];
 
@@ -44,6 +51,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       followUpCount: "followUpCount" in body ? body.followUpCount : undefined,
     },
   });
+
+  // Record a lifecycle event only on a real status transition (re-saving the same
+  // status — which the console does — must not double-count). Best-effort: a
+  // telemetry write must never fail the status update.
+  const eventType = "outreachStatus" in body ? OUTREACH_TO_EVENT[body.outreachStatus as OutreachStatus] : undefined;
+  if (nextStatus && eventType && nextStatus !== existing.outreachStatus) {
+    try {
+      await db.event.create({ data: { type: eventType, leadId: id } });
+    } catch (err) {
+      console.error("Failed to record lead event", eventType, err);
+    }
+  }
 
   return NextResponse.json({ lead });
 }
