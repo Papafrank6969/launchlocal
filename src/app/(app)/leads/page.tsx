@@ -141,19 +141,19 @@ export default function LeadsPage() {
       if (!res.ok) throw new Error(data.error ?? "Search failed");
       setUsingLiveData(data.usingLiveData);
       const incoming = (data.leads ?? []) as Lead[];
-      setLeads((prev) => {
-        const incomingIds = incoming.map((inc) => inc.id);
-        const merged = [
-          ...incoming,
-          ...prev.filter((p) => !incomingIds.includes(p.id)),
-        ];
-        setMergeStatus(
-          `Added ${incomingIds.filter((id) => !prev.some((p) => p.id === id)).length} new, ` +
-            `refreshed ${incomingIds.filter((id) => prev.some((p) => p.id === id)).length} already in your backlog.`,
-        );
-        setTimeout(() => setMergeStatus(null), 4000);
-        return merged;
-      });
+      // Counts are derived from the pre-merge render state (`leads`); the card
+      // edits never add/remove leads, so the id set/length are stable across the
+      // await. Kept pure inside the updater — no side effects in setLeads.
+      const incomingIds = incoming.map((inc) => inc.id);
+      setMergeStatus(
+        `Added ${incomingIds.filter((id) => !leads.some((p) => p.id === id)).length} new, ` +
+          `refreshed ${incomingIds.filter((id) => leads.some((p) => p.id === id)).length} already in your backlog.`,
+      );
+      setTimeout(() => setMergeStatus(null), 4000);
+      setLeads((prev) => [
+        ...incoming,
+        ...prev.filter((p) => !incomingIds.includes(p.id)),
+      ]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
