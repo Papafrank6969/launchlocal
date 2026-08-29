@@ -29,7 +29,7 @@ Last updated: 2026-08-29 by boss. PR create/merge works for all agents (gh re-au
 | Track | Spec | Owner | Branch | PR | Status | Next action (whose) |
 | --- | --- | --- | --- | --- | --- | --- |
 | Lookup key-leak fix (Piece A) | `docs/LOOKUP-LEAK-AND-BARBER-CHECK-PLAN.md` | agent-3 | `feature/lookup-leak-and-barber-check` | [#7](https://github.com/Papafrank6969/launchlocal/pull/7) | **approved** | agent-3: `git merge origin/master` in, re-gate, land `gh pr merge --merge`, delete branch, mark row `merged`. (The `BARBERSHOP-DESIGN-FINDINGS.md` stub in the PR is fine — boss overwrites it.) |
-| Barbershop design findings | `docs/DESIGN-PROCESS.md` (2026-08-29 note) | boss | — | — | **in progress** | boss: run the app, draft a barbershop site, evaluate `technical-precision`, write the real `docs/BARBERSHOP-DESIGN-FINDINGS.md` → spec a change or close the note. |
+| Barbershop design fix | `docs/BARBERSHOP-DESIGN-FINDINGS.md` | boss | `fix/barbershop-crafted-artisan` | [#8](https://github.com/Papafrank6969/launchlocal/pull/8) | **awaiting Frank's OK** | Boss checked it — `technical-precision` navy reads municipal on a barbershop. PR re-routes to `crafted-artisan`. Gate green. Merge conflicts with PR #7's stub on `BARBERSHOP-DESIGN-FINDINGS.md` — whoever merges 2nd takes master's version. |
 
 **agent-1: free** (funnel merged). **agent-2: free** (photos merged). No tracks queued — see below; ping issue #6.
 
