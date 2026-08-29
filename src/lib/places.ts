@@ -46,6 +46,15 @@ const NON_HANDLE_PATHS = new Set([
   "direct",
   "about",
   "developer",
+  // Instagram's own QR/contact-invite links (instagram.com/invites/contact/…)
+  // sit at this same top-level path — caught one live: "Marilyn Nails" from a
+  // Lindenhurst, NY search had /invites/contact/?i=… as its "website" and it
+  // parsed as handle "invites", which would DM nowhere real.
+  "invites",
+  "legal",
+  "privacy",
+  "web",
+  "lite",
 ]);
 
 /**
