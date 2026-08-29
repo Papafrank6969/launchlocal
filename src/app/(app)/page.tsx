@@ -5,7 +5,7 @@ const STEPS = [
     href: "/leads",
     title: "1. Find leads",
     description:
-      "Search a city and category to surface local businesses with no website or a weak one (a bare Facebook page, a dead link, etc).",
+      "Search a city and category to surface local businesses with no website or a weak one. Everything you find stays in your backlog — filter it by trade, city, or status and work it down over time.",
   },
   {
     href: "/builder",
