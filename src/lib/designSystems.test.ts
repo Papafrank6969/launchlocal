@@ -135,6 +135,16 @@ describe("color variants (per-business accent + paper)", () => {
     }
   });
 
+  it("never gives two variants of the same system the same name", () => {
+    // Regression: hueName() buckets hue into coarse ranges, so two of the 6
+    // rotated variants can land in the same bucket (e.g. two "Terracotta")
+    // and be indistinguishable in the swatch picker's tooltip/aria-label.
+    for (const system of DESIGN_SYSTEMS) {
+      const names = variantsOf(system).map((v) => v.name);
+      expect(new Set(names).size, `${system.id}: ${names.join(", ")}`).toBe(names.length);
+    }
+  });
+
   it("applyColorVariant is a no-op for index 0, null, or out of range", () => {
     const system = getDesignSystem("studio-beauty");
     expect(applyColorVariant(system, 0)).toBe(system);

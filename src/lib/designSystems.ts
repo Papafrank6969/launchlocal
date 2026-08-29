@@ -484,7 +484,38 @@ function deriveVariants(system: DesignSystem): ColorVariant[] {
     };
   });
 
-  return [base, ...rest];
+  return dedupeVariantNames([base, ...rest]);
+}
+
+/**
+ * hueName() buckets hue into ~25-45° ranges, so two of the 6 rotated variants
+ * can land in the same bucket and come out with the same label (e.g. two
+ * variants both named "Terracotta") — indistinguishable in the swatch picker's
+ * tooltip/aria-label even though their accent colors differ. Disambiguate any
+ * same-named group by lightness, darkest to lightest.
+ */
+const NAME_QUALIFIERS = ["Deep", "Muted", "Light", "Pale"];
+
+function dedupeVariantNames(variants: ColorVariant[]): ColorVariant[] {
+  const groups = new Map<string, number[]>();
+  variants.forEach((v, i) => {
+    const indices = groups.get(v.name) ?? [];
+    indices.push(i);
+    groups.set(v.name, indices);
+  });
+
+  const renamed = [...variants];
+  for (const [name, indices] of groups) {
+    if (indices.length < 2) continue;
+    const byLightness = [...indices].sort(
+      (a, b) => hexToHsl(variants[a].colorAccent).l - hexToHsl(variants[b].colorAccent).l,
+    );
+    byLightness.forEach((idx, pos) => {
+      const qualifier = NAME_QUALIFIERS[pos] ?? String(pos + 1);
+      renamed[idx] = { ...renamed[idx], name: `${name} ${qualifier}` };
+    });
+  }
+  return renamed;
 }
 
 const variantCache = new Map<string, ColorVariant[]>();
