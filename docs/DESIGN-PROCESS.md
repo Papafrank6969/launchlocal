@@ -200,3 +200,38 @@ The literal parts of the brief that were *not* adopted, and why: fixed
 mandatory serif headline (several systems are sans+sans), `py-20` section
 spacing (kept the tighter `py-14 sm:py-20` from the F10 fix),
 `border-slate-200` dividers (sites use the palette-tinted `site-border`).
+
+### 2026-08-27 — per-business color variants
+
+Fixed the "every lash/nail/brow shop gets the identical Studio Beauty palette"
+problem (no `ANTHROPIC_API_KEY` → `deterministicDesignSystem` category-matches,
+so a whole niche shares one palette — the template-mill look the checklist
+forbids).
+
+Each of the 12 systems now carries **6 pre-verified color variants**
+(`variantsOf` in `designSystems.ts`). A variant moves only the **accent hue**
+(rotated within a per-system `accentArc`, default 65°) and the **paper tint** (a
+≤5%-saturation wash of the accent's hue at the base neutral's exact lightness).
+Primary color, fonts, hero layout, and `colorNeutralDark` never move — the
+system keeps its identity, including the dark "quiet luxury" ones. Index 0 is
+always the untouched base palette.
+
+- **Safety boundary held.** Every candidate accent runs through
+  `adjustLightnessToContrast` (new `src/lib/color.ts`) against whichever neutral
+  it reads better on; the paper falls back to the base neutral if the tint costs
+  any body-text contrast. `designSystems.test.ts` runs the full catalog AA
+  sweep (primary-on-light, dark-on-light, dark-mode body, accent 3:1) across all
+  6 × 12 — a variant can never ship a palette the base test would reject.
+- **Picked per business.** `POST /api/sites` pulls one Google Places photo at
+  draft time (~$0.007, best-effort), reads its dominant hue with
+  `sharp().stats().dominant` (`src/lib/imageColor.ts`), and picks the nearest
+  variant accent. No photo / grey photo → stable hash of the business name, so
+  same-niche shops still spread across the set. "Regenerate design" does the
+  same from the first inspiration screenshot.
+- **Operator control.** The editor Design block shows the variant name and a row
+  of 6 accent swatches; clicking one calls `POST /api/sites/[id]/design` with
+  `{ variant }` and the live preview updates.
+
+Not adopted: letting the variant move the primary color or fonts (would break
+system identity and the dark systems), and AI-picking raw hex (the vetted list
+stays the hard boundary — the model still only picks a system id).

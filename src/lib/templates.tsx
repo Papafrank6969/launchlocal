@@ -1,6 +1,12 @@
 import Image from "next/image";
 import { parseHours, isOpenNow } from "@/lib/hours";
-import { getDesignSystem, deterministicDesignSystem, fontCssValue, type DesignSystem } from "@/lib/designSystems";
+import {
+  getDesignSystem,
+  deterministicDesignSystem,
+  applyColorVariant,
+  fontCssValue,
+  type DesignSystem,
+} from "@/lib/designSystems";
 import { readableTextColor } from "@/lib/contrast";
 import { normalizeBookingUrl } from "@/lib/bookingUrl";
 import { parseGoogleReviews } from "@/lib/googleReviews";
@@ -29,6 +35,7 @@ export type SiteData = {
   googleMapsUrl?: string | null;
   category?: string | null;
   designSystemId?: string | null;
+  colorVariant?: number | null;
   slug?: string | null;
   serviceItems?: {
     id?: string;
@@ -40,10 +47,13 @@ export type SiteData = {
   }[];
 };
 
-export function resolveDesignSystem(site: Pick<SiteData, "businessName" | "category" | "designSystemId">): DesignSystem {
-  return site.designSystemId
+export function resolveDesignSystem(
+  site: Pick<SiteData, "businessName" | "category" | "designSystemId" | "colorVariant">,
+): DesignSystem {
+  const base = site.designSystemId
     ? getDesignSystem(site.designSystemId)
     : deterministicDesignSystem(site.businessName, site.category);
+  return applyColorVariant(base, site.colorVariant);
 }
 
 export function instagramDmUrl(handle?: string | null): string | null {

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { SitePreview, type SiteData } from "@/lib/templates";
 import { FormStatus, type StatusMessage } from "@/components/FormStatus";
-import { DESIGN_SYSTEMS, getDesignSystem } from "@/lib/designSystems";
+import { DESIGN_SYSTEMS, getDesignSystem, variantsOf } from "@/lib/designSystems";
 import { TRADE_OPTIONS, resolveTradeId, getServicesForTrades } from "@/lib/serviceSuggestions";
 import { normalizeBookingUrl, bookingProviderLabel } from "@/lib/bookingUrl";
 import { InspirationPhotos } from "@/components/InspirationPhotos";
@@ -48,23 +48,32 @@ export function SiteEditorForm({
     setData((d) => ({ ...d, [key]: value }));
   }
 
-  async function regenerateDesign(systemId?: string) {
+  async function regenerateDesign(opts?: { systemId?: string; variant?: number }) {
     if (!data.id) return;
     setRegenerating(true);
     setDesignMessage(null);
     try {
+      const body: Record<string, unknown> = {};
+      if (opts?.systemId) body.systemId = opts.systemId;
+      if (opts?.variant != null) body.variant = opts.variant;
       const res = await fetch(`/api/sites/${data.id}/design`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(systemId ? { systemId } : {}),
+        body: JSON.stringify(body),
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error ?? "Couldn't generate a design");
       set("designSystemId", result.site.designSystemId);
       set("designRationale", result.site.designRationale);
+      set("colorVariant", result.site.colorVariant ?? result.colorVariant ?? 0);
       setDesignMessage({
         type: "success",
-        text: result.aiGenerated ? `AI picked "${result.designSystemName}".` : `Set to "${result.designSystemName}".`,
+        text:
+          opts?.variant != null
+            ? `Accent set to "${result.colorVariantName}".`
+            : result.aiGenerated
+              ? `AI picked "${result.designSystemName}" (${result.colorVariantName}).`
+              : `Set to "${result.designSystemName}" (${result.colorVariantName}).`,
       });
     } catch (err) {
       setDesignMessage({ type: "error", text: err instanceof Error ? err.message : "Something went wrong" });
@@ -564,37 +573,71 @@ export function SiteEditorForm({
               A bespoke design (fonts, colors, layout) is generated automatically when you save.
             </p>
           ) : (
-            <div className="rounded-md border border-slate-300 p-3">
-              <p className="text-sm font-medium text-slate-900">{getDesignSystem(data.designSystemId).name}</p>
-              <p className="mt-1 text-xs text-slate-500">{data.designRationale || getDesignSystem(data.designSystemId).mood}</p>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => regenerateDesign()}
-                  disabled={regenerating}
-                  className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-                >
-                  {regenerating ? "Generating…" : "Regenerate design"}
-                </button>
-                <select
-                  aria-label="Switch design system"
-                  className="select-compact font-normal"
-                  value=""
-                  onChange={(e) => {
-                    if (e.target.value) regenerateDesign(e.target.value);
-                  }}
-                  disabled={regenerating}
-                >
-                  <option value="">Switch to…</option>
-                  {DESIGN_SYSTEMS.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <FormStatus status={designMessage} className="mt-2" />
-            </div>
+            (() => {
+              const system = getDesignSystem(data.designSystemId);
+              const variants = variantsOf(system);
+              const activeVariant = data.colorVariant ?? 0;
+              return (
+                <div className="rounded-md border border-slate-300 p-3">
+                  <p className="text-sm font-medium text-slate-900">{system.name}</p>
+                  <p className="mt-1 text-xs text-slate-500">{data.designRationale || system.mood}</p>
+                  <div className="mt-3">
+                    <p className="text-xs font-medium text-slate-600">
+                      Accent &amp; paper: <span className="text-slate-900">{variants[activeVariant]?.name ?? variants[0].name}</span>
+                    </p>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {variants.map((v, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => regenerateDesign({ variant: i })}
+                          disabled={regenerating}
+                          aria-label={`Use the ${v.name} accent${i === activeVariant ? " (current)" : ""}`}
+                          aria-pressed={i === activeVariant}
+                          title={v.name}
+                          className={`h-7 w-7 rounded-full border transition disabled:opacity-50 ${
+                            i === activeVariant ? "border-slate-900 ring-2 ring-slate-900/20" : "border-slate-300 hover:border-slate-500"
+                          }`}
+                          style={{ backgroundColor: v.colorNeutralLight }}
+                        >
+                          <span
+                            className="mx-auto block h-3.5 w-3.5 rounded-full"
+                            style={{ backgroundColor: v.colorAccent }}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => regenerateDesign()}
+                      disabled={regenerating}
+                      className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                    >
+                      {regenerating ? "Generating…" : "Regenerate design"}
+                    </button>
+                    <select
+                      aria-label="Switch design system"
+                      className="select-compact font-normal"
+                      value=""
+                      onChange={(e) => {
+                        if (e.target.value) regenerateDesign({ systemId: e.target.value });
+                      }}
+                      disabled={regenerating}
+                    >
+                      <option value="">Switch to…</option>
+                      {DESIGN_SYSTEMS.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <FormStatus status={designMessage} className="mt-2" />
+                </div>
+              );
+            })()
           )}
         </Field>
         <label className="flex items-start gap-2 text-sm text-slate-700">

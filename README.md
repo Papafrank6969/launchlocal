@@ -48,8 +48,14 @@ them one, and tracking how it's doing.
   specific business. With `ANTHROPIC_API_KEY` set, an AI call picks the best
   fit from the business's real name/category/services; without it, a
   deterministic category-based fallback keeps the app working out of the box.
-  Every curated system is pre-validated for WCAG AA contrast. The operator can
-  regenerate or manually override the pick from the site editor.
+  Every curated system is pre-validated for WCAG AA contrast. Each system also
+  carries 6 per-business **color variants** — the accent hue and paper tint
+  shift within a set arc (fonts, layout, and primary color stay fixed), matched
+  to the dominant color of the business's own Google photo when there is one, or
+  a hash of its name otherwise, so two lash studios don't get the same palette.
+  All 6 × 12 are WCAG-verified by the test suite. The operator can regenerate,
+  manually override the system, or click through the accent swatches from the
+  site editor.
 - **Site chrome** — dark mode, sticky header with a mobile menu, scroll
   progress bar, back-to-top button, floating call/DM button, cookie consent
   banner, skip-to-content link, and a print stylesheet, all on every
