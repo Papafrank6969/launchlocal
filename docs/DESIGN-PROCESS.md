@@ -132,6 +132,29 @@ when picking any non-Tailwind color.
 
 ## Audit log
 
+### 2026-08-29 — Follow-up Console (`/outreach/follow-up`)
+
+Second-touch sibling of the Outreach Console below — deliberately reused its
+already-audited patterns rather than re-running the skill from scratch:
+
+- Same keyboard model (real `<button>`s in tab order, `window`-level handlers
+  for `Enter`/`1`/`2`/`3`/`4`, suppressed while the message textarea has
+  focus, `Esc` blurs), same on-screen shortcut legend, same "Lead N of M" +
+  progress bar.
+- Same operator palette, `.input`, Lucide icons — plus `purple-700` for the
+  "They replied" action (matches the existing `RESPONDED` status chip in
+  `outreachStatus.ts`, so the color already means the same thing on Pipeline).
+- New: a red "Nd overdue" chip per lead and a "touch N of {cap+1}" counter —
+  this queue is a debt list, not a fresh batch, so how overdue and how many
+  times already matters more than rating here.
+
+Added a `MAX_FOLLOW_UPS` cap (2 bumps) so a cold lead that's gone quiet twice
+falls out of the queue for a human decision on Pipeline instead of a 3rd
+automatic nudge — the "just checking in" tone only stays credible for so long.
+Pure queue logic (eligibility, overdue-first ordering, key→action map,
+bump/reply/give-up patches, the cap) lives in `src/lib/followUpQueue.ts` with
+full test coverage. Same no-auto-send model as the cold console.
+
 ### 2026-08-28 — Outreach Console (`/outreach`)
 
 New operator page: a single-lead, keyboard-driven queue for Instagram outreach.

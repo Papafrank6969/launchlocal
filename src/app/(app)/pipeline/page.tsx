@@ -52,7 +52,11 @@ export default function PipelinePage() {
     setLeads((prev) => (prev ?? []).map((l) => (l.id === leadId ? { ...l, sites: [site] } : l)));
   }
 
-  const overdueCount = (leads ?? []).filter((l) => isOverdue(l.followUpAt)).length;
+  const overdueLeads = (leads ?? []).filter((l) => isOverdue(l.followUpAt));
+  const overdueCount = overdueLeads.length;
+  // The follow-up console is Instagram-only, same as the cold outreach console —
+  // only send the CTA there if it'd actually find something.
+  const overdueDmCount = overdueLeads.filter((l) => l.instagramHandle?.trim()).length;
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-12">
@@ -64,9 +68,18 @@ export default function PipelinePage() {
         </Link>{" "}
         page.
       </p>
-      {overdueCount > 0 && (
+      {overdueCount > 0 && overdueDmCount > 0 && (
+        <Link
+          href="/outreach/follow-up"
+          className="mt-3 inline-block rounded-full bg-red-100 px-3 py-1 text-sm font-medium text-red-700 hover:bg-red-200"
+        >
+          {overdueCount} follow-up{overdueCount === 1 ? "" : "s"} overdue — work the queue →
+        </Link>
+      )}
+      {overdueCount > 0 && overdueDmCount === 0 && (
         <p className="mt-3 inline-block rounded-full bg-red-100 px-3 py-1 text-sm font-medium text-red-700">
-          {overdueCount} follow-up{overdueCount === 1 ? "" : "s"} overdue
+          {overdueCount} follow-up{overdueCount === 1 ? "" : "s"} overdue — no Instagram handle, follow up by
+          phone or email below
         </p>
       )}
 

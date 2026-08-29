@@ -41,6 +41,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
             : undefined,
       followUpAt: "followUpAt" in body ? (body.followUpAt ? new Date(body.followUpAt) : null) : undefined,
       outreachNotes: "outreachNotes" in body ? body.outreachNotes : undefined,
+      followUpCount: "followUpCount" in body ? body.followUpCount : undefined,
     },
   });
 

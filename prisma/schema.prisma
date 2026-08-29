@@ -48,6 +48,7 @@ model Lead {
   lastContactedAt DateTime?
   followUpAt      DateTime?
   outreachNotes   String?
+  followUpCount   Int            @default(0)
 }
 
 enum SiteStatus {

@@ -88,6 +88,15 @@ them one, and tracking how it's doing.
   forbid automated messaging, so you still paste and send each DM yourself. A
   session counter warns as you approach ~40 DMs/day, the point where Instagram
   starts rate-limiting cold outreach.
+- **Follow-up Console** (`/outreach/follow-up`) — the second-touch half of
+  outreach, same one-lead-at-a-time rhythm as the cold console. Surfaces
+  contacted leads whose follow-up date has passed, most overdue first, with a
+  short "just checking in" message (not a re-pitch) pre-composed. Four keys:
+  `Enter` opens the DM thread, `1` logs another follow-up (pushes the date out
+  4 more days), `2` skips, `3` marks they replied (→ Pipeline as "Responded"),
+  `4` gives up (→ "Lost"). Caps at 2 follow-up touches — after that a lead
+  needs a human decision, not a 3rd bump. The Pipeline's overdue banner links
+  straight into the queue when there's an Instagram-eligible lead in it.
 
 ## Getting started
 

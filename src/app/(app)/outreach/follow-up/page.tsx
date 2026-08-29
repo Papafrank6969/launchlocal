@@ -2,31 +2,27 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { RefreshCw, Star, AtSign } from "lucide-react";
-import { DraftSiteButton } from "@/components/DraftSiteButton";
+import { RefreshCw, AtSign, Clock } from "lucide-react";
 import { OutreachNav } from "@/components/OutreachNav";
 import { instagramDmUrl } from "@/lib/templates";
-import { generateOutreachMessage, OUTREACH_VARIANT_COUNT } from "@/lib/outreachMessage";
+import { generateFollowUpMessage, FOLLOW_UP_VARIANT_COUNT } from "@/lib/followUpMessage";
 import {
-  QUEUE_KEYS,
-  resolveQueueKey,
-  actionAdvances,
-  outreachPatchForAction,
-  pacingLevel,
-  PACING_CAUTION,
-  PACING_LIMIT,
-  type QueueAction,
-} from "@/lib/outreachQueue";
+  FOLLOW_UP_KEYS,
+  resolveFollowUpKey,
+  followUpActionAdvances,
+  followUpPatchForAction,
+  MAX_FOLLOW_UPS,
+  type FollowUpAction,
+} from "@/lib/followUpQueue";
 
-type QueueLead = {
+type FollowUpLead = {
   id: string;
   name: string;
   category: string;
   city: string;
-  websiteStatus: "NONE" | "POOR" | "HAS_SITE";
   instagramHandle: string | null;
-  rating: number | null;
-  createdAt: string;
+  followUpAt: string | null;
+  followUpCount: number;
   sites?: { id: string; slug: string; status: string }[];
 };
 
@@ -36,13 +32,19 @@ function previewUrlFor(slug?: string | null): string | undefined {
   return `${origin}/s/${slug}`;
 }
 
-export default function OutreachConsolePage() {
-  const [queue, setQueue] = useState<QueueLead[] | null>(null);
+function daysOverdue(followUpAt: string | null): number {
+  if (!followUpAt) return 0;
+  const ms = Date.now() - new Date(followUpAt).getTime();
+  return Math.max(0, Math.floor(ms / (1000 * 60 * 60 * 24)));
+}
+
+export default function FollowUpConsolePage() {
+  const [queue, setQueue] = useState<FollowUpLead[] | null>(null);
   const [index, setIndex] = useState(0);
-  const [session, setSession] = useState({ sent: 0, skipped: 0, rejected: 0 });
+  const [session, setSession] = useState({ bumped: 0, skipped: 0, replied: 0, gaveUp: 0 });
 
   useEffect(() => {
-    fetch("/api/leads/outreach-queue")
+    fetch("/api/leads/follow-up-queue")
       .then((r) => r.json())
       .then((d) => setQueue(d.leads ?? []))
       .catch(() => setQueue([]));
@@ -60,18 +62,19 @@ export default function OutreachConsolePage() {
   }
 
   const runAction = useCallback(
-    (action: QueueAction) => {
+    (action: FollowUpAction) => {
       const current = queue?.[index];
       if (!current) return;
 
-      if (action === "send") setSession((s) => ({ ...s, sent: s.sent + 1 }));
+      if (action === "bump") setSession((s) => ({ ...s, bumped: s.bumped + 1 }));
       if (action === "skip") setSession((s) => ({ ...s, skipped: s.skipped + 1 }));
-      if (action === "reject") setSession((s) => ({ ...s, rejected: s.rejected + 1 }));
+      if (action === "replied") setSession((s) => ({ ...s, replied: s.replied + 1 }));
+      if (action === "giveUp") setSession((s) => ({ ...s, gaveUp: s.gaveUp + 1 }));
 
-      const patch = outreachPatchForAction(action);
+      const patch = followUpPatchForAction(action, current);
       if (patch) patchLead(current.id, patch);
 
-      if (actionAdvances(action)) setIndex((i) => i + 1);
+      if (followUpActionAdvances(action)) setIndex((i) => i + 1);
     },
     [queue, index],
   );
@@ -111,16 +114,7 @@ export default function OutreachConsolePage() {
         />
       </div>
 
-      <PacingBanner sent={session.sent} />
-
-      <LeadCard
-        key={lead!.id}
-        lead={lead!}
-        onAction={runAction}
-        onDrafted={(site) =>
-          setQueue((q) => (q ?? []).map((l) => (l.id === lead!.id ? { ...l, sites: [site] } : l)))
-        }
-      />
+      <LeadCard key={lead!.id} lead={lead!} onAction={runAction} />
 
       <ShortcutLegend />
     </Shell>
@@ -132,44 +126,33 @@ function Shell({ children }: { children: React.ReactNode }) {
     <div className="mx-auto max-w-2xl px-6 py-12">
       <h1 className="text-2xl font-semibold text-slate-900">Outreach Console</h1>
       <p className="mt-1 text-slate-600">
-        One lead at a time. Open the DM, paste, send, then log it with a keystroke. Only leads with
-        an Instagram handle that haven&apos;t been contacted yet, best ones first.
+        Second touch, one lead at a time. Leads you DM&apos;d that haven&apos;t replied by their
+        follow-up date, most overdue first. Bumped past {MAX_FOLLOW_UPS} touches drop out — that&apos;s
+        a call for the{" "}
+        <Link href="/pipeline" className="text-blue-600 hover:underline">
+          Pipeline
+        </Link>
+        , not another DM.
       </p>
-      <OutreachNav active="cold" />
+      <OutreachNav active="follow-up" />
       <div className="mt-8">{children}</div>
     </div>
   );
 }
 
-function LeadCard({
-  lead,
-  onAction,
-  onDrafted,
-}: {
-  lead: QueueLead;
-  onAction: (action: QueueAction) => void;
-  onDrafted: (site: { id: string; slug: string; status: string }) => void;
-}) {
+function LeadCard({ lead, onAction }: { lead: FollowUpLead; onAction: (action: FollowUpAction) => void }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const previewUrl = previewUrlFor(lead.sites?.[0]?.slug);
   const [variant, setVariant] = useState(0);
-  const [message, setMessage] = useState(() =>
-    generateOutreachMessage(lead, 0, { previewUrl }),
-  );
+  const [message, setMessage] = useState(() => generateFollowUpMessage(lead, 0, { previewUrl }));
   const [copied, setCopied] = useState(false);
   const [opened, setOpened] = useState(false);
   const dmUrl = instagramDmUrl(lead.instagramHandle);
 
-  function handleDrafted(site: { id: string; slug: string; status: string }) {
-    onDrafted(site);
-    // The pitch changes from "free mockup" to a live link once a site exists.
-    setMessage(generateOutreachMessage(lead, variant, { previewUrl: previewUrlFor(site.slug) }));
-  }
-
   function regenerate() {
     const next = variant + 1;
     setVariant(next);
-    setMessage(generateOutreachMessage(lead, next, { previewUrl }));
+    setMessage(generateFollowUpMessage(lead, next, { previewUrl }));
   }
 
   const openDm = useCallback(async () => {
@@ -192,7 +175,7 @@ function LeadCard({
         return;
       }
       if (e.metaKey || e.ctrlKey || e.altKey) return;
-      const action = resolveQueueKey(e.key);
+      const action = resolveFollowUpKey(e.key);
       if (!action) return;
       e.preventDefault();
       if (action === "open") openDm();
@@ -201,6 +184,8 @@ function LeadCard({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [openDm, onAction]);
+
+  const overdueDays = daysOverdue(lead.followUpAt);
 
   return (
     <div className="mt-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -211,32 +196,24 @@ function LeadCard({
             {lead.category} · {lead.city}
           </p>
         </div>
-        {lead.rating != null && (
-          <span className="flex shrink-0 items-center gap-1 text-sm text-slate-500">
-            <Star size={14} className="fill-amber-400 text-amber-400" aria-hidden="true" />
-            {lead.rating}
-          </span>
-        )}
+        <span className="flex shrink-0 items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+          <Clock size={12} aria-hidden="true" />
+          {overdueDays === 0 ? "due today" : `${overdueDays}d overdue`}
+        </span>
       </div>
 
       <p className="mt-2 flex items-center gap-1.5 text-sm text-slate-600">
         <AtSign size={14} aria-hidden="true" />
         {lead.instagramHandle?.replace(/^@/, "")}
-        {lead.websiteStatus === "POOR" && (
-          <span className="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
-            has a weak site
-          </span>
-        )}
+        <span className="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
+          touch {lead.followUpCount + 2} of {MAX_FOLLOW_UPS + 1}
+        </span>
       </p>
 
       <div className="mt-4">
-        <DraftSiteButton leadId={lead.id} site={lead.sites?.[0]} onCreated={handleDrafted} />
-      </div>
-
-      <div className="mt-4">
         <div className="flex items-center justify-between">
-          <label htmlFor="dm-message" className="block text-xs font-medium text-slate-500">
-            DM message · v{(variant % OUTREACH_VARIANT_COUNT) + 1}
+          <label htmlFor="followup-message" className="block text-xs font-medium text-slate-500">
+            Follow-up message · v{(variant % FOLLOW_UP_VARIANT_COUNT) + 1}
           </label>
           <button
             type="button"
@@ -248,11 +225,11 @@ function LeadCard({
           </button>
         </div>
         <textarea
-          id="dm-message"
+          id="followup-message"
           ref={textareaRef}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          rows={5}
+          rows={4}
           className="input mt-1 py-2"
         />
       </div>
@@ -271,10 +248,10 @@ function LeadCard({
         </button>
         <button
           type="button"
-          onClick={() => onAction("send")}
+          onClick={() => onAction("bump")}
           className="rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700"
         >
-          Sent · 1
+          Followed up · 1
         </button>
         <button
           type="button"
@@ -285,20 +262,27 @@ function LeadCard({
         </button>
         <button
           type="button"
-          onClick={() => onAction("reject")}
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+          onClick={() => onAction("replied")}
+          className="rounded-md border border-purple-300 px-3 py-2 text-sm font-medium text-purple-700 hover:bg-purple-50"
         >
-          Not a fit · 3
+          They replied · 3
         </button>
       </div>
+      <button
+        type="button"
+        onClick={() => onAction("giveUp")}
+        className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-500 hover:bg-slate-50"
+      >
+        Give up — no response · 4
+      </button>
     </div>
   );
 }
 
 function ShortcutLegend() {
   return (
-    <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-slate-500 sm:grid-cols-4">
-      {QUEUE_KEYS.map(({ key, label }) => (
+    <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-slate-500 sm:grid-cols-3">
+      {FOLLOW_UP_KEYS.map(({ key, label }) => (
         <div key={key} className="flex items-center gap-1.5">
           <kbd className="rounded border border-slate-300 bg-slate-50 px-1.5 py-0.5 font-mono text-[11px] text-slate-600">
             {key}
@@ -310,36 +294,16 @@ function ShortcutLegend() {
   );
 }
 
-function SessionCounter({ session }: { session: { sent: number; skipped: number; rejected: number } }) {
+function SessionCounter({
+  session,
+}: {
+  session: { bumped: number; skipped: number; replied: number; gaveUp: number };
+}) {
   return (
     <p className="text-xs text-slate-400">
-      <span className="font-medium text-emerald-600">{session.sent} sent</span> · {session.skipped}{" "}
-      skipped · {session.rejected} not a fit
-    </p>
-  );
-}
-
-function PacingBanner({ sent }: { sent: number }) {
-  const level = pacingLevel(sent);
-  if (level === "ok") return null;
-  return (
-    <p
-      className={`mt-4 rounded-md px-3 py-2 text-sm font-medium ${
-        level === "limit" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
-      }`}
-    >
-      {level === "limit"
-        ? `${sent} DMs sent today. Instagram rate-limits accounts past ~${PACING_LIMIT} cold DMs a day — stop here and pick this up tomorrow.`
-        : `${sent} DMs sent today. Ease off as you near ~${PACING_LIMIT}; past ${PACING_CAUTION} in a burst reads as automation.`}
-    </p>
-  );
-}
-
-function PacingReminder() {
-  return (
-    <p className="mt-3 text-xs text-slate-400">
-      Every send opens the real Instagram DM thread — you paste and send it yourself. Keep it under
-      ~{PACING_LIMIT} a day per account and vary the wording so it stays personal.
+      <span className="font-medium text-emerald-600">{session.bumped} followed up</span> ·{" "}
+      <span className="font-medium text-purple-600">{session.replied} replied</span> · {session.skipped}{" "}
+      skipped · {session.gaveUp} gave up
     </p>
   );
 }
@@ -347,13 +311,18 @@ function PacingReminder() {
 function EmptyState() {
   return (
     <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center">
-      <p className="text-sm font-medium text-slate-700">Queue&apos;s empty.</p>
+      <p className="text-sm font-medium text-slate-700">Nothing overdue.</p>
       <p className="mt-1 text-sm text-slate-500">
-        Every lead with an Instagram handle has been contacted. Find more on the{" "}
-        <Link href="/leads" className="text-blue-600 hover:underline">
-          Lead Finder
-        </Link>
-        , or add handles to existing leads with the &quot;Find it&quot; button there.
+        Every contacted lead is either not due for a follow-up yet, already past the {MAX_FOLLOW_UPS}-touch
+        cap, or has moved on. Check the{" "}
+        <Link href="/pipeline" className="text-blue-600 hover:underline">
+          Pipeline
+        </Link>{" "}
+        for anything that needs a manual look, or head to{" "}
+        <Link href="/outreach" className="text-blue-600 hover:underline">
+          New leads
+        </Link>{" "}
+        to keep the top of the funnel moving.
       </p>
     </div>
   );
@@ -363,24 +332,24 @@ function Summary({
   session,
   total,
 }: {
-  session: { sent: number; skipped: number; rejected: number };
+  session: { bumped: number; skipped: number; replied: number; gaveUp: number };
   total: number;
 }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-      <p className="text-sm font-medium text-slate-700">Worked through all {total} leads.</p>
+      <p className="text-sm font-medium text-slate-700">Worked through all {total} overdue leads.</p>
       <p className="mt-2 text-sm text-slate-500">
-        <span className="font-medium text-emerald-600">{session.sent}</span> DMs sent ·{" "}
-        {session.skipped} skipped · {session.rejected} marked not a fit.
+        <span className="font-medium text-emerald-600">{session.bumped}</span> followed up ·{" "}
+        <span className="font-medium text-purple-600">{session.replied}</span> replied ·{" "}
+        {session.skipped} skipped · {session.gaveUp} given up on.
       </p>
       <p className="mt-1 text-sm text-slate-500">
-        Sent leads moved to the{" "}
+        Replies moved to{" "}
         <Link href="/pipeline" className="text-blue-600 hover:underline">
           Pipeline
         </Link>{" "}
-        with a follow-up in 3 days.
+        as &quot;Responded&quot; — worth checking those threads for real.
       </p>
-      <PacingReminder />
     </div>
   );
 }
