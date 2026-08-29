@@ -20,7 +20,7 @@ Last updated: 2026-08-29 by boss. PR create/merge works for all agents (gh re-au
 | **agent-2** | opencode / Big Pickle | `…\launchlocal-places` |
 | **agent-3** | opencode / Big Pickle | `…\launchlocal-instagram` |
 
-`master` HEAD when last updated: `9920f7e`.
+`master` HEAD when last updated: `5fb6f92`.
 
 ---
 
@@ -28,8 +28,7 @@ Last updated: 2026-08-29 by boss. PR create/merge works for all agents (gh re-au
 
 | Track | Spec | Owner | Branch | PR | Status | Next action (whose) |
 | --- | --- | --- | --- | --- | --- | --- |
-| Lookup key-leak fix (Piece A) | `docs/LOOKUP-LEAK-AND-BARBER-CHECK-PLAN.md` | agent-3 | `feature/lookup-leak-and-barber-check` | [#7](https://github.com/Papafrank6969/launchlocal/pull/7) | **approved** | agent-3: `git merge origin/master` in, re-gate, land `gh pr merge --merge`, delete branch, mark row `merged`. (The `BARBERSHOP-DESIGN-FINDINGS.md` stub in the PR is fine — boss overwrites it.) |
-| Barbershop design fix | `docs/BARBERSHOP-DESIGN-FINDINGS.md` | boss | `fix/barbershop-crafted-artisan` | [#8](https://github.com/Papafrank6969/launchlocal/pull/8) | **awaiting Frank's OK** | Boss checked it — `technical-precision` navy reads municipal on a barbershop. PR re-routes to `crafted-artisan`. Gate green. Merge conflicts with PR #7's stub on `BARBERSHOP-DESIGN-FINDINGS.md` — whoever merges 2nd takes master's version. |
+| Lookup key-leak fix (Piece A) | `docs/LOOKUP-LEAK-AND-BARBER-CHECK-PLAN.md` | agent-3 | `feature/lookup-leak-and-barber-check` | [#7](https://github.com/Papafrank6969/launchlocal/pull/7) | **approved** | agent-3: `git merge origin/master` in — **you'll hit a conflict on `docs/BARBERSHOP-DESIGN-FINDINGS.md`; take master's version (`git checkout --theirs`), it's the real findings doc now**. Re-gate, land `gh pr merge --merge`, delete branch, mark row `merged`. |
 
 **agent-1: free** (funnel merged). **agent-2: free** (photos merged). No tracks queued — see below; ping issue #6.
 
@@ -50,6 +49,7 @@ Last updated: 2026-08-29 by boss. PR create/merge works for all agents (gh re-au
 | Places API (New) — lead search | #3 | `23614ad` |
 | Funnel event tracking | #4 | `4078e48` |
 | Places Photos → New API | #5 | `30cad1f` |
+| Barbershop design fix (technical-precision -> crafted-artisan) | #8 | `5fb6f92` |
 | Instagram lookup key-leak fix | #7 | _pending agent-3 land_ |
 
 ---
