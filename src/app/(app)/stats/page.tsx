@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
+import { buildFunnel, funnelEventsByDay, type FunnelEvent } from "@/lib/funnel";
 import { StatsCharts } from "@/components/StatsCharts";
 
 export const dynamic = "force-dynamic";
@@ -17,14 +18,18 @@ function startOfDay(d: Date) {
 
 export default async function StatsPage() {
   const [leads, sites, events] = await Promise.all([
-    db.lead.findMany({ select: { websiteStatus: true, outreachStatus: true } }),
+    db.lead.findMany({ select: { id: true, websiteStatus: true, outreachStatus: true } }),
     db.site.findMany({
       select: { id: true, businessName: true, slug: true, status: true, _count: { select: { events: true } } },
       orderBy: { createdAt: "desc" },
     }),
     db.event.findMany({
-      where: { type: "SITE_VIEW" },
-      select: { createdAt: true },
+      where: {
+        type: {
+          in: ["LEAD_FOUND", "SITE_VIEW", "LEAD_CONTACTED", "LEAD_RESPONDED", "LEAD_WON", "LEAD_LOST", "CONTACT_SUBMITTED"],
+        },
+      },
+      select: { type: true, leadId: true, siteId: true, createdAt: true },
     }),
   ]);
 
@@ -33,7 +38,9 @@ export default async function StatsPage() {
   const sitesBuilt = sites.length;
   const sitesPublished = sites.filter((s) => s.status === "PUBLISHED").length;
   const conversionRate = opportunities > 0 ? Math.round((sitesBuilt / opportunities) * 100) : 0;
-  const totalViews = events.length;
+
+  const viewEvents = events.filter((e) => e.type === "SITE_VIEW");
+  const totalViews = viewEvents.length;
 
   const leadsByStatus = [
     { key: "NONE", label: "No website", count: leads.filter((l) => l.websiteStatus === "NONE").length },
@@ -41,10 +48,15 @@ export default async function StatsPage() {
     { key: "HAS_SITE", label: "Has a website", count: leads.filter((l) => l.websiteStatus === "HAS_SITE").length },
   ];
 
-  const contacted = leads.filter((l) => l.outreachStatus !== "NEW").length;
-  const responded = leads.filter((l) => l.outreachStatus === "RESPONDED" || l.outreachStatus === "WON").length;
-  const won = leads.filter((l) => l.outreachStatus === "WON").length;
-  const responseRate = contacted > 0 ? Math.round((responded / contacted) * 100) : 0;
+  const funnelEvents: FunnelEvent[] = events.map((e) => ({
+    type: e.type,
+    leadId: e.leadId,
+    siteId: e.siteId,
+    createdAt: e.createdAt.toISOString(),
+  }));
+  const funnel = buildFunnel(leads, funnelEvents);
+  const funnelDays = funnelEventsByDay(funnelEvents, 30);
+  const foundCount = funnel[0].count;
 
   const days: { date: string; views: number }[] = [];
   const today = startOfDay(new Date());
@@ -52,7 +64,7 @@ export default async function StatsPage() {
     const day = new Date(today);
     day.setDate(day.getDate() - i);
     const label = day.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-    const count = events.filter((e) => startOfDay(new Date(e.createdAt)).getTime() === day.getTime()).length;
+    const count = viewEvents.filter((e) => startOfDay(new Date(e.createdAt)).getTime() === day.getTime()).length;
     days.push({ date: label, views: count });
   }
 
@@ -74,13 +86,35 @@ export default async function StatsPage() {
         <StatTile label="Total views" value={totalViews} />
       </div>
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-3">
-        <StatTile label="Contacted" value={contacted} hint="leads past 'New'" />
-        <StatTile label="Response rate" value={`${responseRate}%`} hint="responded or won ÷ contacted" />
-        <StatTile label="Won" value={won} />
+      <div className="mt-8 rounded-xl border border-slate-200 bg-white p-5">
+        <h2 className="text-sm font-semibold text-slate-900">Funnel</h2>
+        <div className="mt-4 space-y-4">
+          {funnel.map((stage) => {
+            const widthPct = foundCount > 0 ? Math.round((stage.count / foundCount) * 100) : 0;
+            return (
+              <div key={stage.key}>
+                <div className="flex items-baseline justify-between gap-2 text-sm">
+                  <span className="font-medium text-slate-700">{stage.label}</span>
+                  <span className="tabular-nums text-slate-900">
+                    {stage.count}
+                    {stage.ofPreviousPct !== null && (
+                      <span className="ml-2 text-xs text-slate-400">→ {stage.ofPreviousPct}% of previous</span>
+                    )}
+                  </span>
+                </div>
+                <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
+                  <div
+                    className={`h-full rounded-full ${stage.key === "won" ? "bg-emerald-600" : "bg-slate-600"}`}
+                    style={{ width: `${widthPct}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      <StatsCharts days={days} leadsByStatus={leadsByStatus} />
+      <StatsCharts days={days} leadsByStatus={leadsByStatus} funnelDays={funnelDays} />
 
       <div className="mt-10">
         <h2 className="text-lg font-semibold text-slate-900">Sites</h2>

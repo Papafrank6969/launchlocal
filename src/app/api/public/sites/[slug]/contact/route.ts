@@ -22,5 +22,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 
   await db.contactSubmission.create({ data: { siteId: site.id, name, email, message } });
 
+  // Best-effort telemetry: a contact-form submission is the clearest "this site is
+  // working" signal. Never fail the submission because the event write failed.
+  try {
+    await db.event.create({ data: { type: "CONTACT_SUBMITTED", siteId: site.id } });
+  } catch (err) {
+    console.error("Failed to record contact-submitted event", err);
+  }
+
   return NextResponse.json({ ok: true });
 }
