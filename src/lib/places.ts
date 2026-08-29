@@ -164,6 +164,104 @@ function hashCode(str: string): number {
 
 const MAX_RADIUS_METERS = 50_000; // Nearby Search's hard cap, ~31 miles
 
+type PlacesNewPlace = {
+  id?: string;
+  displayName?: { text?: string; languageCode?: string };
+  formattedAddress?: string;
+  nationalPhoneNumber?: string;
+  websiteUri?: string;
+  rating?: number;
+  userRatingCount?: number;
+};
+
+type PlacesNewSearchResponse = {
+  places?: PlacesNewPlace[];
+  nextPageToken?: string;
+  error?: { code: number; message: string };
+};
+
+const PLACES_NEW_FIELD_MASK =
+  "places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.websiteUri,places.rating,places.userRatingCount";
+
+/**
+ * Places API (New) search path — `places:searchText` returns website, phone,
+ * rating, and review count inline, so a whole category search is one request
+ * (plus optional geocode) instead of one search + a per-place Details N+1,
+ * and its `pageToken` pagination actually reaches pages 2–3. Requires the
+ * "Places API (New)" API to be enabled in Google Cloud (same key as legacy);
+ * until then it returns HTTP 403 and the caller falls through to the legacy
+ * tier (see docs/GOOGLE-APIS.md).
+ */
+async function findBusinessesViaPlacesNew(
+  city: string,
+  category: string,
+  apiKey: string,
+  radiusMiles?: number
+): Promise<RawBusiness[]> {
+  const body: { textQuery: string; pageSize: number; pageToken?: string; locationRestriction?: unknown } = {
+    textQuery: `${category} in ${city}`,
+    pageSize: 20,
+  };
+
+  if (radiusMiles && radiusMiles > 0) {
+    const { lat, lng } = await geocode(city, apiKey);
+    const radiusMeters = Math.min(Math.round(radiusMiles * 1609.34), MAX_RADIUS_METERS);
+    body.locationRestriction = {
+      circle: {
+        center: { latitude: lat, longitude: lng },
+        radius: radiusMeters,
+      },
+    };
+  }
+
+  const places: PlacesNewPlace[] = [];
+  let nextPageToken: string | undefined;
+
+  for (let page = 0; page < MAX_PLACES_PAGES; page++) {
+    let json: PlacesNewSearchResponse;
+    try {
+      const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Goog-Api-Key": apiKey,
+          "X-Goog-FieldMask": PLACES_NEW_FIELD_MASK,
+        },
+        body: JSON.stringify({ ...body, ...(nextPageToken ? { pageToken: nextPageToken } : {}) }),
+      });
+      json = (await res.json()) as PlacesNewSearchResponse;
+      if (!res.ok) {
+        // Include HTTP status and the API's error.message, like the legacy code.
+        throw new Error(`Places API (New) error: ${res.status} ${json.error?.message ?? ""}`);
+      }
+    } catch (err) {
+      if (page === 0) throw err;
+      break; // page beyond the first failed — keep what we have, don't lose the search.
+    }
+
+    places.push(...(json.places ?? []));
+    if (!json.nextPageToken) break;
+    nextPageToken = json.nextPageToken;
+  }
+
+  return places.map((place) => {
+    const name = place.displayName?.text ?? "";
+    const address = place.formattedAddress ?? "";
+    return {
+      name,
+      category,
+      address,
+      city,
+      phone: place.nationalPhoneNumber,
+      existingUrl: place.websiteUri,
+      rating: place.rating,
+      reviewCount: place.userRatingCount,
+      placeId: place.id ?? `${name}-${address}`,
+      source: "GOOGLE_PLACES" as const,
+    };
+  });
+}
+
 export async function findBusinesses(
   city: string,
   category: string,
@@ -175,10 +273,21 @@ export async function findBusinesses(
   }
 
   try {
-    return await findBusinessesViaGooglePlaces(city, category, apiKey, radiusMiles);
+    return await findBusinessesViaPlacesNew(city, category, apiKey, radiusMiles);
   } catch (err) {
-    console.error("Google Places lookup failed, falling back to mock data:", err);
-    return mockBusinessesFor(city, category);
+    const isForbidden = err instanceof Error && /403/.test(err.message);
+    console.warn(
+      isForbidden
+        ? "Places API (New) may not be enabled — see docs/GOOGLE-APIS.md. Falling back to legacy Places API."
+        : "Places API (New) lookup failed, falling back to legacy Places API.",
+      err
+    );
+    try {
+      return await findBusinessesViaGooglePlaces(city, category, apiKey, radiusMiles);
+    } catch (legacyErr) {
+      console.error("Google Places lookup failed, falling back to mock data:", legacyErr);
+      return mockBusinessesFor(city, category);
+    }
   }
 }
 
@@ -249,6 +358,12 @@ async function fetchAllPlacesPages(
   return results;
 }
 
+/**
+ * Legacy Google Places tier — kept as the tier-2 fallback behind the Places
+ * API (New) path in `findBusinesses`. Search + per-place Details fan-out and
+ * the unreliable `next_page_token` make this the slower, less reliable path;
+ * it still runs when the New API is unavailable (e.g. not yet enabled → 403).
+ */
 async function findBusinessesViaGooglePlaces(
   city: string,
   category: string,
