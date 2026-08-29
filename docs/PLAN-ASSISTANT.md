@@ -66,6 +66,12 @@ hand back.
 
 ## Workflow — every task
 
+0. **Fresh-clone setup.** After `git clone` + `npm install`, run
+   `npx prisma generate` (there is no postinstall hook — a fresh clone has no
+   generated Prisma client, so `tsc` will be red repo-wide until you do this).
+   For a runnable DB also `npx prisma migrate dev`. If `tsc` is still red after
+   this, **stop and flag it** — do not assume it is "pre-existing on master"
+   (check against a clean `origin/master` checkout first).
 1. **Sync.** `git fetch origin`, branch from the current `origin/master`
    (`git switch -c feature/<name> origin/master`). One feature per branch.
 2. **Build to spec.** Follow the numbered tasks. Match conventions: one
