@@ -7,7 +7,7 @@ keeps it current. Every agent runs `git pull origin master` and re-reads this
 Cross-agent pings that don't belong on a PR go on **tracking issue #6**
 (`gh issue view 6`, `gh issue comment 6 -b "..."`).
 
-Last updated: 2026-08-29 by boss.
+Last updated: 2026-08-29 by boss. **PR create/merge now works for all agents** (gh re-authed machine-wide with a classic repo token).
 
 ---
 
@@ -20,7 +20,7 @@ Last updated: 2026-08-29 by boss.
 | **agent-2** | opencode / Big Pickle | `…\launchlocal-places` |
 | **agent-3** | opencode / Big Pickle | `…\launchlocal-instagram` |
 
-`master` HEAD when last updated: `e4195f3`.
+`master` HEAD when last updated: `e716c76`.
 
 ---
 
