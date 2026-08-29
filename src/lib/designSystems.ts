@@ -191,7 +191,7 @@ export const DESIGN_SYSTEMS: DesignSystem[] = [
   {
     id: "technical-precision",
     name: "Technical Precision",
-    mood: "Confident, no-nonsense, utilitarian — for trades, technical contractors, and barbershops.",
+    mood: "Confident, no-nonsense, utilitarian — for trades and technical contractors.",
     categories: [
       "auto repair",
       "hvac contractor",
@@ -219,11 +219,6 @@ export const DESIGN_SYSTEMS: DesignSystem[] = [
       "appliance repair",
       "window installation",
       "siding",
-      "barber",
-      "barbershop",
-      "barber shop",
-      "mens grooming",
-      "men's grooming",
     ],
     fontHeading: { family: "Oswald", weight: "600", fallback: "sans-serif" },
     fontBody: { family: "Barlow", weight: "400", fallback: "sans-serif" },
@@ -270,7 +265,7 @@ export const DESIGN_SYSTEMS: DesignSystem[] = [
   {
     id: "crafted-artisan",
     name: "Crafted Artisan",
-    mood: "Handmade, textured, small-batch — for makers, brewers, and craft goods.",
+    mood: "Handmade, textured, small-batch — for makers, craft goods, and traditional barbershops.",
     categories: [
       "brewery",
       "woodworking",
@@ -292,6 +287,11 @@ export const DESIGN_SYSTEMS: DesignSystem[] = [
       "candle maker",
       "soap maker",
       "leather goods",
+      "barber",
+      "barbershop",
+      "barber shop",
+      "mens grooming",
+      "men's grooming",
     ],
     fontHeading: { family: "Zilla Slab", weight: "600", fallback: "serif" },
     fontBody: { family: "Karla", weight: "400", fallback: "sans-serif" },
