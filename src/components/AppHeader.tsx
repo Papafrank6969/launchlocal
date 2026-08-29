@@ -8,6 +8,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 
 const NAV_LINKS = [
   { href: "/leads", label: "Lead Finder" },
+  { href: "/outreach", label: "Outreach" },
   { href: "/pipeline", label: "Pipeline" },
   { href: "/builder", label: "Site Builder" },
   { href: "/stats", label: "Stats" },
