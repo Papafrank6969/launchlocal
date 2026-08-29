@@ -70,25 +70,43 @@ export default function LeadsPage() {
   const [radiusMiles, setRadiusMiles] = useState("");
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [usingLiveData, setUsingLiveData] = useState<boolean | null>(null);
   const [mergeStatus, setMergeStatus] = useState<string | null>(null);
-  const storedView = useMemo(() => {
-    try {
-      return parseStoredFilters(window.localStorage.getItem("launchlocal.leadFilters"));
-    } catch {
-      return { filters: DEFAULT_LEAD_FILTERS, sortKey: "newest" as LeadSortKey };
-    }
-  }, []);
-  const [filters, setFilters] = useState<LeadFilters>(storedView.filters);
-  const [sortKey, setSortKey] = useState<LeadSortKey>(storedView.sortKey);
+  const [filters, setFilters] = useState<LeadFilters>(DEFAULT_LEAD_FILTERS);
+  const [sortKey, setSortKey] = useState<LeadSortKey>("newest");
   const [visibleCount, setVisibleCount] = useState(60);
   // Previous applied view, held in state (not a ref) so the render-time reset
   // below is lint-clean.
   const [prevView, setPrevView] = useState<{ filters: LeadFilters; sortKey: LeadSortKey }>({
-    filters: storedView.filters,
-    sortKey: storedView.sortKey,
+    filters: DEFAULT_LEAD_FILTERS,
+    sortKey: "newest",
   });
+
+  // Restore the operator's saved view after mount. Reading localStorage during
+  // render would mismatch between SSR (no window) and the client (stored value),
+  // so we seed from defaults and load the stored view in an effect instead. The
+  // saved prevView is set in the same effect so the cap-reset logic doesn't
+  // misfire on the restored view. setState is deferred out of the synchronous
+  // effect body (post-hydration), keeping React's set-state-in-effect rule quiet.
+  useEffect(() => {
+    let cancelled = false;
+    void Promise.resolve().then(() => {
+      if (cancelled) return;
+      try {
+        const storedView = parseStoredFilters(window.localStorage.getItem("launchlocal.leadFilters"));
+        setFilters(storedView.filters);
+        setSortKey(storedView.sortKey);
+        setPrevView(storedView);
+      } catch {
+        // Storage may be unavailable (private mode / quota); keep defaults.
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -100,6 +118,8 @@ export default function LeadsPage() {
         if (!cancelled) setLeads(data.leads ?? []);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load leads");
+      } finally {
+        if (!cancelled) setInitialLoading(false);
       }
     })();
     return () => {
@@ -122,19 +142,18 @@ export default function LeadsPage() {
       setUsingLiveData(data.usingLiveData);
       const incoming = (data.leads ?? []) as Lead[];
       setLeads((prev) => {
-        const prevIds = new Set(prev.map((p) => p.id));
-        const merged = [...incoming];
-        for (const existing of prev) {
-          if (!prevIds.has(existing.id) || !merged.some((m) => m.id === existing.id)) merged.push(existing);
-        }
+        const incomingIds = incoming.map((inc) => inc.id);
+        const merged = [
+          ...incoming,
+          ...prev.filter((p) => !incomingIds.includes(p.id)),
+        ];
+        setMergeStatus(
+          `Added ${incomingIds.filter((id) => !prev.some((p) => p.id === id)).length} new, ` +
+            `refreshed ${incomingIds.filter((id) => prev.some((p) => p.id === id)).length} already in your backlog.`,
+        );
+        setTimeout(() => setMergeStatus(null), 4000);
         return merged;
       });
-      // newCount = incoming ids not previously present; existingCount = incoming ids already present
-      setMergeStatus(
-        `Added ${incoming.filter((inc) => !leads.some((p) => p.id === inc.id)).length} new, ` +
-          `refreshed ${incoming.filter((inc) => leads.some((p) => p.id === inc.id)).length} already in your backlog.`,
-      );
-      setTimeout(() => setMergeStatus(null), 4000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -319,10 +338,13 @@ export default function LeadsPage() {
             onSiteCreated={markLeadDrafted}
           />
         ))}
-        {!loading && leads.length === 0 && (
+        {initialLoading && (
+          <p className="text-sm text-slate-500">Loading leads…</p>
+        )}
+        {!loading && !initialLoading && leads.length === 0 && (
           <p className="text-sm text-slate-500">No leads yet — run a search above to start building your backlog.</p>
         )}
-        {!loading && leads.length > 0 && visible.length === 0 && (
+        {!loading && !initialLoading && leads.length > 0 && visible.length === 0 && (
           <p className="text-sm text-slate-500">
             No leads match these filters.{" "}
             <button
