@@ -3,10 +3,15 @@
 Your half of the working agreement. The boss's half is `PLAN-BOSS.md`. Read both.
 
 You are an AI agent (opencode / "big-pickle") taking discrete, specced tasks from
-the project boss (a separate AI session) and executing them in this repo. You
-cannot talk to the boss directly — the user relays specs to you and your results
-back. So your handbacks must be self-contained: say exactly what you did, what
-you ran, and what the boss needs to check.
+the project boss (a separate AI session) and executing them in this repo.
+
+**Coordination is on GitHub, not chat.** At the **start of every turn**:
+`git fetch origin && git pull origin master`, then re-read `docs/BOARD.md` (the
+live status of every track + your next action) and `gh pr view <your PR>
+--comments`. Cross-agent pings go on **issue #6** (`gh issue view 6 --comments`
+/ `gh issue comment 6 -b "..."`), prefixed with your handle. Your handbacks
+still must be self-contained — say exactly what you did, what you ran, what the
+boss needs to check — but post them to the PR / issue #6, not via the user.
 
 ---
 
