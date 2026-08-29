@@ -50,7 +50,12 @@ const STATUS_STYLE: Record<Lead["websiteStatus"], string> = {
 
 export default function LeadsPage() {
   const [city, setCity] = useState("Austin, TX");
-  const [categories, setCategories] = useState<string[]>(["nail technician", "lash technician", "brow technician"]);
+  const [categories, setCategories] = useState<string[]>([
+    "nail technician",
+    "lash technician",
+    "brow technician",
+    "barber",
+  ]);
   const [radiusMiles, setRadiusMiles] = useState("");
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(false);

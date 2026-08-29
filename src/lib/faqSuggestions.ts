@@ -6,8 +6,8 @@ type FaqSuggestionGroup = { categories: string[]; faqs: FaqSuggestion[] };
  * with the same real questions before booking — timelines, aftercare, pain,
  * touch-ups. Never fabricated claims about a specific business; an operator
  * can edit or remove any of these after adding one. Deliberately scoped to
- * the trades where this actually matters (lash/nail/brow) rather than a
- * generic catch-all — a vague FAQ suggestion is worse than none.
+ * the trades where this actually matters (lash/nail/brow, barbershops) rather
+ * than a generic catch-all — a vague FAQ suggestion is worse than none.
  */
 const FAQ_SUGGESTIONS: FaqSuggestionGroup[] = [
   {
@@ -92,6 +92,36 @@ const FAQ_SUGGESTIONS: FaqSuggestionGroup[] = [
         question: "How do I care for my brows after the appointment?",
         answer:
           "Avoid makeup on the brow area for at least 10 days, skip heavy exercise or sweating for 7-10 days, and don't pick at any scabbing — that can affect the final result.",
+      },
+    ],
+  },
+  {
+    categories: ["barber", "barbershop"],
+    faqs: [
+      {
+        question: "Do you take walk-ins or is it appointment only?",
+        answer:
+          "Let clients know how you run the shop — walk-ins welcome, appointment only, or a mix with walk-ins taken when a chair is open. If wait times are usually short, say so here.",
+      },
+      {
+        question: "Do you cut children's hair?",
+        answer:
+          "Yes — we cut all ages. Let us know it's a child's first haircut when you book so we can take a little extra time.",
+      },
+      {
+        question: "Do you do beard trims, line-ups, and hot towel shaves?",
+        answer:
+          "Beard trims and line-ups can be added to any haircut, and we also offer them on their own. Ask about a straight-razor hot towel shave if you'd like the full treatment.",
+      },
+      {
+        question: "How long does a typical haircut take?",
+        answer:
+          "Most cuts run about 30-45 minutes. Add a bit more time if you're getting a beard service or a more detailed style.",
+      },
+      {
+        question: "How do I explain the cut I want?",
+        answer:
+          "A photo is the easiest way — bring one if you have it. Otherwise let your barber know how you'd like the sides, the length on top, and how you usually style it, and they'll guide you from there.",
       },
     ],
   },

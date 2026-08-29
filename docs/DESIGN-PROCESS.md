@@ -132,6 +132,37 @@ when picking any non-Tailwind color.
 
 ## Audit log
 
+### 2026-08-29 — barbershop routing (`friendly-approachable` → `technical-precision`)
+
+Outreach is expanding to barbershops. `barber`/`barbershop` were routing to
+`friendly-approachable` (soft blue/teal, Quicksand + Nunito, rounded sans) —
+a pediatric-dentist look, wrong for a barbershop.
+
+Ran the skill per §1: `--domain color` for "dark masculine grooming" /
+"vintage americana" and `--domain style` for "bold industrial" returned **no
+barbershop match** (0 results on the direct queries; the near-hits were
+podcast/music dark themes and generic Swiss minimalism). `--design-system`
+auto-picked trust-blue + orange Swiss minimalism with scroll reveal — ignored
+per the precedence rule. Only useful signal: the typography DB puts a
+condensed-heading + regular-body pair (Barlow Condensed / Barlow) on
+"athletic, energetic, action, impact."
+
+Fell back to the curated list per the 2026-08-27 audit's standing call ("no
+new systems — the 12 cover the aesthetic space"). Routed `barber`,
+`barbershop`, `barber shop`, `mens grooming`, `men's grooming` to
+**`technical-precision`** — Oswald (condensed impact) + Barlow, full-bleed
+photo hero, near-black neutral, high contrast. It's the closest existing fit:
+utilitarian, masculine, photo-forward, and already ships + passes the full
+contrast sweep (base + 6 variants), so no re-audit needed. The blue primary
+is the one soft spot, but it's CTA/accent-only (never a section fill) and the
+photo-driven variant picker pulls the warm interior tone off a real shop
+photo anyway. `designSystems.test.ts` locks both routes; mood string updated.
+
+The vintage-Americana barbershop (slab serif, warm browns — closer to
+`crafted-artisan`) is the other reading; `crafted-artisan`'s categories are
+all goods-makers, not services, so `technical-precision` won. Revisit if
+operators report the built sites read too "contractor."
+
 ### 2026-08-29 — Follow-up Console (`/outreach/follow-up`)
 
 Second-touch sibling of the Outreach Console below — deliberately reused its

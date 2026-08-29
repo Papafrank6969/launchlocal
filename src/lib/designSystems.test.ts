@@ -198,7 +198,8 @@ describe("category routing coverage", () => {
   // roofer could land on Warm Editorial's bakery fonts). They now route to a
   // system whose aesthetic actually fits the trade.
   const cases: [category: string, expectedId: string][] = [
-    ["barbershop", "friendly-approachable"],
+    ["barber", "technical-precision"],
+    ["barbershop", "technical-precision"],
     ["chiropractor", "friendly-approachable"],
     ["pet grooming", "friendly-approachable"],
     ["daycare", "friendly-approachable"],
