@@ -1,12 +1,22 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { RefreshCw, Star } from "lucide-react";
 import { instagramDmUrl } from "@/lib/templates";
 import { generateOutreachMessage, OUTREACH_VARIANT_COUNT } from "@/lib/outreachMessage";
 import { FormStatus } from "@/components/FormStatus";
 import { OutreachControls } from "@/components/OutreachControls";
 import { DraftSiteButton } from "@/components/DraftSiteButton";
+import { LeadFilterBar } from "@/components/LeadFilterBar";
+import {
+  DEFAULT_LEAD_FILTERS,
+  filterLeads,
+  leadFacets,
+  parseStoredFilters,
+  sortLeads,
+  type LeadFilters,
+  type LeadSortKey,
+} from "@/lib/leadBacklog";
 
 function previewUrlFor(slug?: string | null): string | undefined {
   if (!slug) return undefined;
@@ -31,6 +41,7 @@ type Lead = {
   websiteStatus: "NONE" | "POOR" | "HAS_SITE";
   source: "GOOGLE_PLACES" | "MOCK";
   outreachStatus: OutreachStatus;
+  createdAt: string;
   lastContactedAt: string | null;
   followUpAt: string | null;
   sites?: { id: string; slug: string; status: string }[];
@@ -61,7 +72,40 @@ export default function LeadsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [usingLiveData, setUsingLiveData] = useState<boolean | null>(null);
-  const [onlyOpportunities, setOnlyOpportunities] = useState(true);
+  const [mergeStatus, setMergeStatus] = useState<string | null>(null);
+  const storedView = useMemo(() => {
+    try {
+      return parseStoredFilters(window.localStorage.getItem("launchlocal.leadFilters"));
+    } catch {
+      return { filters: DEFAULT_LEAD_FILTERS, sortKey: "newest" as LeadSortKey };
+    }
+  }, []);
+  const [filters, setFilters] = useState<LeadFilters>(storedView.filters);
+  const [sortKey, setSortKey] = useState<LeadSortKey>(storedView.sortKey);
+  const [visibleCount, setVisibleCount] = useState(60);
+  // Previous applied view, held in state (not a ref) so the render-time reset
+  // below is lint-clean.
+  const [prevView, setPrevView] = useState<{ filters: LeadFilters; sortKey: LeadSortKey }>({
+    filters: storedView.filters,
+    sortKey: storedView.sortKey,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/leads");
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? "Failed to load leads");
+        if (!cancelled) setLeads(data.leads ?? []);
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load leads");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -76,7 +120,21 @@ export default function LeadsPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Search failed");
       setUsingLiveData(data.usingLiveData);
-      setLeads(data.leads ?? []);
+      const incoming = (data.leads ?? []) as Lead[];
+      setLeads((prev) => {
+        const prevIds = new Set(prev.map((p) => p.id));
+        const merged = [...incoming];
+        for (const existing of prev) {
+          if (!prevIds.has(existing.id) || !merged.some((m) => m.id === existing.id)) merged.push(existing);
+        }
+        return merged;
+      });
+      // newCount = incoming ids not previously present; existingCount = incoming ids already present
+      setMergeStatus(
+        `Added ${incoming.filter((inc) => !leads.some((p) => p.id === inc.id)).length} new, ` +
+          `refreshed ${incoming.filter((inc) => leads.some((p) => p.id === inc.id)).length} already in your backlog.`,
+      );
+      setTimeout(() => setMergeStatus(null), 4000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -135,9 +193,30 @@ export default function LeadsPage() {
     setLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, sites: [site] } : l)));
   }
 
-  const visibleLeads = onlyOpportunities
-    ? leads.filter((l) => l.websiteStatus !== "HAS_SITE")
-    : leads;
+  const facets = useMemo(() => leadFacets(leads), [leads]);
+  const visible = useMemo(() => sortLeads(filterLeads(leads, filters), sortKey), [leads, filters, sortKey]);
+  const shown = visible.slice(0, visibleCount);
+
+  // Reset the "Load more" cap whenever the filter or sort changes, so a stale
+  // slice can't be shown. Compared against the previous applied view held in
+  // state and adjusted during render — React's recommended pattern, avoids a
+  // cascading-render setState in an effect.
+  if (prevView.filters !== filters || prevView.sortKey !== sortKey) {
+    setPrevView({ filters, sortKey });
+    setVisibleCount(60);
+  }
+
+  // Persist filter + sort so the operator's view survives a reload. Writing
+  // localStorage is an external-system sync (allowed in an effect); the read
+  // happens lazily in the initializer above.
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("launchlocal.leadFilters", JSON.stringify({ filters, sortKey }));
+    } catch {
+      // Storage may be unavailable (private mode / quota); ignoring keeps the
+      // in-memory filters working.
+    }
+  }, [filters, sortKey]);
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-12">
@@ -201,14 +280,6 @@ export default function LeadsPage() {
         >
           {loading ? "Searching…" : "Search"}
         </button>
-        <label className="mt-[1.9rem] flex items-center gap-2 text-sm text-slate-600">
-          <input
-            type="checkbox"
-            checked={onlyOpportunities}
-            onChange={(e) => setOnlyOpportunities(e.target.checked)}
-          />
-          Only show opportunities
-        </label>
       </form>
       <p className="mt-2 text-xs text-slate-400">
         Radius search geocodes the city/address you enter and searches within that distance (max 31 miles). Leave
@@ -216,6 +287,7 @@ export default function LeadsPage() {
       </p>
 
       <FormStatus status={error ? { type: "error", text: error } : null} className="mt-4" />
+      {mergeStatus && <p className="mt-4 text-sm text-emerald-600">{mergeStatus}</p>}
       {usingLiveData !== null && (
         <p className="mt-4 text-xs text-slate-500">
           {usingLiveData
@@ -224,8 +296,20 @@ export default function LeadsPage() {
         </p>
       )}
 
+      {leads.length > 0 && (
+        <LeadFilterBar
+          filters={filters}
+          onChange={setFilters}
+          sortKey={sortKey}
+          onSortChange={setSortKey}
+          facets={facets}
+          total={leads.length}
+          shown={visible.length}
+        />
+      )}
+
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {visibleLeads.map((lead) => (
+        {shown.map((lead) => (
           <LeadCard
             key={lead.id}
             lead={lead}
@@ -235,10 +319,39 @@ export default function LeadsPage() {
             onSiteCreated={markLeadDrafted}
           />
         ))}
-        {visibleLeads.length === 0 && !loading && (
-          <p className="text-sm text-slate-500">No leads yet — search above to get started.</p>
+        {!loading && leads.length === 0 && (
+          <p className="text-sm text-slate-500">No leads yet — run a search above to start building your backlog.</p>
+        )}
+        {!loading && leads.length > 0 && visible.length === 0 && (
+          <p className="text-sm text-slate-500">
+            No leads match these filters.{" "}
+            <button
+              type="button"
+              className="text-blue-600 hover:underline"
+              onClick={() => {
+                setFilters(DEFAULT_LEAD_FILTERS);
+                setSortKey("newest");
+              }}
+            >
+              Reset filters
+            </button>
+          </p>
         )}
       </div>
+      {visible.length > visibleCount && (
+        <div className="mt-6 flex flex-col items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setVisibleCount((c) => c + 60)}
+            className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+          >
+            Load more
+          </button>
+          <p className="text-xs text-slate-400">
+            Showing {Math.min(visibleCount, visible.length)} of {visible.length}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
