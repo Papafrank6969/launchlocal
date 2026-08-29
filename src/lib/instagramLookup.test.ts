@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { lookupInstagramHandle } from "./instagramLookup";
+import { lookupInstagramHandle, redactKey } from "./instagramLookup";
 
 const apiKey = "test-api-key";
 const cx = "test-cx";
@@ -248,5 +248,22 @@ describe("lookupInstagramHandle", () => {
     expect(decoded).toContain('"Bella\'s Lashes"');
     expect(decoded).toContain('"Austin"');
     expect(decoded).toContain("num=3");
+  });
+});
+
+describe("redactKey", () => {
+  it("redacts a key query parameter", () => {
+    expect(redactKey("...q=foo&key=secret123&cx=abc...")).toBe(
+      "...q=foo&key=REDACTED&cx=abc..."
+    );
+  });
+
+  it("redacts a leading key parameter", () => {
+    expect(redactKey("key=secret123&cx=abc")).toBe("key=REDACTED&cx=abc");
+  });
+
+  it("returns the string unchanged when there is no key parameter", () => {
+    expect(redactKey("just some text")).toBe("just some text");
+    expect(redactKey("q=hello")).toBe("q=hello");
   });
 });
