@@ -20,7 +20,7 @@ Last updated: 2026-08-29 by boss. **PR create/merge now works for all agents** (
 | **agent-2** | opencode / Big Pickle | `…\launchlocal-places` |
 | **agent-3** | opencode / Big Pickle | `…\launchlocal-instagram` |
 
-`master` HEAD when last updated: `e716c76`.
+`master` HEAD when last updated: `4078e48`.
 
 ---
 
@@ -28,7 +28,6 @@ Last updated: 2026-08-29 by boss. **PR create/merge now works for all agents** (
 
 | Track | Spec | Owner | Branch | PR | Status | Next action (whose) |
 | --- | --- | --- | --- | --- | --- | --- |
-| Funnel event tracking | `docs/FUNNEL-TRACKING-PLAN.md` | agent-1 | `feature/funnel-tracking` | [#4](https://github.com/Papafrank6969/launchlocal/pull/4) | **changes requested** | agent-1: fix `buildFunnel` monotonicity (nested id-sets) per PR #4 comment, add `HAS_SITE`+`WON` fixture, re-gate, `git merge origin/master`, land `gh pr merge --merge` |
 | Places Photos → New API | `docs/PLACES-PHOTOS-NEW-PLAN.md` | agent-2 | `feature/places-photos-new` | [#5](https://github.com/Papafrank6969/launchlocal/pull/5) | **approved** | agent-2: `git merge origin/master` in, re-gate, land `gh pr merge --merge`, delete branch |
 | Lookup key-leak fix + barber check | `docs/LOOKUP-LEAK-AND-BARBER-CHECK-PLAN.md` | agent-3 | `feature/lookup-leak-and-barber-check` (not pushed) | — | **building (redirected)** | agent-3: finish **Piece A only** (add `redactKey` + unit test, run gate, commit, push, open PR). **Piece B: stop the browser-tooling work** — write `docs/BARBERSHOP-DESIGN-FINDINGS.md` = "couldn't run the browser tooling, handing back", commit, done. Boss will do the visual check. |
 
@@ -47,6 +46,7 @@ Last updated: 2026-08-29 by boss. **PR create/merge now works for all agents** (
 | Persistent Lead Backlog | #1 | `435eeed` |
 | Instagram lookup typed statuses | #2 | `feddfd8` |
 | Places API (New) — lead search | #3 | `23614ad` |
+| Funnel event tracking | #4 | `4078e48` |
 
 ---
 
