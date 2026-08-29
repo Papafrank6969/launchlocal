@@ -103,6 +103,30 @@ describe("buildFunnel", () => {
       expect(funnel[i].count).toBeLessThanOrEqual(funnel[i - 1].count);
     }
   });
+
+  it("stays monotonic when a lead has a site and an advanced status (regression)", () => {
+    // A HAS_SITE/WON lead used to be excluded from `opportunity` while still
+    // counted in the lower stages, inflating them above the stage above.
+    const funnel = buildFunnel(
+      [
+        lead({ id: "W1", websiteStatus: "HAS_SITE", outreachStatus: "WON" }),
+        lead({ id: "W2", websiteStatus: "HAS_SITE", outreachStatus: "WON" }),
+        lead({ id: "N1", websiteStatus: "NONE", outreachStatus: "NEW" }),
+      ],
+      [],
+    );
+    const counts = Object.fromEntries(funnel.map((s) => [s.key, s.count]));
+    expect(counts).toEqual({
+      found: 3,
+      opportunity: 3, // fresh NONE + the two engaged HAS_SITE/WON leads
+      contacted: 2,
+      responded: 2,
+      won: 2,
+    });
+    for (let i = 1; i < funnel.length; i++) {
+      expect(funnel[i].count).toBeLessThanOrEqual(funnel[i - 1].count);
+    }
+  });
 });
 
 describe("funnelEventsByDay", () => {

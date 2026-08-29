@@ -51,42 +51,63 @@ const ADVANCED_STATUSES = ["CONTACTED", "RESPONDED", "WON", "LOST"];
 const RESPONDED_OR_WON = ["RESPONDED", "WON"];
 
 /**
- * The ordered funnel stages:
+ * The ordered funnel stages, built as strictly-nested id sets from the top:
  *   1. found        - every lead
- *   2. opportunity  - leads without a site (websiteStatus !== "HAS_SITE")
- *   3. contacted    - distinct LEAD_CONTACTED leadIds ∪ leads currently
- *                     CONTACTED/RESPONDED/WON/LOST
- *   4. responded    - distinct LEAD_RESPONDED leadIds ∪ leads currently
- *                     RESPONDED/WON
- *   5. won          - distinct LEAD_WON leadIds ∪ leads currently WON
+ *   2. opportunity  - leads without a site (websiteStatus !== "HAS_SITE") ∪ any
+ *                     engaged lead (has a lifecycle event OR an advanced status)
+ *   3. contacted    - (LEAD_CONTACTED events ∪ CONTACTED/RESPONDED/WON/LOST)
+ *                     ∩ opportunity
+ *   4. responded    - (LEAD_RESPONDED events ∪ RESPONDED/WON) ∩ contacted
+ *   5. won          - (LEAD_WON events ∪ WON) ∩ responded
  *
- * Each `count` is the union of the two sources, deduped by id, so a lead with
- * both an event and the matching current status counts once. `ofPreviousPct` is
- * round(count / previous.count * 100), 0 when the previous stage is 0; the first
- * stage has none.
+ * Nesting top-down guarantees the funnel is monotonic by construction: a lead
+ * with a site and an advanced status (e.g. HAS_SITE/WON) stays in `opportunity`
+ * via the engaged-union, so a lower stage can never exceed the one above it.
+ * The union with current status keeps pre-events-era leads counted. Each stage
+ * is deduped by id (a lead with both an event and the matching status counts
+ * once). `ofPreviousPct` is round(count / previous.count * 100), 0 when the
+ * previous stage is 0; the first stage has none.
  */
 export function buildFunnel(leads: FunnelLead[], events: FunnelEvent[]): FunnelStage[] {
+  const allIds = new Set(leads.map((l) => l.id));
+
   const idsInStatus = (statuses: string[]) => new Set(leads.filter((l) => statuses.includes(l.outreachStatus)).map((l) => l.id));
   const idsWithEvent = (type: string) =>
     new Set(events.filter((e) => e.type === type).map((e) => e.leadId).filter((id): id is string => id != null));
 
-  const contacted = union(idsWithEvent("LEAD_CONTACTED"), idsInStatus(ADVANCED_STATUSES));
-  const responded = union(idsWithEvent("LEAD_RESPONDED"), idsInStatus(RESPONDED_OR_WON));
-  const won = union(idsWithEvent("LEAD_WON"), idsInStatus(["WON"]));
+  const engagedEventIds = unionSets(
+    unionSets(idsWithEvent("LEAD_CONTACTED"), idsWithEvent("LEAD_RESPONDED")),
+    idsWithEvent("LEAD_WON"),
+  );
+  const engagedIds = unionSets(engagedEventIds, idsInStatus(ADVANCED_STATUSES));
 
-  const counts: FunnelStageKey[] = ["found", "opportunity", "contacted", "responded", "won"];
-  const raw = [leads.length, leads.filter((l) => l.websiteStatus !== "HAS_SITE").length, contacted, responded, won];
+  const opportunityIds = unionSets(
+    new Set(leads.filter((l) => l.websiteStatus !== "HAS_SITE").map((l) => l.id)),
+    engagedIds,
+  );
+  const contactedIds = intersect(engagedIds, opportunityIds);
+  const respondedIds = intersect(
+    unionSets(idsWithEvent("LEAD_RESPONDED"), idsInStatus(RESPONDED_OR_WON)),
+    contactedIds,
+  );
+  const wonIds = intersect(unionSets(idsWithEvent("LEAD_WON"), idsInStatus(["WON"])), respondedIds);
 
-  return counts.map((key, i) => {
-    const count = raw[i];
-    const previous = raw[i - 1];
+  const counts = [allIds.size, opportunityIds.size, contactedIds.size, respondedIds.size, wonIds.size];
+
+  return FUNNEL_STAGE_KEYS.map((key, i) => {
+    const count = counts[i];
+    const previous = counts[i - 1];
     const ofPreviousPct = i === 0 ? null : previous > 0 ? Math.round((count / previous) * 100) : 0;
     return { key, label: FUNNEL_STAGE_LABELS[key], count, ofPreviousPct };
   });
 }
 
-function union(a: Set<string>, b: Set<string>): number {
-  return new Set([...a, ...b]).size;
+function unionSets(a: Set<string>, b: Set<string>): Set<string> {
+  return new Set([...a, ...b]);
+}
+
+function intersect(a: Set<string>, b: Set<string>): Set<string> {
+  return new Set([...a].filter((x) => b.has(x)));
 }
 
 export type DayRow = {
