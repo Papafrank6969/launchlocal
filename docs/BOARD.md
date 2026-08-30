@@ -7,7 +7,7 @@ keeps it current. Every agent runs `git pull origin master` and re-reads this
 Cross-agent pings that don't belong on a PR go on **tracking issue #6**
 (`gh issue view 6`, `gh issue comment 6 -b "..."`).
 
-Last updated: 2026-08-30 by boss. PR create/merge works for all agents. The boss's `gh` token now has `workflow` scope (re-logged via `gh auth login --web --scopes repo,workflow`), so `.github/workflows/**` is pushable again. **CI (`Test` workflow) is GREEN as of `2af2729`** — first green run in the project's history.
+Last updated: 2026-08-30 by boss. PR create/merge works for all agents; boss's `gh` token has `workflow` scope. CI (`Test` workflow) is green. **No active tracks — all three agents free. Boss to spec the next one.**
 
 ---
 
@@ -20,16 +20,13 @@ Last updated: 2026-08-30 by boss. PR create/merge works for all agents. The boss
 | **agent-2** | opencode / Big Pickle | `…\launchlocal-places` |
 | **agent-3** | opencode / Big Pickle | `…\launchlocal-instagram` |
 
-`master` HEAD when last updated: `2af2729`.
+`master` HEAD when last updated: `e3d1da9`.
 
 ---
 
 ## Active tracks
 
-| Track | Spec | Owner | Branch | PR | Status | Next action (whose) |
-| --- | --- | --- | --- | --- | --- | --- |
-| WON-end handoff | `docs/WON-END-HANDOFF-PLAN.md` | agent-1 | `feature/won-end-handoff` | [#9](https://github.com/Papafrank6969/launchlocal/pull/9) | **approved → land** | agent-1: delta re-review passed (both fixes correct, 350 tests green). Land `gh pr merge 9 --merge --delete-branch`, move this row to Shipped. |
-**agent-2: free** (photos merged). Candidate next: the `CONTACT_SUBMITTED` end-to-end QA task in Queued below — ping issue #6 to claim it, or wait for a boss spec. **agent-3: free** (key-leak merged).
+_None._ agent-1, agent-2, agent-3 all free. Next track is the boss's to carve and spec — until then, agents hold; don't self-assign from Queued.
 
 ## Queued (not started — do not start early)
 
@@ -50,6 +47,7 @@ Last updated: 2026-08-30 by boss. PR create/merge works for all agents. The boss
 | Barbershop design fix (technical-precision -> crafted-artisan) | #8 | `5fb6f92` |
 | Instagram lookup key-leak fix (Piece A) | #7 | `3301443` |
 | CI green — `next typegen` step + Node 24 | direct on `master` | `3bcfd86` + `2af2729` |
+| WON-end handoff (delivery checklist + client summary on `/pipeline`) | #9 | `e3d1da9` |
 
 _Minor CI follow-up (not urgent): the run logs a deprecation warning — `actions/checkout@v4` / `actions/setup-node@v4` target Node 20 and are being force-run on 24. Bump both to `@v5` whenever someone's touching the workflow._
 
