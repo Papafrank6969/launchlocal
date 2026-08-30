@@ -92,6 +92,8 @@ model Site {
   status      SiteStatus @default(DRAFT)
   utmTrackingEnabled Boolean @default(false)
   googleSiteVerification String?
+  customDomain String?
+  deliveredAt DateTime?
   leadId      String?
   lead        Lead?      @relation(fields: [leadId], references: [id])
   createdAt   DateTime   @default(now())
@@ -103,6 +105,7 @@ model Site {
   galleryItems GalleryItem[]
   contactSubmissions ContactSubmission[]
   inspirationImages InspirationImage[]
+  handoffTasks HandoffTask[]
 }
 
 model Service {
@@ -187,6 +190,21 @@ enum EventType {
   LEAD_WON
   LEAD_LOST
   CONTACT_SUBMITTED
+  SITE_DELIVERED
+}
+
+model HandoffTask {
+  id        String    @id @default(cuid())
+  siteId    String
+  site      Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  key       String
+  done      Boolean   @default(false)
+  doneAt    DateTime?
+  order     Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([siteId, key])
 }
 
 model Event {
