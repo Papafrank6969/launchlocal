@@ -26,13 +26,19 @@ Last updated: 2026-08-30 by boss. PR create/merge works for all agents; boss's `
 
 ## Active tracks
 
-_None._ agent-1, agent-2, agent-3 all free. Next track is the boss's to carve and spec — until then, agents hold; don't self-assign from Queued.
+| Track | Spec | Owner | Branch | PR | Status | Next action (whose) |
+| --- | --- | --- | --- | --- | --- | --- |
+| Deploy to Vercel + Postgres | `docs/DEPLOY-POSTGRES-PLAN.md` | boss + user (agent may take code tasks 1–3) | `feature/deploy-postgres` (not started) | — | **specced → build** | Foundation for the daily-lead cron. Prisma SQLite→Postgres (squash migrations to one `init`), image uploads local-disk→Vercel Blob (6 routes + 2 readers), build config, then the Vercel/Neon runbook + smoke test. Tasks 4–6 need live accounts — boss + user pair on those. |
+
+**Goal context:** user wants a server that queues ~25 fresh leads/day to message manually after school. This deploy track is step 1 of 3 → then Track 2 (daily lead cron) → Track 3 (`/today` queue). See the "Next tracks" section at the bottom of `DEPLOY-POSTGRES-PLAN.md`.
 
 ## Queued (not started — do not start early)
 
 | Track | Notes |
 | --- | --- |
-| Custom Search / Instagram lookup retest | Google-side `PERMISSION_DENIED` unconfirmed-cleared. Needs a real `.env` with `GOOGLE_CUSTOM_SEARCH_*`. Low priority. |
+| **Track 2 — Daily lead cron** | Specced after the deploy track lands. `target_rotation` config, `/api/cron/daily-leads` on Vercel Cron (~3pm user local), dedup by `placeId`, stop at ~25 net-new with a contact method, per-run Places-call cap, `CRON_SECRET`. Folds in the Instagram lookup retest. |
+| **Track 3 — `/today` queue** | Specced after Track 2. 25 freshest `NEW` leads with a contact method, best channel per lead, one-tap DM/email/call, "Mark contacted" → `LEAD_CONTACTED`, yesterday's uncontacted carried over. Multi-channel. |
+| Custom Search / Instagram lookup retest | Google-side `PERMISSION_DENIED` unconfirmed-cleared. Needs a real `.env` with `GOOGLE_CUSTOM_SEARCH_*`. **Folded into Track 2.** |
 | Places Photos: contact-form on built sites emits `CONTACT_SUBMITTED` — verify end to end | Funnel track added the event; nobody has confirmed it fires from a real published-site submission. Small QA task. |
 
 ## Shipped
