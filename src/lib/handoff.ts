@@ -67,6 +67,26 @@ export function buildHandoffProgress(tasks: { key: string; done: boolean }[]): H
   return { total, done, pct, complete: done === total, nextStep };
 }
 
+/**
+ * Decides the delivery transition for a handoff PATCH. `deliveredAt` clears
+ * and re-sets across a toggle-off/on cycle for the UI, but the SITE_DELIVERED
+ * event must fire exactly once per delivery — gate it on a prior event (the
+ * `priorDeliveredEvent` flag) ever having fired, not on `deliveredAt` alone.
+ */
+export function deliveredTransition(opts: {
+  complete: boolean;
+  deliveredAt: Date | null;
+  priorDeliveredEvent: boolean;
+}): { deliveredAt: Date | null; emit: boolean } {
+  if (opts.complete && opts.deliveredAt == null) {
+    return { deliveredAt: new Date(), emit: !opts.priorDeliveredEvent };
+  }
+  if (!opts.complete && opts.deliveredAt != null) {
+    return { deliveredAt: null, emit: false };
+  }
+  return { deliveredAt: opts.deliveredAt, emit: false };
+}
+
 export type HandoffSummaryInput = {
   businessName: string;
   liveUrl: string;
@@ -88,7 +108,8 @@ export function handoffSummaryText(input: HandoffSummaryInput): string {
     "",
     `Business: ${input.businessName}`,
     `Web address: ${webAddress}`,
-    ...(customDomain ? [`Preview link (always works): ${input.liveUrl}`, ""] : []),
+    ...(customDomain ? [`Preview link (always works): ${input.liveUrl}`] : []),
+    "",
     "What's included",
     ...input.pages.map((p) => `  - ${p}`),
     "",

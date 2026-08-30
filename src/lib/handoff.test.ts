@@ -4,6 +4,7 @@ import {
   HANDOFF_STEP_KEYS,
   reconcileHandoffTasks,
   buildHandoffProgress,
+  deliveredTransition,
   handoffSummaryText,
 } from "./handoff";
 
@@ -144,6 +145,7 @@ describe("handoffSummaryText", () => {
         "",
         "Business: Joe's Barbershop",
         "Web address: https://site.example/s/joes",
+        "",
         "What's included",
         "  - Home",
         "  - Services",
@@ -195,5 +197,57 @@ describe("handoffSummaryText", () => {
     const out = handoffSummaryText({ ...base, customDomain: "   " });
     expect(out).toContain("Web address: https://site.example/s/joes");
     expect(out).not.toContain("Preview link (always works):");
+  });
+});
+
+describe("deliveredTransition", () => {
+  it("first completion (no prior event) sets deliveredAt and emits", () => {
+    const t = deliveredTransition({ complete: true, deliveredAt: null, priorDeliveredEvent: false });
+    expect(t.emit).toBe(true);
+    expect(t.deliveredAt).toBeInstanceOf(Date);
+  });
+
+  it("un-complete clears deliveredAt and never emits", () => {
+    const t = deliveredTransition({ complete: false, deliveredAt: new Date(), priorDeliveredEvent: true });
+    expect(t.deliveredAt).toBeNull();
+    expect(t.emit).toBe(false);
+  });
+
+  it("emits exactly one event across a complete → uncheck → re-complete cycle", () => {
+    // Drives the same delivery-transition state the PATCH route does, counting
+    // the SITE_DELIVERED events it would create.
+    let deliveredAt: Date | null = null;
+    let eventsFired = 0;
+
+    // complete (first time) — no prior event, so it emits
+    let t = deliveredTransition({ complete: true, deliveredAt, priorDeliveredEvent: eventsFired > 0 });
+    deliveredAt = t.deliveredAt;
+    if (t.emit) eventsFired += 1;
+    expect(eventsFired).toBe(1);
+
+    // uncheck — clears deliveredAt, no event
+    t = deliveredTransition({ complete: false, deliveredAt, priorDeliveredEvent: eventsFired > 0 });
+    deliveredAt = t.deliveredAt;
+    if (t.emit) eventsFired += 1;
+    expect(deliveredAt).toBeNull();
+    expect(eventsFired).toBe(1);
+
+    // re-complete — deliveredAt re-sets, but a prior event exists → no second emit
+    t = deliveredTransition({ complete: true, deliveredAt, priorDeliveredEvent: eventsFired > 0 });
+    deliveredAt = t.deliveredAt;
+    if (t.emit) eventsFired += 1;
+    expect(deliveredAt).toBeInstanceOf(Date);
+    expect(eventsFired).toBe(1);
+  });
+
+  it("a twice-repeated completion never doubles the event count", () => {
+    let deliveredAt: Date | null = null;
+    let eventsFired = 0;
+    for (let i = 0; i < 3; i++) {
+      const t = deliveredTransition({ complete: true, deliveredAt, priorDeliveredEvent: eventsFired > 0 });
+      deliveredAt = t.deliveredAt;
+      if (t.emit) eventsFired += 1;
+    }
+    expect(eventsFired).toBe(1);
   });
 });

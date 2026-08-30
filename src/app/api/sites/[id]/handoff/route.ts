@@ -7,6 +7,7 @@ import {
   HANDOFF_STEP_KEYS,
   reconcileHandoffTasks,
   buildHandoffProgress,
+  deliveredTransition,
   handoffSummaryText,
 } from "@/lib/handoff";
 
@@ -144,13 +145,21 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   // Delivery transition — best effort; must never fail the toggle.
   try {
-    if (progress.complete && !deliveredAt) {
-      await db.site.update({ where: { id }, data: { deliveredAt: new Date() } });
-      await db.event.create({ data: { type: "SITE_DELIVERED", siteId: id } });
-      deliveredAt = new Date();
-    } else if (!progress.complete && deliveredAt) {
-      await db.site.update({ where: { id }, data: { deliveredAt: null } });
-      deliveredAt = null;
+    // Exactly-once: SITE_DELIVERED fires on the first delivery only. A
+    // toggle-off/on cycle re-sets deliveredAt for the UI but a prior event
+    // exists, so no second event is emitted.
+    const priorDeliveredEvent = progress.complete
+      ? Boolean(await db.event.findFirst({ where: { siteId: id, type: "SITE_DELIVERED" } }))
+      : false;
+    const transition = deliveredTransition({
+      complete: progress.complete,
+      deliveredAt,
+      priorDeliveredEvent,
+    });
+    if (transition.deliveredAt !== deliveredAt || transition.emit) {
+      await db.site.update({ where: { id }, data: { deliveredAt: transition.deliveredAt } });
+      if (transition.emit) await db.event.create({ data: { type: "SITE_DELIVERED", siteId: id } });
+      deliveredAt = transition.deliveredAt;
     }
   } catch (err) {
     console.error("handoff delivery transition failed:", err);
