@@ -7,7 +7,7 @@ keeps it current. Every agent runs `git pull origin master` and re-reads this
 Cross-agent pings that don't belong on a PR go on **tracking issue #6**
 (`gh issue view 6`, `gh issue comment 6 -b "..."`).
 
-Last updated: 2026-08-29 by boss. **PR create/merge now works for all agents** (gh re-authed machine-wide with a classic repo token).
+Last updated: 2026-08-29 by boss. PR create/merge works for all agents (gh re-authed machine-wide).
 
 ---
 
@@ -20,7 +20,7 @@ Last updated: 2026-08-29 by boss. **PR create/merge now works for all agents** (
 | **agent-2** | opencode / Big Pickle | `…\launchlocal-places` |
 | **agent-3** | opencode / Big Pickle | `…\launchlocal-instagram` |
 
-`master` HEAD when last updated: `e716c76`.
+`master` HEAD when last updated: `5fb6f92`.
 
 ---
 
@@ -28,17 +28,17 @@ Last updated: 2026-08-29 by boss. **PR create/merge now works for all agents** (
 
 | Track | Spec | Owner | Branch | PR | Status | Next action (whose) |
 | --- | --- | --- | --- | --- | --- | --- |
-| Funnel event tracking | `docs/FUNNEL-TRACKING-PLAN.md` | agent-1 | `feature/funnel-tracking` | [#4](https://github.com/Papafrank6969/launchlocal/pull/4) | **changes requested** | agent-1: fix `buildFunnel` monotonicity (nested id-sets) per PR #4 comment, add `HAS_SITE`+`WON` fixture, re-gate, `git merge origin/master`, land `gh pr merge --merge` |
-| Places Photos → New API | `docs/PLACES-PHOTOS-NEW-PLAN.md` | agent-2 | `feature/places-photos-new` | [#5](https://github.com/Papafrank6969/launchlocal/pull/5) | **approved** | agent-2: `git merge origin/master` in, re-gate, land `gh pr merge --merge`, delete branch |
-| Lookup key-leak fix + barber check | `docs/LOOKUP-LEAK-AND-BARBER-CHECK-PLAN.md` | agent-3 | `feature/lookup-leak-and-barber-check` (not pushed) | — | **building (redirected)** | agent-3: finish **Piece A only** (add `redactKey` + unit test, run gate, commit, push, open PR). **Piece B: stop the browser-tooling work** — write `docs/BARBERSHOP-DESIGN-FINDINGS.md` = "couldn't run the browser tooling, handing back", commit, done. Boss will do the visual check. |
+| Lookup key-leak fix (Piece A) | `docs/LOOKUP-LEAK-AND-BARBER-CHECK-PLAN.md` | agent-3 | `feature/lookup-leak-and-barber-check` | [#7](https://github.com/Papafrank6969/launchlocal/pull/7) | **approved** | agent-3: `git merge origin/master` in — **you'll hit a conflict on `docs/BARBERSHOP-DESIGN-FINDINGS.md`; take master's version (`git checkout --theirs`), it's the real findings doc now**. Re-gate, land `gh pr merge --merge`, delete branch, mark row `merged`. |
+
+**agent-1: free** (funnel merged). **agent-2: free** (photos merged). No tracks queued — see below; ping issue #6.
 
 ## Queued (not started — do not start early)
 
 | Track | Notes |
 | --- | --- |
-| Barbershop design decision | Waiting on the boss's own visual check (agent-3's Piece B bounced). Boss produces `BARBERSHOP-DESIGN-FINDINGS.md`, then specs a change or closes the `DESIGN-PROCESS.md` note. |
+| WON-end handoff | Nothing exists for "lead said yes → deliver the site" (domain steps, export, client-facing package). Not specced. **Candidate next track for agent-1 or agent-2** — boss to spec. |
 | Custom Search / Instagram lookup retest | Google-side `PERMISSION_DENIED` unconfirmed-cleared. Needs a real `.env` with `GOOGLE_CUSTOM_SEARCH_*`. Low priority. |
-| WON-end handoff | Nothing exists for "lead said yes → deliver the site" (domain steps, export). Not specced yet. |
+| Places Photos: contact-form on built sites emits `CONTACT_SUBMITTED` — verify end to end | Funnel track added the event; nobody has confirmed it fires from a real published-site submission. Small QA task. |
 
 ## Shipped
 
@@ -47,6 +47,10 @@ Last updated: 2026-08-29 by boss. **PR create/merge now works for all agents** (
 | Persistent Lead Backlog | #1 | `435eeed` |
 | Instagram lookup typed statuses | #2 | `feddfd8` |
 | Places API (New) — lead search | #3 | `23614ad` |
+| Funnel event tracking | #4 | `4078e48` |
+| Places Photos → New API | #5 | `30cad1f` |
+| Barbershop design fix (technical-precision -> crafted-artisan) | #8 | `5fb6f92` |
+| Instagram lookup key-leak fix | #7 | _pending agent-3 land_ |
 
 ---
 

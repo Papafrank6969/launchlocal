@@ -132,6 +132,37 @@ when picking any non-Tailwind color.
 
 ## Audit log
 
+### 2026-08-29 (pm) — barbershop routing corrected (`technical-precision` → `crafted-artisan`)
+
+The earlier same-day call ("blue primary is CTA/accent-only") was wrong. Built a
+real barbershop site (`/s/south-shore-barber-shop`, a live Massapequa NY lead)
+and looked at it. `technical-precision`'s `#22548C` **is** the full-hero band on
+a photo-less draft — and a draft is exactly what the prospect sees in the
+outreach DM. Flat municipal navy: reads police-department / insurance-office,
+not barbershop. The Oswald headline is fine; the navy is the template tell. The
+per-business variant picker can't fix it — variants move the accent + paper
+only, never `colorPrimary`.
+
+Screenshotted the same site under three systems (see PR):
+- `technical-precision` — flat navy hero, institutional.
+- **`crafted-artisan`** — Zilla Slab on warm cream, rust-brown (`#7A3A1D`) CTA
+  pill, terracotta service blocks. Unmistakably a traditional barbershop
+  (leather / pomade / straight-razor vernacular). **Chosen.**
+- `minimal-luxury` — Cormorant Garamond + black CTA on cream. Elegant but
+  skews salon/spa; the delicate fashion serif is wrong for a neighbourhood
+  barber.
+
+Matches the skill signal from the am entry (warm-brown "vintage americana"
+palettes; `#92400E`-family). `crafted-artisan` already ships and passes the full
+contrast sweep (base + 6 variants) — no re-audit. Added `barber`, `barbershop`,
+`barber shop`, `mens grooming`, `men's grooming` to its `categories`; mood
+string widened to name barbershops; removed the same list from
+`technical-precision` and reverted its mood. `designSystems.test.ts` route
+assertions flipped. Zilla Slab reads craft-bakery more than
+condensed-barbershop, but colour beats font here and the slab is still sturdy —
+not worth a new "Oswald + warm + dark" system against the standing 12-system
+call.
+
 ### 2026-08-29 — barbershop routing (`friendly-approachable` → `technical-precision`)
 
 Outreach is expanding to barbershops. `barber`/`barbershop` were routing to
