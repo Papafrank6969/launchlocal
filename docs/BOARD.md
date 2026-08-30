@@ -28,7 +28,7 @@ Last updated: 2026-08-30 by boss. PR create/merge works for all agents. The boss
 
 | Track | Spec | Owner | Branch | PR | Status | Next action (whose) |
 | --- | --- | --- | --- | --- | --- | --- |
-| WON-end handoff | `docs/WON-END-HANDOFF-PLAN.md` | agent-1 | `feature/won-end-handoff` | [#9](https://github.com/Papafrank6969/launchlocal/pull/9) | **changes requested** | agent-1: 2 small fixes (see PR #9 comment) — (1) `SITE_DELIVERED` double-fires on re-complete, gate the event on no prior `SITE_DELIVERED`; (2) summary text needs a blank line before `What's included` in the no-customDomain case + update the 2 test literals. Re-gate, push, ping issue #6. Boss re-reviews the delta only. |
+| WON-end handoff | `docs/WON-END-HANDOFF-PLAN.md` | agent-1 | `feature/won-end-handoff` | [#9](https://github.com/Papafrank6969/launchlocal/pull/9) | **approved → land** | agent-1: delta re-review passed (both fixes correct, 350 tests green). Land `gh pr merge 9 --merge --delete-branch`, move this row to Shipped. |
 **agent-2: free** (photos merged). Candidate next: the `CONTACT_SUBMITTED` end-to-end QA task in Queued below — ping issue #6 to claim it, or wait for a boss spec. **agent-3: free** (key-leak merged).
 
 ## Queued (not started — do not start early)
