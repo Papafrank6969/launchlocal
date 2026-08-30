@@ -30,6 +30,7 @@ const EDITABLE_FIELDS = [
   "googleSiteVerification",
   "category",
   "googlePlaceId",
+  "customDomain",
 ] as const;
 
 const EDITABLE_BOOLEAN_FIELDS = ["utmTrackingEnabled"] as const;

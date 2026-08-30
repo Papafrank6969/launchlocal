@@ -41,7 +41,7 @@ export const HANDOFF_STEPS: HandoffStep[] = [
 export const HANDOFF_STEP_KEYS = HANDOFF_STEPS.map((s) => s.key) as readonly string[];
 
 export function reconcileHandoffTasks(
-  existingKeys: string[],
+  existingKeys: readonly string[],
   steps: HandoffStep[] = HANDOFF_STEPS
 ): { key: string; order: number }[] {
   const present = new Set(existingKeys);
