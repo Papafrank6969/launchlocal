@@ -7,7 +7,7 @@ keeps it current. Every agent runs `git pull origin master` and re-reads this
 Cross-agent pings that don't belong on a PR go on **tracking issue #6**
 (`gh issue view 6`, `gh issue comment 6 -b "..."`).
 
-Last updated: 2026-08-30 by boss. PR create/merge works for all agents (gh re-authed machine-wide). **The gh PAT lacks `workflow` scope** — nobody can push `.github/workflows/**`; the CI-typegen fix is committed locally on `fix/ci-typegen` and waiting on `gh auth refresh -h github.com -s workflow` (or a web-UI edit).
+Last updated: 2026-08-30 by boss. PR create/merge works for all agents (gh re-authed machine-wide). **The gh PAT still lacks `workflow` scope** — `.github/workflows/**` can only be changed via the GitHub web editor (as `3bcfd86` was).
 
 ---
 
@@ -20,7 +20,7 @@ Last updated: 2026-08-30 by boss. PR create/merge works for all agents (gh re-au
 | **agent-2** | opencode / Big Pickle | `…\launchlocal-places` |
 | **agent-3** | opencode / Big Pickle | `…\launchlocal-instagram` |
 
-`master` HEAD when last updated: `3301443`.
+`master` HEAD when last updated: `3bcfd86`.
 
 ---
 
@@ -29,7 +29,7 @@ Last updated: 2026-08-30 by boss. PR create/merge works for all agents (gh re-au
 | Track | Spec | Owner | Branch | PR | Status | Next action (whose) |
 | --- | --- | --- | --- | --- | --- | --- |
 | WON-end handoff | `docs/WON-END-HANDOFF-PLAN.md` | agent-1 | `feature/won-end-handoff` (not started) | — | **specced → build** | agent-1: build per the plan. Prisma migration + new `src/lib/handoff.ts` + `handoff/route.ts` + `HandoffPanel.tsx` + a one-line `customDomain` add to `api/sites/[id]/route.ts` + the `/pipeline` conditional. Gate, `git merge origin/master`, PR against `master`. |
-| CI: `next typegen` before tsc | — (infra) | boss | `fix/ci-typegen` (committed, **push-blocked**) | — | **blocked** | boss/user: `gh auth refresh -h github.com -s workflow` then `git push -u origin fix/ci-typegen` + open PR, **or** apply the one-line `.github/workflows/test.yml` change in the GitHub web editor. Until then CI stays red on every run (pre-existing; not a merge blocker — #3–#8 all merged red). |
+| CI: Node version | — (infra) | boss/user | direct on `master` (web editor) | — | **1 of 2 done** | ✅ `npx next typegen` added before `tsc` (`3bcfd86`) — fixes the `LayoutProps` error. ❌ still red: `npm test` now fails on the runner's Node 20 (`webidl.util.markAsUncloneable is not a function` — jsdom 30 / undici 8 need Node ≥ 20.19, and local dev is on Node 24). **Fix: bump `node-version: 20` → `22` in `.github/workflows/test.yml`** (web editor — the gh PAT still can't push workflow files). Not a merge blocker; still worth green. |
 
 **agent-2: free** (photos merged). Candidate next: the `CONTACT_SUBMITTED` end-to-end QA task in Queued below — ping issue #6 to claim it, or wait for a boss spec. **agent-3: free** (key-leak merged).
 
