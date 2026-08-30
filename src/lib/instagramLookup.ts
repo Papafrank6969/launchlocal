@@ -18,6 +18,16 @@ interface CustomSearchErrorShape {
 }
 
 /**
+ * Replaces a `key=<value>` query parameter with `key=REDACTED` so the CSE API
+ * key never shows up in a logged or returned string (the request URL carries it
+ * as `?key=...`, and network-layer error messages can include that URL).
+ */
+export function redactKey(s: string): string {
+  return s.replace(/(^|[?&])key=[^&\s]*/g, "$1key=REDACTED");
+}
+
+
+/**
  * Looks up a business's Instagram handle via Google Custom Search, restricted
  * to instagram.com results (`site:instagram.com`). This queries Google's own
  * search index through an official API — it does not scrape Instagram, which

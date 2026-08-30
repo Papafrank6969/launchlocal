@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { lookupInstagramHandle } from "@/lib/instagramLookup";
+import { lookupInstagramHandle, redactKey } from "@/lib/instagramLookup";
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -11,11 +11,11 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   try {
     result = await lookupInstagramHandle(lead.name, lead.city);
   } catch (err) {
+    console.error("[instagram-lookup]", redactKey(err instanceof Error ? err.message : "Lookup failed"));
     return NextResponse.json(
       {
         error: "Instagram lookup failed — enter the handle manually.",
         reason: "error",
-        detail: err instanceof Error ? err.message : "Lookup failed",
       },
       { status: 502 }
     );
@@ -65,11 +65,11 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     );
   }
 
+  console.error("[instagram-lookup]", redactKey(result.detail));
   return NextResponse.json(
     {
       error: "Instagram lookup failed — enter the handle manually.",
       reason: "error",
-      detail: result.detail,
     },
     { status: 502 }
   );
