@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { OutreachControls } from "@/components/OutreachControls";
 import { DraftSiteButton } from "@/components/DraftSiteButton";
+import { HandoffPanel } from "@/components/HandoffPanel";
 import { OUTREACH_LABEL, OUTREACH_STYLE, isOverdue, type OutreachStatus } from "@/lib/outreachStatus";
 
 type Lead = {
@@ -119,6 +120,10 @@ export default function PipelinePage() {
                 onCreated={(site) => markDrafted(lead.id, site)}
               />
             </div>
+
+            {lead.outreachStatus === "WON" && lead.sites?.[0] && (
+              <HandoffPanel siteId={lead.sites[0].id} />
+            )}
           </div>
         ))}
         {leads?.length === 0 && (
