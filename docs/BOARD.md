@@ -7,7 +7,7 @@ keeps it current. Every agent runs `git pull origin master` and re-reads this
 Cross-agent pings that don't belong on a PR go on **tracking issue #6**
 (`gh issue view 6`, `gh issue comment 6 -b "..."`).
 
-Last updated: 2026-08-29 by boss. PR create/merge works for all agents (gh re-authed machine-wide).
+Last updated: 2026-08-30 by boss. PR create/merge works for all agents (gh re-authed machine-wide). **The gh PAT lacks `workflow` scope** — nobody can push `.github/workflows/**`; the CI-typegen fix is committed locally on `fix/ci-typegen` and waiting on `gh auth refresh -h github.com -s workflow` (or a web-UI edit).
 
 ---
 
@@ -20,7 +20,7 @@ Last updated: 2026-08-29 by boss. PR create/merge works for all agents (gh re-au
 | **agent-2** | opencode / Big Pickle | `…\launchlocal-places` |
 | **agent-3** | opencode / Big Pickle | `…\launchlocal-instagram` |
 
-`master` HEAD when last updated: `5fb6f92`.
+`master` HEAD when last updated: `3301443`.
 
 ---
 
@@ -28,15 +28,15 @@ Last updated: 2026-08-29 by boss. PR create/merge works for all agents (gh re-au
 
 | Track | Spec | Owner | Branch | PR | Status | Next action (whose) |
 | --- | --- | --- | --- | --- | --- | --- |
-| Lookup key-leak fix (Piece A) | `docs/LOOKUP-LEAK-AND-BARBER-CHECK-PLAN.md` | agent-3 | `feature/lookup-leak-and-barber-check` | [#7](https://github.com/Papafrank6969/launchlocal/pull/7) | **approved** | agent-3: `git merge origin/master` in — **you'll hit a conflict on `docs/BARBERSHOP-DESIGN-FINDINGS.md`; take master's version (`git checkout --theirs`), it's the real findings doc now**. Re-gate, land `gh pr merge --merge`, delete branch, mark row `merged`. |
+| WON-end handoff | `docs/WON-END-HANDOFF-PLAN.md` | agent-1 | `feature/won-end-handoff` (not started) | — | **specced → build** | agent-1: build per the plan. Prisma migration + new `src/lib/handoff.ts` + `handoff/route.ts` + `HandoffPanel.tsx` + a one-line `customDomain` add to `api/sites/[id]/route.ts` + the `/pipeline` conditional. Gate, `git merge origin/master`, PR against `master`. |
+| CI: `next typegen` before tsc | — (infra) | boss | `fix/ci-typegen` (committed, **push-blocked**) | — | **blocked** | boss/user: `gh auth refresh -h github.com -s workflow` then `git push -u origin fix/ci-typegen` + open PR, **or** apply the one-line `.github/workflows/test.yml` change in the GitHub web editor. Until then CI stays red on every run (pre-existing; not a merge blocker — #3–#8 all merged red). |
 
-**agent-1: free** (funnel merged). **agent-2: free** (photos merged). No tracks queued — see below; ping issue #6.
+**agent-2: free** (photos merged). Candidate next: the `CONTACT_SUBMITTED` end-to-end QA task in Queued below — ping issue #6 to claim it, or wait for a boss spec. **agent-3: free** (key-leak merged).
 
 ## Queued (not started — do not start early)
 
 | Track | Notes |
 | --- | --- |
-| WON-end handoff | Nothing exists for "lead said yes → deliver the site" (domain steps, export, client-facing package). Not specced. **Candidate next track for agent-1 or agent-2** — boss to spec. |
 | Custom Search / Instagram lookup retest | Google-side `PERMISSION_DENIED` unconfirmed-cleared. Needs a real `.env` with `GOOGLE_CUSTOM_SEARCH_*`. Low priority. |
 | Places Photos: contact-form on built sites emits `CONTACT_SUBMITTED` — verify end to end | Funnel track added the event; nobody has confirmed it fires from a real published-site submission. Small QA task. |
 
@@ -50,7 +50,7 @@ Last updated: 2026-08-29 by boss. PR create/merge works for all agents (gh re-au
 | Funnel event tracking | #4 | `4078e48` |
 | Places Photos → New API | #5 | `30cad1f` |
 | Barbershop design fix (technical-precision -> crafted-artisan) | #8 | `5fb6f92` |
-| Instagram lookup key-leak fix | #7 | _pending agent-3 land_ |
+| Instagram lookup key-leak fix (Piece A) | #7 | `3301443` |
 
 ---
 
