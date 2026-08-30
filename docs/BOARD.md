@@ -7,7 +7,7 @@ keeps it current. Every agent runs `git pull origin master` and re-reads this
 Cross-agent pings that don't belong on a PR go on **tracking issue #6**
 (`gh issue view 6`, `gh issue comment 6 -b "..."`).
 
-Last updated: 2026-08-30 by boss. PR create/merge works for all agents (gh re-authed machine-wide). **The gh PAT still lacks `workflow` scope** — `.github/workflows/**` can only be changed via the GitHub web editor (as `3bcfd86` was).
+Last updated: 2026-08-30 by boss. PR create/merge works for all agents. The boss's `gh` token now has `workflow` scope (re-logged via `gh auth login --web --scopes repo,workflow`), so `.github/workflows/**` is pushable again. **CI (`Test` workflow) is GREEN as of `2af2729`** — first green run in the project's history.
 
 ---
 
@@ -20,7 +20,7 @@ Last updated: 2026-08-30 by boss. PR create/merge works for all agents (gh re-au
 | **agent-2** | opencode / Big Pickle | `…\launchlocal-places` |
 | **agent-3** | opencode / Big Pickle | `…\launchlocal-instagram` |
 
-`master` HEAD when last updated: `3bcfd86`.
+`master` HEAD when last updated: `2af2729`.
 
 ---
 
@@ -29,8 +29,6 @@ Last updated: 2026-08-30 by boss. PR create/merge works for all agents (gh re-au
 | Track | Spec | Owner | Branch | PR | Status | Next action (whose) |
 | --- | --- | --- | --- | --- | --- | --- |
 | WON-end handoff | `docs/WON-END-HANDOFF-PLAN.md` | agent-1 | `feature/won-end-handoff` (not started) | — | **specced → build** | agent-1: build per the plan. Prisma migration + new `src/lib/handoff.ts` + `handoff/route.ts` + `HandoffPanel.tsx` + a one-line `customDomain` add to `api/sites/[id]/route.ts` + the `/pipeline` conditional. Gate, `git merge origin/master`, PR against `master`. |
-| CI: Node version | — (infra) | boss/user | direct on `master` (web editor) | — | **1 of 2 done** | ✅ `npx next typegen` added before `tsc` (`3bcfd86`) — fixes the `LayoutProps` error. ❌ still red: `npm test` fails on the runner's Node 20.20.2 (`webidl.util.markAsUncloneable is not a function`). Root cause confirmed from the `npm ci` EBADENGINE warnings: `jsdom@30` needs `^22.22.2 || ^24.15.0 || >=26`, `undici@8` needs `>=22.19.0`, `@testing-library/jest-dom@7` needs `>=22`. **Fix: bump `node-version: 20` → `24` in `.github/workflows/test.yml`** (web editor — the gh PAT still can't push workflow files; local dev is Node 24.18.1). Not a merge blocker; still worth green. |
-
 **agent-2: free** (photos merged). Candidate next: the `CONTACT_SUBMITTED` end-to-end QA task in Queued below — ping issue #6 to claim it, or wait for a boss spec. **agent-3: free** (key-leak merged).
 
 ## Queued (not started — do not start early)
@@ -51,6 +49,9 @@ Last updated: 2026-08-30 by boss. PR create/merge works for all agents (gh re-au
 | Places Photos → New API | #5 | `30cad1f` |
 | Barbershop design fix (technical-precision -> crafted-artisan) | #8 | `5fb6f92` |
 | Instagram lookup key-leak fix (Piece A) | #7 | `3301443` |
+| CI green — `next typegen` step + Node 24 | direct on `master` | `3bcfd86` + `2af2729` |
+
+_Minor CI follow-up (not urgent): the run logs a deprecation warning — `actions/checkout@v4` / `actions/setup-node@v4` target Node 20 and are being force-run on 24. Bump both to `@v5` whenever someone's touching the workflow._
 
 ---
 
