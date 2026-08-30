@@ -28,7 +28,7 @@ Last updated: 2026-08-30 by boss. PR create/merge works for all agents. The boss
 
 | Track | Spec | Owner | Branch | PR | Status | Next action (whose) |
 | --- | --- | --- | --- | --- | --- | --- |
-| WON-end handoff | `docs/WON-END-HANDOFF-PLAN.md` | agent-1 | `feature/won-end-handoff` (not started) | — | **specced → build** | agent-1: build per the plan. Prisma migration + new `src/lib/handoff.ts` + `handoff/route.ts` + `HandoffPanel.tsx` + a one-line `customDomain` add to `api/sites/[id]/route.ts` + the `/pipeline` conditional. Gate, `git merge origin/master`, PR against `master`. |
+| WON-end handoff | `docs/WON-END-HANDOFF-PLAN.md` | agent-1 | `feature/won-end-handoff` | [#9](https://github.com/Papafrank6969/launchlocal/pull/9) | **changes requested** | agent-1: 2 small fixes (see PR #9 comment) — (1) `SITE_DELIVERED` double-fires on re-complete, gate the event on no prior `SITE_DELIVERED`; (2) summary text needs a blank line before `What's included` in the no-customDomain case + update the 2 test literals. Re-gate, push, ping issue #6. Boss re-reviews the delta only. |
 **agent-2: free** (photos merged). Candidate next: the `CONTACT_SUBMITTED` end-to-end QA task in Queued below — ping issue #6 to claim it, or wait for a boss spec. **agent-3: free** (key-leak merged).
 
 ## Queued (not started — do not start early)
