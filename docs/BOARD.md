@@ -20,7 +20,7 @@ Last updated: 2026-08-31 by boss. App is **live** at https://launchlocal-silk.ve
 | **agent-2** | opencode / Big Pickle | `…\launchlocal-places` |
 | **agent-3** | opencode / Big Pickle | `…\launchlocal-instagram` |
 
-`master` HEAD when last updated: `7029e8b`.
+`master` HEAD when last updated: `e0a248d`.
 
 ---
 
@@ -32,7 +32,7 @@ Last updated: 2026-08-31 by boss. App is **live** at https://launchlocal-silk.ve
 
 **Goal context:** user wants a server that queues ~25 fresh leads/day (NYC + Long Island barbershops & salons) to message manually after school (~3pm ET). **Step 1 of 3 DONE** — app is live at https://launchlocal-silk.vercel.app. Now Track 2 (daily lead cron, agent-2) → Track 3 (`/today` queue).
 
-**Deploy track (SHIPPED):** `docs/DEPLOY-POSTGRES-PLAN.md`, PR [#10](https://github.com/Papafrank6969/launchlocal/pull/10) merged `446f74b`, smoke test passed. Open follow-ups: (a) enable **Places API (New)** in GCP project 155038052653 — user, not blocking (search falls back to legacy); (b) wipe smoke-test data from the prod DB (`prisma migrate reset` on the Neon prod branch); (c) agent-1 add "Blob store must be **Public**" note to the deploy plan, then mark it Shipped.
+**Deploy track (SHIPPED):** `docs/DEPLOY-POSTGRES-PLAN.md`, PR [#10](https://github.com/Papafrank6969/launchlocal/pull/10) merged `446f74b`. Full smoke test passed incl. Places API (New) + Blob (verified via "Pull photos from Google" → "Pulled 6 photos" on prod). One open item: **wipe boss's smoke-test data** from the prod DB (`prisma migrate reset` on the Neon prod branch) before real outreach.
 
 ## Queued (not started — do not start early)
 
