@@ -7,7 +7,7 @@ keeps it current. Every agent runs `git pull origin master` and re-reads this
 Cross-agent pings that don't belong on a PR go on **tracking issue #6**
 (`gh issue view 6`, `gh issue comment 6 -b "..."`).
 
-Last updated: 2026-08-31 by boss. App is **live** at https://launchlocal-silk.vercel.app (Vercel + Neon Postgres + Blob). **Active: Track 2 (daily lead cron) on agent-2.** agent-1 free, agent-3 free (Track 3 queued behind agent-2).
+Last updated: 2026-08-31 by boss. App **live** at https://launchlocal-silk.vercel.app. Tracks 1 + 2 shipped. **No active tracks** — agent-1/2/3 all free; Track 3 (`/today` queue) ready to spec + assign. Note: agent-2's window was closed mid-Track-2; boss finished + landed PR #11.
 
 ---
 
@@ -20,7 +20,7 @@ Last updated: 2026-08-31 by boss. App is **live** at https://launchlocal-silk.ve
 | **agent-2** | opencode / Big Pickle | `…\launchlocal-places` |
 | **agent-3** | opencode / Big Pickle | `…\launchlocal-instagram` |
 
-`master` HEAD when last updated: `e0a248d`.
+`master` HEAD when last updated: `6f2bba4`.
 
 ---
 
@@ -28,17 +28,21 @@ Last updated: 2026-08-31 by boss. App is **live** at https://launchlocal-silk.ve
 
 | Track | Spec | Owner | Branch | PR | Status | Next action (whose) |
 | --- | --- | --- | --- | --- | --- | --- |
-| Daily lead cron | `docs/DAILY-LEAD-CRON-PLAN.md` | agent-2 (code) · boss + user (`CRON_SECRET` + verify live run) | `feature/daily-lead-cron` (not started) | — | **specced → build** | agent-2: `CronState` model + migration, `src/lib/leadTargets.ts` (94 NYC/Long Island barber+salon targets, `rotateTargets`), `src/lib/leadCron.ts` (`qualifies`, `selectNewLeads`, `summarizeRun`), `/api/cron/daily-leads` route (Bearer `CRON_SECRET`, 6-search cap, stop at 25 net-new, `LEAD_FOUND` events), `vercel.json` cron `0 17 * * *`, `.env.example`. Do NOT touch `places.ts` / `search/route.ts`. Task 7: retest the Instagram lookup on prod, write the result in the PR. Gate, PR against `master`. |
+| _(none)_ | | | | | | Track 3 (`/today` queue) ready to spec + assign — boss. |
 
-**Goal context:** user wants a server that queues ~25 fresh leads/day (NYC + Long Island barbershops & salons) to message manually after school (~3pm ET). **Step 1 of 3 DONE** — app is live at https://launchlocal-silk.vercel.app. Now Track 2 (daily lead cron, agent-2) → Track 3 (`/today` queue).
+**Goal context:** user wants a server that queues ~25 fresh leads/day (NYC + Long Island barbershops & salons) to message manually after school (~3pm ET). Tracks 1 (deploy) + 2 (lead cron) SHIPPED. Track 3 (`/today` queue) is the last one.
 
-**Deploy track (SHIPPED):** `docs/DEPLOY-POSTGRES-PLAN.md`, PR [#10](https://github.com/Papafrank6969/launchlocal/pull/10) merged `446f74b`. Full smoke test passed incl. Places API (New) + Blob (verified via "Pull photos from Google" → "Pulled 6 photos" on prod). One open item: **wipe boss's smoke-test data** from the prod DB (`prisma migrate reset` on the Neon prod branch) before real outreach.
+**Track 2 — Daily lead cron (SHIPPED):** `docs/DAILY-LEAD-CRON-PLAN.md`, PR [#11](https://github.com/Papafrank6969/launchlocal/pull/11) merged `6f2bba4`. Vercel Cron `0 17 * * *` → `/api/cron/daily-leads`, 94 NYC/LI barber+salon targets, banks exactly 25 net-new/day. Verified with a live local run (25/25, dedup working). **Boss + user still need to:** (a) add `CRON_SECRET` to Vercel + redeploy; (b) confirm the cron registered (Vercel → Settings → Cron Jobs) and the first scheduled run banks ~25. Task 7 finding: prod IG lookup → `503 api_disabled`, Custom Search API not enabled on GCP 155038052653 → Track 3 stays phone-first.
+
+**Track 1 — Deploy (SHIPPED):** PR [#10](https://github.com/Papafrank6969/launchlocal/pull/10) `446f74b`. Open item: **wipe boss's smoke-test data** from the prod DB before real outreach.
+
+**Known footgun:** Vercel preview deploys run `prisma migrate deploy` against the **prod** Neon branch (Preview env shares `DATABASE_URL`). Benign so far. Fix later: separate preview DB, or move migrations out of the build command.
 
 ## Queued (not started — do not start early)
 
 | Track | Notes |
 | --- | --- |
-| **Track 3 — `/today` queue** | Specced after Track 2 lands. 25 freshest `NEW` leads with a contact method (phone or IG handle), best channel per lead, one-tap DM/email/call, "Mark contacted" → `LEAD_CONTACTED` + drops off, yesterday's uncontacted carried over. Multi-channel (not IG-only like `/outreach`). |
+| **Track 3 — `/today` queue** | **Next up — boss to spec + assign.** 25 freshest `NEW` leads with a phone (IG handle a bonus, not required — Custom Search API is off), best channel per lead, one-tap call/DM, "Mark contacted" → `LEAD_CONTACTED` + drops off, yesterday's uncontacted carried over. Phone-first (not IG-only like `/outreach`). |
 | Places Photos: contact-form on built sites emits `CONTACT_SUBMITTED` — verify end to end | Funnel track added the event; nobody has confirmed it fires from a real published-site submission. Small QA task. |
 
 ## Shipped
