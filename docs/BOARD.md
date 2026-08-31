@@ -7,7 +7,7 @@ keeps it current. Every agent runs `git pull origin master` and re-reads this
 Cross-agent pings that don't belong on a PR go on **tracking issue #6**
 (`gh issue view 6`, `gh issue comment 6 -b "..."`).
 
-Last updated: 2026-08-30 by boss. PR create/merge works for all agents; boss's `gh` token has `workflow` scope. CI (`Test` workflow) is green. **No active tracks — all three agents free. Boss to spec the next one.**
+Last updated: 2026-08-31 by boss. App is **live** at https://launchlocal-silk.vercel.app (Vercel + Neon Postgres + Blob). **Active: Track 2 (daily lead cron) on agent-2.** agent-1 free, agent-3 free (Track 3 queued behind agent-2).
 
 ---
 
@@ -20,7 +20,7 @@ Last updated: 2026-08-30 by boss. PR create/merge works for all agents; boss's `
 | **agent-2** | opencode / Big Pickle | `…\launchlocal-places` |
 | **agent-3** | opencode / Big Pickle | `…\launchlocal-instagram` |
 
-`master` HEAD when last updated: `e3d1da9`.
+`master` HEAD when last updated: `7029e8b`.
 
 ---
 
@@ -28,17 +28,17 @@ Last updated: 2026-08-30 by boss. PR create/merge works for all agents; boss's `
 
 | Track | Spec | Owner | Branch | PR | Status | Next action (whose) |
 | --- | --- | --- | --- | --- | --- | --- |
-| _(none)_ | | | | | | |
+| Daily lead cron | `docs/DAILY-LEAD-CRON-PLAN.md` | agent-2 (code) · boss + user (`CRON_SECRET` + verify live run) | `feature/daily-lead-cron` (not started) | — | **specced → build** | agent-2: `CronState` model + migration, `src/lib/leadTargets.ts` (94 NYC/Long Island barber+salon targets, `rotateTargets`), `src/lib/leadCron.ts` (`qualifies`, `selectNewLeads`, `summarizeRun`), `/api/cron/daily-leads` route (Bearer `CRON_SECRET`, 6-search cap, stop at 25 net-new, `LEAD_FOUND` events), `vercel.json` cron `0 17 * * *`, `.env.example`. Do NOT touch `places.ts` / `search/route.ts`. Task 7: retest the Instagram lookup on prod, write the result in the PR. Gate, PR against `master`. |
 
-**Goal context:** user wants a server that queues ~25 fresh leads/day to message manually after school. This deploy track is step 1 of 3 → then Track 2 (daily lead cron) → Track 3 (`/today` queue). See the "Next tracks" section at the bottom of `DEPLOY-POSTGRES-PLAN.md`.
+**Goal context:** user wants a server that queues ~25 fresh leads/day (NYC + Long Island barbershops & salons) to message manually after school (~3pm ET). **Step 1 of 3 DONE** — app is live at https://launchlocal-silk.vercel.app. Now Track 2 (daily lead cron, agent-2) → Track 3 (`/today` queue).
+
+**Deploy track (SHIPPED):** `docs/DEPLOY-POSTGRES-PLAN.md`, PR [#10](https://github.com/Papafrank6969/launchlocal/pull/10) merged `446f74b`, smoke test passed. Open follow-ups: (a) enable **Places API (New)** in GCP project 155038052653 — user, not blocking (search falls back to legacy); (b) wipe smoke-test data from the prod DB (`prisma migrate reset` on the Neon prod branch); (c) agent-1 add "Blob store must be **Public**" note to the deploy plan, then mark it Shipped.
 
 ## Queued (not started — do not start early)
 
 | Track | Notes |
 | --- | --- |
-| **Track 2 — Daily lead cron** | Specced after the deploy track lands. `target_rotation` config, `/api/cron/daily-leads` on Vercel Cron (~3pm user local), dedup by `placeId`, stop at ~25 net-new with a contact method, per-run Places-call cap, `CRON_SECRET`. Folds in the Instagram lookup retest. |
-| **Track 3 — `/today` queue** | Specced after Track 2. 25 freshest `NEW` leads with a contact method, best channel per lead, one-tap DM/email/call, "Mark contacted" → `LEAD_CONTACTED`, yesterday's uncontacted carried over. Multi-channel. |
-| Custom Search / Instagram lookup retest | Google-side `PERMISSION_DENIED` unconfirmed-cleared. Needs a real `.env` with `GOOGLE_CUSTOM_SEARCH_*`. **Folded into Track 2.** |
+| **Track 3 — `/today` queue** | Specced after Track 2 lands. 25 freshest `NEW` leads with a contact method (phone or IG handle), best channel per lead, one-tap DM/email/call, "Mark contacted" → `LEAD_CONTACTED` + drops off, yesterday's uncontacted carried over. Multi-channel (not IG-only like `/outreach`). |
 | Places Photos: contact-form on built sites emits `CONTACT_SUBMITTED` — verify end to end | Funnel track added the event; nobody has confirmed it fires from a real published-site submission. Small QA task. |
 
 ## Shipped
