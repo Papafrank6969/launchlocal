@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import path from "path";
 import { db } from "@/lib/db";
 import { compressImage, saveCompressedImage, validateUploadedImage } from "@/lib/imageUpload";
-
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "gallery");
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -37,15 +34,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Couldn't process one of those images — try different files" }, { status: 400 });
   }
 
-  const beforeFilename = await saveCompressedImage(beforeCompressed, UPLOAD_DIR, `${site.id}-before`);
-  const afterFilename = await saveCompressedImage(afterCompressed, UPLOAD_DIR, `${site.id}-after`);
+  const beforeUrl = await saveCompressedImage(beforeCompressed, `${site.id}-before`);
+  const afterUrl = await saveCompressedImage(afterCompressed, `${site.id}-after`);
 
   const count = await db.galleryItem.count({ where: { siteId: id } });
   const item = await db.galleryItem.create({
     data: {
       siteId: id,
-      beforeUrl: `/uploads/gallery/${beforeFilename}`,
-      afterUrl: `/uploads/gallery/${afterFilename}`,
+      beforeUrl,
+      afterUrl,
       caption: typeof caption === "string" && caption.trim() ? caption.trim() : null,
       category: typeof category === "string" && category.trim() ? category.trim() : null,
       order: count,

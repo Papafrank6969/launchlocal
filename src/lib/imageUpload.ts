@@ -1,5 +1,4 @@
-import { writeFile, unlink } from "fs/promises";
-import path from "path";
+import { put, del } from "@vercel/blob";
 import sharp from "sharp";
 
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10MB, before compression
@@ -23,14 +22,15 @@ export async function compressImage(bytes: Buffer): Promise<Buffer | null> {
   }
 }
 
-export async function saveCompressedImage(bytes: Buffer, dir: string, filenamePrefix: string): Promise<string> {
-  const filename = `${filenamePrefix}-${Date.now()}-${Math.round(Math.random() * 1e6)}.webp`;
-  await writeFile(path.join(dir, filename), bytes);
-  return filename;
+export async function saveCompressedImage(bytes: Buffer, prefix: string): Promise<string> {
+  const blob = await put(`${prefix}-${Date.now()}-${Math.round(Math.random() * 1e6)}.webp`, bytes, {
+    access: "public",
+    contentType: "image/webp",
+  });
+  return blob.url;
 }
 
 export async function deleteUploadedFile(publicUrl: string | null | undefined) {
   if (!publicUrl) return;
-  const filePath = path.join(process.cwd(), "public", publicUrl);
-  await unlink(filePath).catch(() => {});
+  await del(publicUrl).catch(() => {});
 }

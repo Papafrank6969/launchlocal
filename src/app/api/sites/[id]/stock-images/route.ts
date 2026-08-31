@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import path from "path";
 import { db } from "@/lib/db";
 import { compressImage, deleteUploadedFile, saveCompressedImage } from "@/lib/imageUpload";
 import { fetchStockPhoto } from "@/lib/stockPhotos";
 import { mergeAttribution, removeAttribution } from "@/lib/photoAttribution";
 
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "sites");
 const ATTR_PREFIX = "Photos via Pexels";
 
 /**
@@ -55,8 +53,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       const compressed = bytes ? await compressImage(bytes) : null;
       if (!compressed) continue;
 
-      const filename = await saveCompressedImage(compressed, UPLOAD_DIR, `${site.id}-pexels`);
-      await tx.service.update({ where: { id: service.id }, data: { imageUrl: `/uploads/sites/${filename}` } });
+      const url = await saveCompressedImage(compressed, `${site.id}-pexels`);
+      await tx.service.update({ where: { id: service.id }, data: { imageUrl: url } });
       photographers.add(stock.photographer);
       filled += 1;
     }

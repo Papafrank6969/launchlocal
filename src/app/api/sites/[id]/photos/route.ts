@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import path from "path";
 import { db } from "@/lib/db";
 import { compressImage, deleteUploadedFile, saveCompressedImage } from "@/lib/imageUpload";
 import { fetchPlacePhotoRefs, fetchPlacePhotoBytes } from "@/lib/placesPhotos";
 import { mergeAttribution, removeAttribution } from "@/lib/photoAttribution";
 
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "sites");
 const ATTR_PREFIX = "Photos via Google";
 
 /**
@@ -63,8 +61,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (!bytes) continue;
     const compressed = await compressImage(bytes);
     if (!compressed) continue;
-    const filename = await saveCompressedImage(compressed, UPLOAD_DIR, `${site.id}-places`);
-    saved.push(`/uploads/sites/${filename}`);
+    const url = await saveCompressedImage(compressed, `${site.id}-places`);
+    saved.push(url);
   }
   if (saved.length === 0) {
     return NextResponse.json({ error: "Couldn't download any of the photos — try again." }, { status: 502 });

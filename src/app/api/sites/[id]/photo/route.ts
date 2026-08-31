@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import path from "path";
 import { db } from "@/lib/db";
 import { compressImage, deleteUploadedFile, saveCompressedImage, validateUploadedImage } from "@/lib/imageUpload";
-
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "sites");
 
 // "hero" sets photoUrl (default), "story" sets storyPhotoUrl (the About image).
 function photoTarget(req: NextRequest, formData: FormData | null): "hero" | "story" {
@@ -33,14 +30,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Couldn't process that image — try a different file" }, { status: 400 });
   }
 
-  const filename = await saveCompressedImage(compressed, UPLOAD_DIR, site.id);
+  const url = await saveCompressedImage(compressed, site.id);
   const currentUrl = target === "story" ? site.storyPhotoUrl : site.photoUrl;
   await deleteUploadedFile(currentUrl);
 
-  const newUrl = `/uploads/sites/${filename}`;
   const updated = await db.site.update({
     where: { id },
-    data: target === "story" ? { storyPhotoUrl: newUrl } : { photoUrl: newUrl },
+    data: target === "story" ? { storyPhotoUrl: url } : { photoUrl: url },
   });
 
   return NextResponse.json({ site: updated });

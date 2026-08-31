@@ -1,16 +1,16 @@
-import { readFile } from "fs/promises";
-import path from "path";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { chooseDesign } from "@/lib/generateDesign";
 import { getDesignSystem, variantsOf, applyColorVariant, VARIANT_COUNT } from "@/lib/designSystems";
 import { dominantHueOf } from "@/lib/imageColor";
 
-/** Dominant hue of the first inspiration screenshot on disk, best-effort. */
+/** Dominant hue of the first inspiration screenshot from Vercel Blob, best-effort. */
 async function dominantHueFromInspiration(urls: string[]): Promise<number | null> {
   for (const url of urls) {
     try {
-      const bytes = await readFile(path.join(process.cwd(), "public", url));
+      const response = await fetch(url);
+      if (!response.ok) continue;
+      const bytes = Buffer.from(await response.arrayBuffer());
       const hue = await dominantHueOf(bytes);
       if (hue != null) return hue;
     } catch {
