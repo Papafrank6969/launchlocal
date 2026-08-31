@@ -100,12 +100,27 @@ them one, and tracking how it's doing.
 
 ## Getting started
 
+Local development uses a Postgres database (Neon's free tier works). Create a
+project and put the connection strings in `.env` — see `.env.example`:
+
+```
+DATABASE_URL=postgresql://USER:PASSWORD@HOST-pooler.REGION.PROVIDER.neon.tech/DBNAME?sslmode=require
+DIRECT_URL=postgresql://USER:PASSWORD@EP_HOST.REGION.PROVIDER.neon.tech/DBNAME?sslmode=require
+```
+
+`DATABASE_URL` is the pooled string Prisma uses at runtime; `DIRECT_URL` is the
+direct (non-pooled) string used for migrations/transactions.
+
 ```bash
 npm install
-npx prisma migrate dev   # creates dev.db
+npx prisma migrate dev   # applies the squashed init migration
 npx prisma db seed       # optional demo data
 npm run dev
 ```
+
+Uploaded images go to **Vercel Blob** (`chunks.public.blob.vercel-storage.com`
+family). In development the `BLOB_READ_WRITE_TOKEN` is read from `.env`; on
+Vercel it's injected automatically when a Blob store is connected.
 
 To use live business search instead of sample data, add to `.env`:
 

@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import path from "path";
 import { db } from "@/lib/db";
 import { compressImage, saveCompressedImage, validateUploadedImage } from "@/lib/imageUpload";
-
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "sites");
 
 /**
  * Compress + store one service-card image and return its URL. The URL is held
@@ -29,6 +26,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Couldn't process that image — try a different file" }, { status: 400 });
   }
 
-  const filename = await saveCompressedImage(compressed, UPLOAD_DIR, `${site.id}-service`);
-  return NextResponse.json({ url: `/uploads/sites/${filename}` });
+  const url = await saveCompressedImage(compressed, `${site.id}-service`);
+  return NextResponse.json({ url });
 }

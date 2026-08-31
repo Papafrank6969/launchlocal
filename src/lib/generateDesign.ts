@@ -1,5 +1,3 @@
-import { readFile } from "fs/promises";
-import path from "path";
 import {
   DESIGN_SYSTEMS,
   deterministicDesignSystem,
@@ -22,9 +20,9 @@ export type BusinessBrief = {
   tagline?: string | null;
   about?: string | null;
   serviceNames?: string[];
-  /** Public paths (e.g. "/uploads/inspiration/xyz.webp") to operator-supplied
-   *  reference photos (commonly screenshots from the business's Instagram) —
-   *  read from disk and sent to the model as real images, never fabricated. */
+  /** Absolute Vercel Blob URLs to operator-supplied reference photos (commonly
+   *  screenshots from the business's Instagram) — fetched and sent to the model
+   *  as real images, never fabricated. */
   inspirationImageUrls?: string[];
   /** Dominant hue (0-360) of the business's own photo, when we have one — used
    *  to match the color variant to the real storefront. Null → hash the name. */
@@ -76,10 +74,11 @@ async function loadImageBlocks(urls: string[]): Promise<{ type: "image"; source:
   const blocks = await Promise.all(
     urls.map(async (url) => {
       try {
-        // These are always our own saved uploads (webp, from imageUpload.ts) —
-        // never an arbitrary path, so resolving against the public dir is safe.
-        const filePath = path.join(process.cwd(), "public", url);
-        const bytes = await readFile(filePath);
+        // These are always our own saved uploads in Vercel Blob (webp, from
+        // imageUpload.ts) — never an arbitrary path.
+        const response = await fetch(url);
+        if (!response.ok) return null;
+        const bytes = Buffer.from(await response.arrayBuffer());
         return {
           type: "image" as const,
           source: { type: "base64" as const, media_type: "image/webp", data: bytes.toString("base64") },

@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import path from "path";
 import { db } from "@/lib/db";
 import { compressImage, saveCompressedImage, validateUploadedImage } from "@/lib/imageUpload";
 
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "inspiration");
 const MAX_IMAGES = 4;
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -36,9 +34,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Couldn't process that image — try a different file" }, { status: 400 });
   }
 
-  const filename = await saveCompressedImage(compressed, UPLOAD_DIR, site.id);
+  const url = await saveCompressedImage(compressed, site.id);
   const image = await db.inspirationImage.create({
-    data: { siteId: id, url: `/uploads/inspiration/${filename}`, order: existingCount },
+    data: { siteId: id, url, order: existingCount },
   });
 
   return NextResponse.json({ image });
