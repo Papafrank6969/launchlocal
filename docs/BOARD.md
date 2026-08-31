@@ -28,7 +28,7 @@ Last updated: 2026-08-30 by boss. PR create/merge works for all agents; boss's `
 
 | Track | Spec | Owner | Branch | PR | Status | Next action (whose) |
 | --- | --- | --- | --- | --- | --- | --- |
-| Deploy to Vercel + Postgres | `docs/DEPLOY-POSTGRES-PLAN.md` | agent-1 (code) · boss + user (deploy) | merged `446f74b` | [#10](https://github.com/Papafrank6969/launchlocal/pull/10) | **DEPLOYED — smoke test passed** | Live at **https://launchlocal-silk.vercel.app**. Verified: Postgres + `init` migration, lead search (legacy fallback), site draft/publish, generated-site render, image upload → public Vercel Blob → `next/image`. Two deploy gotchas fixed: `NEXT_PUBLIC_SITE_URL` needed a no-cache redeploy; the Blob store was created **private** and had to be recreated **public** (our code does `put({access:"public"})`). Open follow-ups: (a) enable **Places API (New)** in GCP project 155038052653 — user, not blocking; (b) wipe test data from the prod DB (`prisma migrate reset` on the Neon prod branch); (c) agent-1's task-6 doc verification. |
+| _(none)_ | | | | | | |
 
 **Goal context:** user wants a server that queues ~25 fresh leads/day to message manually after school. This deploy track is step 1 of 3 → then Track 2 (daily lead cron) → Track 3 (`/today` queue). See the "Next tracks" section at the bottom of `DEPLOY-POSTGRES-PLAN.md`.
 
@@ -54,6 +54,7 @@ Last updated: 2026-08-30 by boss. PR create/merge works for all agents; boss's `
 | Instagram lookup key-leak fix (Piece A) | #7 | `3301443` |
 | CI green — `next typegen` step + Node 24 | direct on `master` | `3bcfd86` + `2af2729` |
 | WON-end handoff (delivery checklist + client summary on `/pipeline`) | #9 | `e3d1da9` |
+| Deploy to Vercel + Postgres (SQLite→PG, uploads→Blob) — live at https://launchlocal-silk.vercel.app | #10 | `446f74b` |
 
 _Minor CI follow-up (not urgent): the run logs a deprecation warning — `actions/checkout@v4` / `actions/setup-node@v4` target Node 20 and are being force-run on 24. Bump both to `@v5` whenever someone's touching the workflow._
 

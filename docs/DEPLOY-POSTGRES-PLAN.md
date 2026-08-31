@@ -132,8 +132,11 @@ production".
    (`...-pooler...`) for `DATABASE_URL` and the **direct** one for `DIRECT_URL`.
 2. **Vercel:** New Project → import `Papafrank6969/launchlocal` → framework
    auto-detected as Next.js. Don't deploy yet.
-3. **Vercel → Storage:** create a **Blob** store, link it to the project (this
-   sets `BLOB_READ_WRITE_TOKEN` automatically).
+3. **Vercel → Storage:** create a **Blob** store, linked to the project (this
+   sets `BLOB_READ_WRITE_TOKEN` automatically). Create it as **Public** —
+   Private is Vercel's default and rejects `put({ access: "public" })` at
+   runtime (the deployed upload endpoint 500s). If you already created it
+   private, delete and recreate it as Public.
 4. **Vercel → Settings → Environment Variables** (Production + Preview):
    `DATABASE_URL`, `DIRECT_URL`, `GOOGLE_PLACES_API_KEY`,
    `GOOGLE_CUSTOM_SEARCH_API_KEY`, `GOOGLE_CUSTOM_SEARCH_ENGINE_ID`,
