@@ -28,7 +28,7 @@ Last updated: 2026-08-30 by boss. PR create/merge works for all agents; boss's `
 
 | Track | Spec | Owner | Branch | PR | Status | Next action (whose) |
 | --- | --- | --- | --- | --- | --- | --- |
-| Deploy to Vercel + Postgres | `docs/DEPLOY-POSTGRES-PLAN.md` | agent-1 (code) · boss + user (deploy) | `feature/deploy-postgres` | [#10](https://github.com/Papafrank6969/launchlocal/pull/10) | **code approved → land; deploy next** | PR #10 approved (Postgres migration squash live-verified on Neon, uploads→Blob, build config). agent-1 lands it. Then **boss + user do tasks 4–5**: Vercel project + Blob store + env vars + deploy + smoke test (runbook in the plan). agent-1 does the task-6 live verification after. |
+| Deploy to Vercel + Postgres | `docs/DEPLOY-POSTGRES-PLAN.md` | agent-1 (code, done) · boss + user (deploy) | — merged `446f74b` | [#10](https://github.com/Papafrank6969/launchlocal/pull/10) | **code landed — boss+user on Vercel deploy** | PR #10 merged (`446f74b`), CI green. Now boss + user: Vercel project + Blob store + env vars + `prisma migrate deploy` on first build + Task 5 smoke test. Then agent-1 does the task-6 live verification (ping on issue #6 with the URL). |
 
 **Goal context:** user wants a server that queues ~25 fresh leads/day to message manually after school. This deploy track is step 1 of 3 → then Track 2 (daily lead cron) → Track 3 (`/today` queue). See the "Next tracks" section at the bottom of `DEPLOY-POSTGRES-PLAN.md`.
 
