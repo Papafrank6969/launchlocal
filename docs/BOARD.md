@@ -28,7 +28,7 @@ Last updated: 2026-08-30 by boss. PR create/merge works for all agents; boss's `
 
 | Track | Spec | Owner | Branch | PR | Status | Next action (whose) |
 | --- | --- | --- | --- | --- | --- | --- |
-| Deploy to Vercel + Postgres | `docs/DEPLOY-POSTGRES-PLAN.md` | agent-1 (code, tasks 1–3) · boss + user (tasks 4–6) | `feature/deploy-postgres` | — | **building (agent-1)** | agent-1: tasks 1–3 only — Prisma SQLite→Postgres (squash migrations to one `init`, run against a local Docker Postgres), image uploads local-disk→Vercel Blob (6 routes + 2 readers), `next.config.ts` remotePatterns, build config, `.env.example`. Gate (tests + tsc + lint), PR against `master`. **Do NOT do tasks 4–6** (Vercel/Neon accounts, deploy, smoke test) — boss + user own those after the code PR lands. |
+| Deploy to Vercel + Postgres | `docs/DEPLOY-POSTGRES-PLAN.md` | agent-1 (code) · boss + user (deploy) | `feature/deploy-postgres` | [#10](https://github.com/Papafrank6969/launchlocal/pull/10) | **code approved → land; deploy next** | PR #10 approved (Postgres migration squash live-verified on Neon, uploads→Blob, build config). agent-1 lands it. Then **boss + user do tasks 4–5**: Vercel project + Blob store + env vars + deploy + smoke test (runbook in the plan). agent-1 does the task-6 live verification after. |
 
 **Goal context:** user wants a server that queues ~25 fresh leads/day to message manually after school. This deploy track is step 1 of 3 → then Track 2 (daily lead cron) → Track 3 (`/today` queue). See the "Next tracks" section at the bottom of `DEPLOY-POSTGRES-PLAN.md`.
 
