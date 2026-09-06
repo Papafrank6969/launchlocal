@@ -84,23 +84,35 @@ Suggested order: **C-C** and **C-D** first (no decisions needed, high signal),
 then **C-B**, then **C-A** + **C-E** once decisions land, then **C-F**, then
 **C-G**.
 
-## Decisions needed from Frank
+## Decisions from Frank (2026-09-06) — resolved
 
-1. **App legal identity.** What legal entity / contact email goes on the
-   Privacy & Terms pages (app and client sites)? Sole proprietor "Frank
-   Sulawa"? An LLC? A support email?
-2. **Cookies posture.** US-audience clean path (self-host fonts, static map, one
-   footer disclosure, no consent gate) — or full EU-safe consent manager
-   (reject = accept, nothing loads first)? Recommend the former.
-3. **Scroll progress bar** (B-4) and **eyebrow caps** (B-7): keep or drop?
-4. **Refund/cancellation policy** content — most client sites just link out to a
-   booking tool. Default text: "cancellations/refunds are handled by
-   {business}; contact them directly"? Or per-site editable?
-5. **Unclaimed pitch sites** (F-1): keep publishing pre-agreement with a
-   disclosure banner, or switch to auth-gated previews? This one really wants a
-   lawyer.
+1. **Legal identity:** sole proprietor — **"Frank Sulawa, operating as
+   LaunchLocal."** Contact email still to be supplied → drafts use
+   `[CONTACT EMAIL]` until Frank gives a real support address (do NOT default to
+   his personal iCloud address on a public page).
+2. **Cookies posture:** **US-clean.** Self-host the ~13 Google Font families,
+   replace the Google Maps iframe with a static map image + "Open in Google
+   Maps" link, remove the accept-only banner, ship a one-line footer disclosure
+   + a Cookie Policy page. No consent gate. (C-B, C-A.)
+3. **Scroll progress bar (B-4):** drop it. **Eyebrow caps (B-7):** keep. (C-C.)
+4. **Refund/cancellation:** **generic pass-through text** — "Cancellations and
+   refunds are handled directly by {business}; contact them using the details on
+   this page." Auto-generated, shown on any site with a booking URL. No new
+   editor field. (C-A.)
+5. **Unclaimed pitch sites (F-1):** **disclosure banner** — keep publishing, but
+   an unclaimed site shows "Prepared by LaunchLocal — not affiliated with or
+   endorsed by {business}. To claim this site or request its removal, contact
+   {LaunchLocal contact}." + a one-click takedown. Still flagged for a lawyer's
+   review. (C-F.)
 
 ## Status
 
-Specced 2026-09-06. No tracks started. Standards doc committed. Awaiting
-decisions 1-5.
+Specced 2026-09-06, decisions resolved same day. **All tracks unblocked** except
+the still-open item of a real contact email (blocks C-A/C-E from *final*, not
+from starting) and the lawyer review of C-F. Standards + audit committed
+`77baa1d`.
+
+- **C-C** — brand fixes: _in progress (boss)._
+- **C-D** — Places retention: ready.
+- **C-B / C-A / C-E / C-F** — ready to assign.
+- **C-G** — after C-A/C-C.
