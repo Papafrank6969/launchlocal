@@ -68,6 +68,16 @@ function serviceHref(site: SiteData, item: { slug?: string }): string | null {
   return `/s/${site.slug}/services/${item.slug}`;
 }
 
+/**
+ * Alt text for a business photo. We don't know what a given upload shows
+ * (storefront, the work, the owner), so the truthful, screen-reader-useful
+ * label is the business name plus its trade for context — not a guess at the
+ * contents, and never an empty alt on a content image.
+ */
+function photoAlt(site: SiteData): string {
+  return site.category ? `${site.businessName}, ${titleCase(site.category)}` : site.businessName;
+}
+
 /** Rating stars read as a rating in every palette when they're gold — the universal convention. */
 const STAR_GOLD = "#E0A82E";
 
@@ -158,7 +168,7 @@ function HeroCtaRow({
 }: {
   site: SiteData;
   system: DesignSystem;
-  shape: "block" | "soft" | "pill";
+  shape: "block" | "soft";
   onDark?: boolean;
   align?: "left" | "center";
 }) {
@@ -172,12 +182,10 @@ function HeroCtaRow({
   const base = {
     block: "inline-block rounded-md px-7 py-3.5 text-base font-bold",
     soft: "inline-block rounded-lg px-6 py-3 font-medium",
-    pill: "inline-block rounded-full px-6 py-3 text-sm font-semibold uppercase tracking-widest",
   }[shape];
   const fillExtra = {
     block: "shadow-[4px_4px_0_rgba(0,0,0,0.25)] transition-transform hover:-translate-y-0.5",
     soft: "shadow-sm transition-shadow hover:shadow-md",
-    pill: "transition-opacity hover:opacity-90",
   }[shape];
   const outlineExtra =
     shape === "block"
@@ -266,7 +274,7 @@ function HeroFullBleed({ site, system }: { site: SiteData; system: DesignSystem 
       </section>
       {site.photoUrl && (
         <div className="mx-auto -mt-8 max-w-4xl px-8">
-          <HeroImageCard src={site.photoUrl} alt={site.businessName} ratio="aspect-[16/9]" />
+          <HeroImageCard src={site.photoUrl} alt={photoAlt(site)} ratio="aspect-[16/9]" />
         </div>
       )}
     </>
@@ -304,7 +312,7 @@ function HeroSplit({ site, system }: { site: SiteData; system: DesignSystem }) {
           <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl shadow-lg">
             <Image
               src={site.photoUrl}
-              alt={site.businessName}
+              alt={photoAlt(site)}
               fill
               className="object-cover"
               sizes="(min-width: 640px) 40vw, 100vw"
@@ -334,12 +342,12 @@ function HeroCentered({ site, system }: { site: SiteData; system: DesignSystem }
         {site.tagline && <p className="mt-5 text-lg italic opacity-80">{site.tagline}</p>}
         <RatingBadge rating={site.rating} reviewCount={site.reviewCount} className="mt-4 opacity-80" />
         <div className="flex justify-center">
-          <HeroCtaRow site={site} system={system} shape="pill" align="center" />
+          <HeroCtaRow site={site} system={system} shape="soft" align="center" />
         </div>
       </section>
       {site.photoUrl && (
         <div className="mx-auto max-w-4xl px-8">
-          <HeroImageCard src={site.photoUrl} alt={site.businessName} ratio="aspect-[16/9]" />
+          <HeroImageCard src={site.photoUrl} alt={photoAlt(site)} ratio="aspect-[16/9]" />
         </div>
       )}
     </>
@@ -376,7 +384,7 @@ function TrustBar({ site }: { site: SiteData }) {
         <span className="opacity-70">{site.reviewCount.toLocaleString()} Google reviews</span>
         {top && (
           <span className="hidden max-w-md truncate opacity-70 md:inline">
-            &ldquo;{top.text}&rdquo; &mdash; {top.author}
+            &ldquo;{top.text}&rdquo; &middot; {top.author}
           </span>
         )}
       </div>
@@ -411,7 +419,7 @@ function ServiceCard({
         ) : (
           <div
             className="flex h-full items-center justify-center"
-            style={{ background: `linear-gradient(135deg, ${accent}33, ${primary}1f)` }}
+            style={{ backgroundColor: `${accent}26` }}
           >
             <span className="text-6xl font-bold opacity-30" style={{ ...headingStyle, color: primary }}>
               {service.name.charAt(0).toUpperCase()}
@@ -505,7 +513,7 @@ function AboutSection({
           <div className="relative aspect-[3/2] w-full overflow-hidden rounded-2xl shadow-lg">
             <Image
               src={img}
-              alt={site.businessName}
+              alt={photoAlt(site)}
               fill
               className="object-cover"
               sizes="(min-width: 640px) 45vw, 90vw"

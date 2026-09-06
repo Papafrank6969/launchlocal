@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { ScrollProgressBar } from "@/components/site/ScrollProgressBar";
 import { readableTextColor } from "@/lib/contrast";
 
 export function StickyHeader({
@@ -86,8 +85,6 @@ export function StickyHeader({
             ))}
           </nav>
         )}
-
-        <ScrollProgressBar color={color} />
       </div>
     </header>
   );
