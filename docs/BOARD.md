@@ -7,7 +7,7 @@ keeps it current. Every agent runs `git pull origin master` and re-reads this
 Cross-agent pings that don't belong on a PR go on **tracking issue #6**
 (`gh issue view 6`, `gh issue comment 6 -b "..."`).
 
-Last updated: 2026-08-31 by boss. App **live** at https://launchlocal-silk.vercel.app. Tracks 1 + 2 shipped. **No active tracks** — agent-1/2/3 all free; Track 3 (`/today` queue) ready to spec + assign. Note: agent-2's window was closed mid-Track-2; boss finished + landed PR #11.
+Last updated: 2026-09-06 by boss. App **live** at https://launchlocal-silk.vercel.app. Tracks 1 + 2 shipped. **Track 3 (`/today` DM worklist) is specced** — `docs/TODAY-QUEUE-PLAN.md`, ready to assign to whichever agent starts next. Direction locked with user 2026-09-06: `/today` is **DM-only** ("kill the phone angle"), which retires the cold `/outreach` console and adds an IG-handle-enrichment step to the daily cron. **Blocked for prod verification** on the operator enabling the Custom Search API + CSE on GCP `155038052653` (see plan §0) — code lands without waiting.
 
 ---
 
@@ -20,7 +20,7 @@ Last updated: 2026-08-31 by boss. App **live** at https://launchlocal-silk.verce
 | **agent-2** | opencode / Big Pickle | `…\launchlocal-places` |
 | **agent-3** | opencode / Big Pickle | `…\launchlocal-instagram` |
 
-`master` HEAD when last updated: `6f2bba4`.
+`master` HEAD when last updated: `099b752` (bumped again by this spec commit — see the push).
 
 ---
 
@@ -28,11 +28,13 @@ Last updated: 2026-08-31 by boss. App **live** at https://launchlocal-silk.verce
 
 | Track | Spec | Owner | Branch | PR | Status | Next action (whose) |
 | --- | --- | --- | --- | --- | --- | --- |
-| _(none)_ | | | | | | Track 3 (`/today` queue) ready to spec + assign — boss. |
+| **Track 3 — `/today` DM worklist** | `docs/TODAY-QUEUE-PLAN.md` | _unassigned_ | `feature/today-queue` (off `origin/master`) | — | specced, not started | Assign to the next agent that starts; agent builds per plan. Boss+user owe plan §0 (enable Custom Search API + CSE) for prod verification. |
 
-**Goal context:** user wants a server that queues ~25 fresh leads/day (NYC + Long Island barbershops & salons) to message manually after school (~3pm ET). Tracks 1 (deploy) + 2 (lead cron) SHIPPED. Track 3 (`/today` queue) is the last one.
+**Goal context:** user wants a server that queues ~25 fresh leads/day (NYC + Long Island barbershops & salons) to DM manually after school (~3pm ET, 3yr-old IG account). Tracks 1 (deploy) + 2 (lead cron) SHIPPED. Track 3 (`/today` DM worklist) is the last one — specced.
 
-**Track 2 — Daily lead cron (SHIPPED):** `docs/DAILY-LEAD-CRON-PLAN.md`, PR [#11](https://github.com/Papafrank6969/launchlocal/pull/11) merged `6f2bba4`. Vercel Cron `0 17 * * *` → `/api/cron/daily-leads`, 94 NYC/LI barber+salon targets, banks exactly 25 net-new/day. Verified with a live local run (25/25, dedup working). **Boss + user still need to:** (a) add `CRON_SECRET` to Vercel + redeploy; (b) confirm the cron registered (Vercel → Settings → Cron Jobs) and the first scheduled run banks ~25. Task 7 finding: prod IG lookup → `503 api_disabled`, Custom Search API not enabled on GCP 155038052653 → Track 3 stays phone-first.
+**Track 3 — `/today` DM worklist (SPECCED):** `docs/TODAY-QUEUE-PLAN.md`. Bounded daily list of ≤25 uncontacted IG-handle leads, oldest-first (FIFO drain = automatic carryover), one-tap DM + mark-sent. DM-only per user (2026-09-06): retires the cold `/outreach` console (→ redirect to `/today`), keeps `/outreach/follow-up`. Adds a ≤25/run IG-handle-lookup pass to the daily cron + a one-off backfill script. **§0 blocker (boss+user):** enable "Custom Search API" on GCP `155038052653`, create a Programmable Search Engine, set `GOOGLE_CUSTOM_SEARCH_ENGINE_ID` in Vercel, redeploy. Code lands without it; `/today` is empty until it's done.
+
+**Track 2 — Daily lead cron (SHIPPED):** `docs/DAILY-LEAD-CRON-PLAN.md`, PR [#11](https://github.com/Papafrank6969/launchlocal/pull/11) merged `6f2bba4`. Vercel Cron `0 17 * * *` → `/api/cron/daily-leads`, 94 NYC/LI barber+salon targets, banks exactly 25 net-new/day. Verified with a live local run (25/25, dedup working). **Boss + user still need to:** (a) add `CRON_SECRET` to Vercel + redeploy — _in progress 2026-09-06, value generated, user adding it_; (b) confirm the cron registered (Vercel → Settings → Cron Jobs) and the first scheduled run banks ~25. Task 7 finding: prod IG lookup → `503 api_disabled`, Custom Search API not enabled on GCP 155038052653 → Track 3 stays phone-first.
 
 **Track 1 — Deploy (SHIPPED):** PR [#10](https://github.com/Papafrank6969/launchlocal/pull/10) `446f74b`. Open item: **wipe boss's smoke-test data** from the prod DB before real outreach.
 
@@ -42,7 +44,6 @@ Last updated: 2026-08-31 by boss. App **live** at https://launchlocal-silk.verce
 
 | Track | Notes |
 | --- | --- |
-| **Track 3 — `/today` queue** | **Next up — boss to spec + assign.** 25 freshest `NEW` leads with a phone (IG handle a bonus, not required — Custom Search API is off), best channel per lead, one-tap call/DM, "Mark contacted" → `LEAD_CONTACTED` + drops off, yesterday's uncontacted carried over. Phone-first (not IG-only like `/outreach`). |
 | Places Photos: contact-form on built sites emits `CONTACT_SUBMITTED` — verify end to end | Funnel track added the event; nobody has confirmed it fires from a real published-site submission. Small QA task. |
 
 ## Shipped
