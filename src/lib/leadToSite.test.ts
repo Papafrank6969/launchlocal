@@ -37,8 +37,8 @@ describe("leadToDraftSite", () => {
     expect(d.serviceNames.every((s) => typeof s === "string" && s.length > 0)).toBe(true);
   });
 
-  it("builds a starting-point tagline from category + city", () => {
-    expect(leadToDraftSite(lead()).tagline).toBe("Your trusted lash technician in Austin, TX");
+  it("builds a neutral, factual starting-point tagline from category + city (no claim words)", () => {
+    expect(leadToDraftSite(lead()).tagline).toBe("lash technician in Austin, TX");
   });
 
   it("leaves the tagline blank when category or city is missing", () => {

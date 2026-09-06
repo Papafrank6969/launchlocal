@@ -45,9 +45,10 @@ export function leadToDraftSite(lead: LeadForDraft): DraftSiteInput {
 
   return {
     businessName: lead.name.trim(),
-    // A starting-point tagline the operator personalises before sending — matches
-    // the default the manual /builder/new flow has always used.
-    tagline: category && city ? `Your trusted ${category} in ${city}` : "",
+    // A neutral, factual starting-point tagline the operator personalises before
+    // sending. Deliberately not a claim ("trusted", "best") — an un-edited
+    // placeholder still has to be true for any business.
+    tagline: category && city ? `${category} in ${city}` : "",
     category,
     address: clean(lead.address),
     phone: clean(lead.phone),

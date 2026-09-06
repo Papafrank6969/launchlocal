@@ -60,7 +60,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     if (filled > 0) {
-      const line = `${ATTR_PREFIX} — ${[...photographers].join(", ")}`;
+      const line = `${ATTR_PREFIX}: ${[...photographers].join(", ")}`;
       await tx.site.update({ where: { id }, data: { photoAttribution: mergeAttribution(site.photoAttribution, line) } });
     }
   });

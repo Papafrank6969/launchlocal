@@ -59,7 +59,7 @@ describe("parsePlacePhotos", () => {
         { name: "places/p/photos/c", authorAttributions: [{ displayName: "A Local Guide" }] },
       ],
     };
-    expect(parsePlacePhotos(result).attribution).toBe("Photos via Google — Jane Doe, A Local Guide");
+    expect(parsePlacePhotos(result).attribution).toBe("Photos via Google: Jane Doe, A Local Guide");
   });
 
   it("falls back to a bare 'Photos via Google' when refs exist but no names", () => {
@@ -89,7 +89,7 @@ describe("fetchPlacePhotoRefs", () => {
     expect(captured.headers).toMatchObject({ "X-Goog-Api-Key": "test-key", "X-Goog-FieldMask": "photos" });
     expect(result).toEqual({
       refs: ["places/ChIJx/photos/AeJbb1", "places/ChIJx/photos/AeJbb2"],
-      attribution: "Photos via Google — Jane & Sons",
+      attribution: "Photos via Google: Jane & Sons",
     });
   });
 
@@ -116,7 +116,7 @@ describe("fetchPlacePhotoRefs", () => {
 
     const result = await fetchPlacePhotoRefs("ChIJx", "test-key");
 
-    expect(result).toEqual({ refs: ["legacy-ref"], attribution: "Photos via Google — Jane & Sons" });
+    expect(result).toEqual({ refs: ["legacy-ref"], attribution: "Photos via Google: Jane & Sons" });
     expect(warnSpy).toHaveBeenCalled();
     expect(String(warnSpy.mock.calls[0][0])).toContain("Places API (New) may not be enabled");
   });
