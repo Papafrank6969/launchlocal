@@ -7,7 +7,9 @@ keeps it current. Every agent runs `git pull origin master` and re-reads this
 Cross-agent pings that don't belong on a PR go on **tracking issue #6**
 (`gh issue view 6`, `gh issue comment 6 -b "..."`).
 
-Last updated: 2026-09-06 by boss. App **live** at https://launchlocal-silk.vercel.app. Tracks 1 + 2 shipped. **Track 3 (`/today` DM worklist) is specced** — `docs/TODAY-QUEUE-PLAN.md`, ready to assign to whichever agent starts next. Direction locked with user 2026-09-06: `/today` is **DM-only** ("kill the phone angle"), which retires the cold `/outreach` console and adds an IG-handle-enrichment step to the daily cron. **Blocked for prod verification** on the operator enabling the Custom Search API + CSE on GCP `155038052653` (see plan §0) — code lands without waiting.
+Last updated: 2026-09-06 by boss. App **live** at https://launchlocal-silk.vercel.app. Tracks 1 + 2 shipped. **Track 3 (`/today` DM worklist) is specced** — `docs/TODAY-QUEUE-PLAN.md`, DM-only per user, blocked for prod verification on the Custom Search API enable (plan §0); code lands without waiting.
+
+**NEW 2026-09-06 — compliance & brand pass.** Frank's "don't get sued / don't look vibe coded" review. Audit + 7 tracks in `docs/COMPLIANCE-AUDIT-2026-09.md`; permanent rules in `docs/BRAND-AND-COMPLIANCE-STANDARDS.md` (read this before any template/legal/site-chrome change). Most of `SITE-QUALITY-CHECKLIST.md` already held; real gaps: Google Places 30-day cache limit (F-2, P0), unclaimed pitch sites (F-1, P0), thin privacy policy, runtime Google Fonts + Maps iframe, pill buttons + em dashes. **C-C + C-D ready now; C-A/C-E need Frank's decisions 1–5.**
 
 ---
 
@@ -20,7 +22,7 @@ Last updated: 2026-09-06 by boss. App **live** at https://launchlocal-silk.verce
 | **agent-2** | opencode / Big Pickle | `…\launchlocal-places` |
 | **agent-3** | opencode / Big Pickle | `…\launchlocal-instagram` |
 
-`master` HEAD when last updated: `099b752` (bumped again by this spec commit — see the push).
+`master` HEAD when last updated: see the latest spec commit on `origin/master` (Track 3 + compliance-audit docs pushed 2026-09-06).
 
 ---
 
@@ -45,6 +47,20 @@ Last updated: 2026-09-06 by boss. App **live** at https://launchlocal-silk.verce
 | Track | Notes |
 | --- | --- |
 | Places Photos: contact-form on built sites emits `CONTACT_SUBMITTED` — verify end to end | Funnel track added the event; nobody has confirmed it fires from a real published-site submission. Small QA task. |
+
+### Compliance & brand pass (`docs/COMPLIANCE-AUDIT-2026-09.md`, standards in `docs/BRAND-AND-COMPLIANCE-STANDARDS.md`)
+
+Frank's "don't get sued / don't look vibe coded" pass, 2026-09-06. 7 tracks, carved to not collide. **C-A and C-E are blocked on Frank's decisions 1–5 in the audit; C-C and C-D can start now.** Suggested order: C-C, C-D → C-B → C-A, C-E → C-F → C-G.
+
+| Track | Scope | Blocked on |
+| --- | --- | --- |
+| **C-C — Brand fixes in templates** | Kill pill buttons + `uppercase tracking-widest` (`templates.tsx` `HeroCtaRow`), remove em dash from trust-bar snippet + `photoAttribution.ts` delimiter (+test), flatten the blank-service-card gradient, weak hero `alt` text, vague default tagline in `leadToSite.ts`. Findings B-1/2/3/5/6. | nothing — **ready** |
+| **C-D — Places data retention** | 30-day cache limit (Google Maps Platform Terms §3.2.3). Add `placesRefreshedAt`, refresh-or-null non-ID Places fields > 30d, review-text TTL. `places.ts`, `placesPhotos.ts`, `schema.prisma`, a cron. Finding F-2 (P0). | nothing — **ready** |
+| **C-B — Cookies & third-party embeds** | Self-host the ~13 Google Fonts families (`next/font`), replace/gate the Google Maps iframe, fix or retire the accept-only cookie banner. F-5/6/7. | Decision 2 (posture) |
+| **C-A — Client-site legal pages** | Rewrite `legalContent.ts` (real processors/retention/rights/fixed last-updated), add Cookie Policy + Refund/Cancellation pages, footer links. F-3/4/8. | Decisions 1, 2, 4 |
+| **C-E — App legal + hardening** | `/(app)/privacy` + `/(app)/terms` + footer links, `noindex` meta on `(app)`, contact-form consent line, submission retention, `docs/DATA-HANDLING.md` (SHIELD Act). F-9/10/11/12. | Decision 1 |
+| **C-F — Unclaimed pitch sites** | Disclosure banner ("prepared by LaunchLocal, not affiliated, claim/remove: …") + takedown path, or switch to auth-gated previews. F-1 (P0). | Decision 5 + lawyer |
+| **C-G — Guard tests** | `templates.test.ts` + repo-wide assertions: no em dash, no `rounded-full` on a button, no gradient, legal pages non-blank. | after C-A/C-C |
 
 ## Shipped
 
