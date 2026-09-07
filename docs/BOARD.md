@@ -54,7 +54,7 @@ Frank's "don't get sued / don't look vibe coded" pass, 2026-09-06. 7 tracks, car
 
 | Track | Scope | Blocked on |
 | --- | --- | --- |
-| **C-C — Brand fixes in templates** | Kill pill buttons + `uppercase tracking-widest` (`templates.tsx` `HeroCtaRow`), remove em dash from trust-bar snippet + `photoAttribution.ts` delimiter (+test), flatten the blank-service-card gradient, weak hero `alt` text, vague default tagline in `leadToSite.ts`. Findings B-1/2/3/5/6. | nothing — **ready** |
+| **C-C — Brand fixes in templates** | Kill pill buttons + `uppercase tracking-widest`, em dash out of trust-bar snippet + `photoAttribution.ts` delimiter, flatten blank-card gradient, hero `alt` text, tagline, drop scroll progress bar. B-1/2/3/4/5/6. | **PR [#12](https://github.com/Papafrank6969/launchlocal/pull/12) — boss-reviewed, gate green, awaiting merge (author-merge; user or boss to land).** |
 | **C-D — Places data retention** | 30-day cache limit (Google Maps Platform Terms §3.2.3). Add `placesRefreshedAt`, refresh-or-null non-ID Places fields > 30d, review-text TTL. `places.ts`, `placesPhotos.ts`, `schema.prisma`, a cron. Finding F-2 (P0). | nothing — **ready** |
 | **C-B — Cookies & third-party embeds** | Self-host the ~13 Google Fonts families (`next/font`), replace/gate the Google Maps iframe, fix or retire the accept-only cookie banner. F-5/6/7. | Decision 2 (posture) |
 | **C-A — Client-site legal pages** | Rewrite `legalContent.ts` (real processors/retention/rights/fixed last-updated), add Cookie Policy + Refund/Cancellation pages, footer links. F-3/4/8. | Decisions 1, 2, 4 |
