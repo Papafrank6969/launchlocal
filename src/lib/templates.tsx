@@ -748,13 +748,21 @@ function Footer({
         </div>
         <div className={left ? "text-left" : "mt-4"}>
           {site.slug && (
-            <p className={`flex gap-3 text-xs opacity-60 ${left ? "" : "justify-center"}`}>
+            <p className={`flex flex-wrap gap-x-3 gap-y-1 text-xs opacity-60 ${left ? "" : "justify-center"}`}>
               <a href={`/s/${site.slug}/privacy`} className="hover:underline">
                 Privacy Policy
               </a>
               <a href={`/s/${site.slug}/terms`} className="hover:underline">
                 Terms of Service
               </a>
+              <a href={`/s/${site.slug}/cookie-policy`} className="hover:underline">
+                Cookie Policy
+              </a>
+              {bookingUrl && (
+                <a href={`/s/${site.slug}/policies`} className="hover:underline">
+                  Cancellation and Refunds
+                </a>
+              )}
             </p>
           )}
           <p className="mt-2 text-xs opacity-60">

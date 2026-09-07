@@ -91,6 +91,14 @@ collected, why, the legal basis, how long it's kept**, name **processors**
 (hosting, maps, fonts, email), and state the visitor's rights and how to
 exercise them. Never blank, never a single vague paragraph.
 
+Implemented (C-A + C-E, PR #13): `src/lib/legalContent.ts` generates all six
+(client privacy / terms / cookie / refund, app privacy / terms) from a fixed
+`LEGAL_LAST_UPDATED` and `LAUNCHLOCAL_CONTACT_EMAIL`. Client pages under
+`s/[slug]/{privacy,terms,cookie-policy,policies}`, app pages under
+`(app)/{privacy,terms}`. Footer links in `templates.tsx` + `AppFooter.tsx`.
+Editing the wording: bump `LEGAL_LAST_UPDATED` in the same change, keep every
+statement true of the real data flows, run `legalContent.test.ts`.
+
 ### 2.2 Cookies & tracking
 
 - **Data minimisation:** collect only what a feature needs. The contact form

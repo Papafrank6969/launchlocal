@@ -50,6 +50,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
   lines.push(`- Contact: ${path("/contact")}`);
   lines.push(`- Privacy Policy: ${path("/privacy")}`);
   lines.push(`- Terms of Service: ${path("/terms")}`);
+  lines.push(`- Cookie Policy: ${path("/cookie-policy")}`);
 
   return new NextResponse(lines.join("\n"), {
     headers: { "Content-Type": "text/plain; charset=utf-8" },
