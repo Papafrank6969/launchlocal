@@ -5,6 +5,8 @@ const FOOTER_LINKS = [
   { href: "/pipeline", label: "Pipeline" },
   { href: "/builder", label: "Site Builder" },
   { href: "/stats", label: "Stats" },
+  { href: "/privacy", label: "Privacy" },
+  { href: "/terms", label: "Terms" },
 ];
 
 export function AppFooter() {
