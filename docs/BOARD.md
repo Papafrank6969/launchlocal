@@ -31,6 +31,7 @@ Last updated: 2026-09-06 by boss. App **live** at https://launchlocal-silk.verce
 | Track | Spec | Owner | Branch | PR | Status | Next action (whose) |
 | --- | --- | --- | --- | --- | --- | --- |
 | **Track 3 — `/today` DM worklist** | `docs/TODAY-QUEUE-PLAN.md` | _unassigned_ | `feature/today-queue` (off `origin/master`) | — | specced, not started | Assign to the next agent that starts; agent builds per plan. Boss+user owe plan §0 (enable Custom Search API + CSE) for prod verification. |
+| **Frat House 1/4 — `agent-runtime`** | `docs/FRAT-HOUSE-RUNTIME-PLAN.md` (map: `docs/FRAT-HOUSE-MAP.md`) | boss (Claude Code) | `feature/frat-house-runtime` | _PR pending_ | built, gate green, verified locally (live Haiku runs + budget stop + gate) | Frank reviews + merges. Vercel env (`ANTHROPIC_API_KEY`, `OPERATOR_PASSWORD`) already added by Frank 2026-10-04. Next modules: `brothers` ∥ `house-ui`. |
 
 **Goal context:** user wants a server that queues ~25 fresh leads/day (NYC + Long Island barbershops & salons) to DM manually after school (~3pm ET, 3yr-old IG account). Tracks 1 (deploy) + 2 (lead cron) SHIPPED. Track 3 (`/today` DM worklist) is the last one — specced.
 
