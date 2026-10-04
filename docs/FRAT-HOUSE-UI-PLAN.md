@@ -1,6 +1,6 @@
 # Feature plan: Frat House: `house-ui`
 
-**Status:** approved 2026-10-04, building
+**Status:** built 2026-10-04 (see §11 for how the build differs from this plan)
 **Module:** `house-ui` (see `docs/FRAT-HOUSE-MAP.md`; depends on `agent-runtime`, PR #14)
 **Branch:** `feature/frat-house-ui`, on `master` after #14 merged
 **Scope class:** `package.json` + lockfile (deps below), `prisma/schema.prisma` +
@@ -279,8 +279,31 @@ regular DOM, so it can be read and has real contrast.
 3. **Frank, blocking before deploy:** licenses for the house model
    (`Downloads/modern-house.zip`, no license file inside) and the six car models.
    The cars are real brands (Porsche, Rolls-Royce, Ferrari, Lamborghini ×2,
-   Bugatti), and the compliance audit applies. `/house` is behind the operator
-   password, but files in `public/` are served without it, so anyone with the URL
-   can download the `.glb` files. Record each model's source and license here.
-   If any one says non-commercial or no-redistribution, take it out or move the
-   models behind an auth'd route.
+   Bugatti), and the compliance audit applies. The files are **not** public:
+   `/house/*.glb` sits under the `/house` operator root, so the proxy returns
+   401 without the password (verified 2026-10-04). Record each model's source and
+   license here. If any one says non-commercial or no-redistribution, take it out.
+
+---
+
+## 11. As built (2026-10-04)
+
+- **Fewer files:** `Room` lives in `HouseScene.tsx`, the stats bar in
+  `HouseView.tsx`, and `ChatTab` in `AgentPanel.tsx`. There's no separate
+  `StatsBar.tsx`, `Room.tsx` or `ChatTab.tsx`.
+- **`houseStats.ts`** holds the time windows (`houseWindows`), the brother list
+  merge (`mergeAgents`: registered brothers ∪ Agent rows) and `formatMicros`. The
+  counting itself is SQL in `/api/house`.
+- **Metering:** `agentRunner.ts` exports `createMeter()`, and both `runBrother`
+  and `chatTurn` use it. The runner tests are unchanged and still pass.
+- **Rooms** are measured by raycasting the model's front (see the comment on
+  `ROOMS`), two per floor across three floors.
+- **Loading:** the "Loading the house…" message is a DOM overlay, not drei
+  `<Html>`. `<Html>` inside a Suspense fallback threw React unmount errors.
+- **Verified with `/browse`:** the house, cars and lit room render; Run now goes
+  RUNNING → OK; chat replies and mentions the last run; Enter opens the panel, Esc
+  closes it and focus returns to the brother button; no sideways scroll at 375px;
+  `/stats` loads no three.js; no console errors.
+- **Known perf ceiling:** the house is 1.4M vertices. Headless software
+  rendering struggles with it; not yet tried on a real phone. If phones stutter, simplify
+  the mesh (`gltf-transform simplify`) before cutting features.
