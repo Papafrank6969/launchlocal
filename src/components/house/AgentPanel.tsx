@@ -1,11 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { X } from "lucide-react";
 import type { HouseResponse } from "@/app/api/house/route";
 import type { AgentDetail } from "@/app/api/agents/[id]/route";
 import { CHAT_MAX_CHARS } from "@/lib/agentChat";
 import { formatMicros } from "@/lib/houseStats";
+import { instagramDmUrl } from "@/lib/templates";
+import { SENT_BODY_MAX, type ApprovalAction } from "@/lib/approvalDecision";
 
 type Agent = HouseResponse["agents"][number];
 const TABS = ["Now", "Queue", "Schedule", "Chat", "Approvals"] as const;
@@ -176,21 +179,14 @@ export function AgentPanel({ agent, onClose, onChanged }: { agent: Agent | null;
 
             {tab === "Approvals" && (
               <div className="space-y-3">
-                <p className="rounded-md bg-blue-50 px-3 py-2 text-blue-800">Approve / edit / reject arrives next.</p>
                 {!detail ? (
                   <p className="text-slate-500">Loading…</p>
                 ) : detail.approvals.length === 0 ? (
                   <p className="text-slate-500">No drafts waiting.</p>
                 ) : (
-                  <ul className="space-y-2">
+                  <ul className="space-y-3">
                     {detail.approvals.map((a) => (
-                      <li key={a.id} className="rounded-lg bg-slate-50 p-3">
-                        <div className="font-medium text-slate-900">{a.title}</div>
-                        <div className="text-xs text-slate-500">
-                          {a.kind} · {when(a.createdAt)}
-                        </div>
-                        <p className="mt-1 whitespace-pre-wrap">{a.body}</p>
-                      </li>
+                      <ApprovalCard key={a.id} approval={a} onDecided={() => (load(), onChanged())} />
                     ))}
                   </ul>
                 )}
@@ -266,5 +262,161 @@ function ChatTab({ agentId, messages, onSent }: { agentId: string; messages: Age
         </button>
       </form>
     </div>
+  );
+}
+
+type Approval = AgentDetail["approvals"][number];
+
+const btn = "rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-50";
+const primary = `${btn} bg-blue-600 text-white hover:bg-blue-700`;
+const secondary = `${btn} border border-slate-300 text-slate-700 hover:bg-slate-50`;
+const danger = `${btn} border border-red-200 text-red-700 hover:bg-red-50`;
+
+function sitePreview(body: string): { businessName?: string; category?: string; rating?: number | null; serviceNames?: string[]; instagramHandle?: string | null } | null {
+  try {
+    return JSON.parse(body).preview ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function ApprovalCard({ approval: a, onDecided }: { approval: Approval; onDecided: () => void }) {
+  const isDm = a.kind === "DM_DRAFT" || a.kind === "FOLLOW_UP_DRAFT";
+  const [text, setText] = useState(a.body);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [site, setSite] = useState<{ id: string; slug: string } | null>(null);
+  const dmUrl = instagramDmUrl(a.lead?.instagramHandle);
+  const fieldId = `approval-${a.id}`;
+
+  async function act(action: ApprovalAction) {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/approvals/${a.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(action === "sent" ? { action, body: text } : { action }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) return setError(body.error ?? `HTTP ${res.status}`);
+      if (action === "create" && body.site) return setSite(body.site); // show the link; refresh on "Done"
+      onDecided();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function copyAndOpen() {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard blocked: the DM still opens, Frank can copy by hand */
+    }
+    if (dmUrl) window.open(dmUrl, "_blank", "noopener,noreferrer");
+  }
+
+  const preview = a.kind === "SITE_DRAFT" ? sitePreview(a.body) : null;
+
+  return (
+    <li className="rounded-lg border border-slate-200 bg-white p-3">
+      <div className="font-medium text-slate-900">{a.title}</div>
+      <div className="text-xs text-slate-500">
+        {a.kind} · {when(a.createdAt)}
+        {a.lead && a.lead.instagramHandle ? ` · @${a.lead.instagramHandle.replace(/^@/, "")}` : ""}
+      </div>
+
+      {isDm ? (
+        <>
+          <label htmlFor={fieldId} className="sr-only">
+            Message to {a.lead?.name ?? "lead"}
+          </label>
+          <textarea
+            id={fieldId}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            maxLength={SENT_BODY_MAX}
+            rows={5}
+            className="mt-2 w-full rounded-md border border-slate-300 p-2 text-sm focus-visible:outline-2 focus-visible:outline-blue-600"
+          />
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button type="button" onClick={copyAndOpen} disabled={!dmUrl} className={secondary}>
+              {copied ? "Copied" : "Copy & open Instagram"}
+            </button>
+            <button type="button" onClick={() => act("sent")} disabled={busy || !text.trim()} className={primary}>
+              Mark sent
+            </button>
+            <button type="button" onClick={() => act("reject")} disabled={busy} className={secondary}>
+              Reject
+            </button>
+            <button type="button" onClick={() => act(a.kind === "DM_DRAFT" ? "notFit" : "giveUp")} disabled={busy} className={danger}>
+              {a.kind === "DM_DRAFT" ? "Not a fit" : "Give up"}
+            </button>
+          </div>
+          {!dmUrl && <p className="mt-1 text-xs text-slate-500">No Instagram handle on this lead.</p>}
+        </>
+      ) : a.kind === "SITE_DRAFT" ? (
+        <>
+          {preview ? (
+            <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-sm">
+              <dt className="text-slate-500">Business</dt>
+              <dd>{preview.businessName}</dd>
+              <dt className="text-slate-500">Category</dt>
+              <dd className="capitalize">{preview.category}</dd>
+              {preview.rating != null && (
+                <>
+                  <dt className="text-slate-500">Rating</dt>
+                  <dd>{preview.rating}</dd>
+                </>
+              )}
+              {!!preview.serviceNames?.length && (
+                <>
+                  <dt className="text-slate-500">Services</dt>
+                  <dd>{preview.serviceNames.join(", ")}</dd>
+                </>
+              )}
+            </dl>
+          ) : (
+            <p className="mt-1 whitespace-pre-wrap">{a.body}</p>
+          )}
+          {site ? (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <Link href={`/builder/${site.id}`} className="text-sm font-medium text-blue-700 hover:underline">
+                Open in builder
+              </Link>
+              <button type="button" onClick={onDecided} className={secondary}>
+                Done
+              </button>
+            </div>
+          ) : (
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button type="button" onClick={() => act("create")} disabled={busy} className={primary}>
+                {busy ? "Creating…" : "Create site"}
+              </button>
+              <button type="button" onClick={() => act("reject")} disabled={busy} className={secondary}>
+                Reject
+              </button>
+            </div>
+          )}
+          <p className="mt-1 text-xs text-slate-500">Creates a live, noindexed pitch site, same as the Draft button.</p>
+        </>
+      ) : (
+        <>
+          <p className="mt-1 whitespace-pre-wrap">{a.body}</p>
+          <button type="button" onClick={() => act("done")} disabled={busy} className={`${secondary} mt-2`}>
+            Done
+          </button>
+        </>
+      )}
+
+      {error && (
+        <p role="alert" className="mt-2 text-sm text-red-700">
+          {error}
+        </p>
+      )}
+    </li>
   );
 }

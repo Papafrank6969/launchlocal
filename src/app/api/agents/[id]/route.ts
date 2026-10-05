@@ -27,7 +27,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     db.approval.findMany({
       where: { agentId: id, state: "PENDING" },
       orderBy: { createdAt: "desc" },
-      select: { id: true, kind: true, title: true, body: true, createdAt: true },
+      select: { id: true, kind: true, title: true, body: true, leadId: true, createdAt: true },
     }),
     db.agentMessage.findMany({
       where: { agentId: id },
@@ -37,12 +37,27 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     }),
   ]);
 
-  return NextResponse.json({ runs, tasks, approvals, messages: messages.reverse() });
+  // Approval.leadId has no relation, so fetch the leads the cards need in one query.
+  const leadIds = [...new Set(approvals.map((a) => a.leadId).filter((x): x is string => !!x))];
+  const leads = leadIds.length
+    ? await db.lead.findMany({ where: { id: { in: leadIds } }, select: { id: true, name: true, instagramHandle: true, outreachStatus: true } })
+    : [];
+  const withLeads = approvals.map((a) => ({ ...a, lead: leads.find((l) => l.id === a.leadId) ?? null }));
+
+  return NextResponse.json({ runs, tasks, approvals: withLeads, messages: messages.reverse() });
 }
 
 export type AgentDetail = {
   runs: { id: string; trigger: string; outcome: string | null; summary: string | null; error: string | null; costMicros: number; startedAt: string }[];
   tasks: { id: string; kind: string; leadId: string | null; createdAt: string }[];
-  approvals: { id: string; kind: string; title: string; body: string; createdAt: string }[];
+  approvals: {
+    id: string;
+    kind: string;
+    title: string;
+    body: string;
+    leadId: string | null;
+    createdAt: string;
+    lead: { id: string; name: string; instagramHandle: string | null; outreachStatus: string } | null;
+  }[];
   messages: { id: string; role: string; content: string; createdAt: string }[];
 };

@@ -1,6 +1,6 @@
 # Feature plan: Frat House: `approvals-flow`
 
-**Status:** approved 2026-10-04 (Frank took both §7 defaults), building
+**Status:** built 2026-10-04 (see §8)
 **Module:** `approvals-flow` (see `docs/FRAT-HOUSE-MAP.md`; depends on `agent-runtime` #14, `brothers` #16, and the panel from `house-ui` #15)
 **Branch:** `feature/frat-house-approvals`, stacked on `feature/frat-house-brothers` (#16)
 **Scope class:**
@@ -139,3 +139,26 @@ check `/today` and the one-click draft by hand once.
 
 1. Create site makes it **PUBLISHED**, same as the one-click Draft button.
 2. DM cards get both **Reject** (may be redrafted) and **Not a fit** (lead → LOST).
+
+## 8. As built (2026-10-04)
+
+- Built as specced. Cards live in `AgentPanel.tsx` (`ApprovalCard`). After
+  Create site, the card shows "Open in builder" plus a Done button that refreshes
+  the list.
+- **Moves verified identical:** `siteCreate.ts` differs from the old route code
+  only by `export` keywords. `leadOutreach.ts` is the old PATCH body, returning a
+  result instead of a response.
+- **Verified live** (dev server, local Postgres, real brothers filing drafts on
+  3 marked test leads, all deleted afterwards):
+  - UI: edited a DM, adding an em dash on purpose, then clicked Mark sent. The
+    card disappeared, the badge dropped, the lead went CONTACTED with a follow-up
+    3 days out, there was exactly one `LEAD_CONTACTED` event, and the saved body
+    has the dash scrubbed.
+  - Repeat decision on a decided draft → 409. Two simultaneous Mark sent clicks
+    on a follow-up → one 200 and one 409, and the count went up once.
+  - Create site → a PUBLISHED site for the lead, approval APPROVED.
+  - Stale DM draft for an already-CONTACTED lead → 409 "TEST Fade Lab is
+    already CONTACTED". Reject still works.
+  - One-click Draft (`POST /api/sites {leadId}`) and `PATCH /api/leads/[id]`
+    (update, 400 bad status, 404 missing) behave as before.
+  - No console errors.
