@@ -60,7 +60,7 @@ function photoListOf<T>(
     refs.length === 0
       ? ""
       : names.size > 0
-        ? `Photos via Google — ${[...names].join(", ")}`
+        ? `Photos via Google: ${[...names].join(", ")}`
         : "Photos via Google";
 
   return { refs, attribution };

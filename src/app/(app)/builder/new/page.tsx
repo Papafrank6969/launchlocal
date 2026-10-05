@@ -46,7 +46,6 @@ function NewSiteInner() {
             email: d.lead.email ?? "",
             address: d.lead.address ?? "",
             instagramHandle: d.lead.instagramHandle ?? "",
-            tagline: `Your trusted ${d.lead.category} in ${d.lead.city}`,
             category: d.lead.category ?? "",
             googlePlaceId: d.lead.placeId ?? "",
             rating: d.lead.rating ?? null,
