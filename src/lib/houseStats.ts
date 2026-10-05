@@ -41,6 +41,8 @@ export function mergeAgents(
 /** Integer micros → "$0.002" style. Sub-cent amounts keep 3 decimals so a cheap call isn't "$0.00". */
 export function formatMicros(micros: number): string {
   if (micros > 0 && micros < 1_000) return "<$0.001";
-  const dollars = micros / 1_000_000;
-  return `$${dollars >= 0.1 || micros === 0 ? dollars.toFixed(2) : dollars.toFixed(3)}`;
+  // Round on integer micros: toFixed on the float rounds 0.0045 down to 0.004.
+  return micros >= 100_000 || micros === 0
+    ? `$${(Math.round(micros / 10_000) / 100).toFixed(2)}`
+    : `$${(Math.round(micros / 1_000) / 1_000).toFixed(3)}`;
 }

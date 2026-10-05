@@ -1,6 +1,6 @@
 # Feature plan: Frat House: `brothers`
 
-**Status:** approved 2026-10-04 (Frank took all three §7 defaults), building
+**Status:** built 2026-10-04 (see §8 for how the build differs from this plan)
 **Module:** `brothers` (see `docs/FRAT-HOUSE-MAP.md`; depends on `agent-runtime`, merged in #14)
 **Branch:** `feature/frat-house-brothers`, stacked on `feature/frat-house-ui`
 (#15) because Treasurer reuses its `formatMicros`. Retarget the PR to `master`
@@ -96,7 +96,7 @@ says "(template)" so Frank can tell them apart.
 Heads-up: Rush Chair and Follow-up need an Instagram handle, and Handle Hunter
 is parked (Custom Search API is still broken). So expect few or zero DM drafts
 until leads have handles. That's correct behavior, and the run summary says
-"0 leads with a handle in the queue".
+"nothing new to draft (no undrafted NEW leads with a handle)".
 
 ### Non-goals
 
@@ -189,3 +189,25 @@ One test file per brother plus `draftText.test.ts`, all with a fake `ctx`:
 2. Builder is **propose-only**. No site exists until Frank approves in `approvals-flow`.
 3. Limits as listed: 10 Scout picks, 8 DM drafts, 8 follow-ups, 3 site proposals,
    pause at 16 unread.
+
+## 8. As built (2026-10-04)
+
+- **Layout:** jobs are pure (`scout.ts`, `rushChair.ts`, `followUp.ts`,
+  `builder.ts`, `treasurer.ts`). The `BrotherDefinition`s that wire each job to
+  its loader live in `index.ts`, so tests never import Prisma (it won't load
+  under jsdom). Shared bits: `draftText.ts` (`scrubDraft`, `acceptDraft`,
+  `parseDraftJson`, `templateIndex`, `writeDrafts`) and `testCtx.ts` (fake ctx).
+  All brother tests are in `brothers.test.ts` + `draftText.test.ts`.
+- **`formatMicros` fix** (`houseStats.ts`, from #15): it rounded 0.0045 down to
+  `$0.004` (float `toFixed`). It now rounds on integer micros. Regression test added.
+- **Verified live** (dev server, local Postgres, real Haiku, 3 marked test leads,
+  deleted afterwards): all five ran `OK` in about 4s total for $0.0015. Scout ranked,
+  Rush Chair and Follow-up each wrote a fact-only DM with no em dash, Builder
+  proposed a `SITE_DRAFT` with no Claude call, and Treasurer filed the digest.
+  Second run: no duplicates (Scout and Treasurer "already filed today", the others
+  had nothing new).
+- **Found, not fixed (out of scope):** `leadToDraftSite` sets the tagline to
+  "Your trusted <category> in <city>", which is the kind of vacuous line
+  `BRAND-AND-COMPLIANCE-STANDARDS.md` bans. It shows in every `SITE_DRAFT`
+  preview and in today's one-click drafts. It needs its own small fix.
+- **After merge:** `UPDATE "Agent" SET enabled = false WHERE id = 'pledge';` in prod.
