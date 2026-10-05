@@ -3,7 +3,7 @@
 
 export type ApprovalKind = "DM_DRAFT" | "FOLLOW_UP_DRAFT" | "SITE_DRAFT" | "NOTE";
 export type AgentStatus = "IDLE" | "RUNNING" | "ERROR" | "OFF";
-export type RunTrigger = "CRON" | "MANUAL";
+export type RunTrigger = "CRON" | "MANUAL" | "CHAT";
 export type RunOutcome = "OK" | "ERROR" | "SKIPPED_BUDGET" | "SKIPPED_BUSY";
 
 export type BrotherContext = {

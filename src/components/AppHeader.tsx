@@ -12,6 +12,7 @@ const NAV_LINKS = [
   { href: "/pipeline", label: "Pipeline" },
   { href: "/builder", label: "Site Builder" },
   { href: "/stats", label: "Stats" },
+  { href: "/house", label: "Frat House" },
 ];
 
 export function AppHeader() {

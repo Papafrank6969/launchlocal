@@ -49,9 +49,36 @@ export type RunnerDeps = {
   callClaude(input: { model: string; system: string; prompt: string; maxTokens: number }): Promise<{ text: string; usage: Usage }>;
 };
 
-function errorText(err: unknown): string {
+export function errorText(err: unknown): string {
   const msg = err instanceof Error ? err.message : String(err);
   return msg.slice(0, ERROR_MAX_CHARS);
+}
+
+export type Meter = {
+  totals: { inputTokens: number; outputTokens: number; costMicros: number };
+  ask: BrotherContext["ask"];
+};
+
+/** Metered, capped Claude calls for one run. Shared by brother runs and chat. */
+export function createMeter(model: string, spentToday: number, deps: Pick<RunnerDeps, "budgetMicros" | "callClaude">): Meter {
+  const totals = { inputTokens: 0, outputTokens: 0, costMicros: 0 };
+  return {
+    totals,
+    async ask({ system, prompt, maxTokens }) {
+      if (maxTokens > MAX_TOKENS_PER_CALL) {
+        throw new Error(`maxTokens ${maxTokens} exceeds ${MAX_TOKENS_PER_CALL}`);
+      }
+      costMicros(model, { input_tokens: 0, output_tokens: 0 }); // unknown model → throws before spending
+      if (!canSpend(spentToday + totals.costMicros, deps.budgetMicros)) {
+        throw new BudgetExceededError("daily budget reached");
+      }
+      const res = await deps.callClaude({ model, system, prompt, maxTokens });
+      totals.inputTokens += res.usage.input_tokens;
+      totals.outputTokens += res.usage.output_tokens;
+      totals.costMicros += costMicros(model, res.usage);
+      return res.text;
+    },
+  };
 }
 
 /** Runs one brother: busy check → budget check → work → record. Never throws. */
@@ -82,23 +109,11 @@ async function run(def: BrotherDefinition, trigger: RunTrigger, deps: RunnerDeps
   const runId = await deps.startRun(def.id, trigger);
   await deps.updateAgent(def.id, { status: "RUNNING", currentTask: null, lastRunAt: now });
 
-  const totals = { inputTokens: 0, outputTokens: 0, costMicros: 0 };
+  const meter = createMeter(agent.model, spentToday, deps);
+  const totals = meter.totals;
 
   const ctx: BrotherContext = {
-    async ask({ system, prompt, maxTokens }) {
-      if (maxTokens > MAX_TOKENS_PER_CALL) {
-        throw new Error(`maxTokens ${maxTokens} exceeds ${MAX_TOKENS_PER_CALL}`);
-      }
-      costMicros(agent.model, { input_tokens: 0, output_tokens: 0 }); // unknown model → throws before spending
-      if (!canSpend(spentToday + totals.costMicros, deps.budgetMicros)) {
-        throw new BudgetExceededError("daily budget reached");
-      }
-      const res = await deps.callClaude({ model: agent.model, system, prompt, maxTokens });
-      totals.inputTokens += res.usage.input_tokens;
-      totals.outputTokens += res.usage.output_tokens;
-      totals.costMicros += costMicros(agent.model, res.usage);
-      return res.text;
-    },
+    ask: meter.ask,
     async propose(input) {
       await deps.createApproval({ agentId: def.id, runId, ...input });
     },

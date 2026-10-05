@@ -1,0 +1,94 @@
+<!doctype html><html><head><meta charset="utf-8"><title>loading</title>
+<style>html,body{margin:0;height:100%;background:#0b1020;font:13px system-ui;color:#cbd5e1}canvas{display:block}#tip{position:fixed;left:12px;bottom:10px;opacity:.8}</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"}}</script></head>
+<body><div id="tip">Drag to rotate · scroll to zoom · right-drag to pan</div><script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+const q = new URLSearchParams(location.search);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true; document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color("#0b1020");
+scene.add(new THREE.HemisphereLight("#cfe0ff", "#2a3040", 1.5));
+const sun = new THREE.DirectionalLight("#fff6e8", 2.4); sun.position.set(40, 60, 40); sun.castShadow = true;
+Object.assign(sun.shadow.camera, { left: -45, right: 45, top: 45, bottom: -45 }); sun.shadow.mapSize.set(2048, 2048); scene.add(sun);
+const cam = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.1, 2000);
+const controls = new OrbitControls(cam, renderer.domElement); controls.enableDamping = true;
+const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+// Run from the repo root: npx serve . then open /docs/house-prototype/scene.html
+const load = (f) => new Promise((res, rej) => loader.load("/public/house/" + f, (g) => res(g.scene), undefined, rej));
+
+// Lot layout measured from the top-down render (meters, model units).
+const LOT = { minX: -4.1, maxX: 21.6, frontZ: 3.5 };
+const GATE_X = 12.4;
+
+function box(w, h, d, color, x, y, z) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshStandardMaterial({ color, roughness: 0.95 }));
+  m.position.set(x, y, z); m.receiveShadow = true; scene.add(m); return m;
+}
+
+// Scale a car to its real length, turn it so its length runs along Z, sit it on the pad.
+function placeCar(obj, lengthM, x, groundY, z, yaw = 0) {
+  let b = new THREE.Box3().setFromObject(obj), s = b.getSize(new THREE.Vector3());
+  if (s.x > s.z) obj.rotation.y = Math.PI / 2;            // length along Z
+  b = new THREE.Box3().setFromObject(obj); s = b.getSize(new THREE.Vector3());
+  obj.scale.multiplyScalar(lengthM / Math.max(s.x, s.z));
+  obj.rotation.y += yaw;
+  // Align on the biggest part (the body), not the overall box: stray helper
+  // parts in some exports stretch the overall bounds.
+  obj.updateMatrixWorld(true);
+  let body = null, bodyVol = 0;
+  obj.traverse((o) => { if (o.isMesh) { const bb = new THREE.Box3().setFromObject(o), sz = bb.getSize(new THREE.Vector3()), v = sz.x * sz.y * sz.z; if (v > bodyVol) { bodyVol = v; body = bb; } } });
+  b = new THREE.Box3().setFromObject(obj); const c = body.getCenter(new THREE.Vector3());
+  obj.position.x += x - c.x; obj.position.z += z - body.min.z; obj.position.y += groundY - b.min.y; // z = house-side edge of the body
+  obj.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  scene.add(obj);
+  obj.updateMatrixWorld(true);
+  const fb = new THREE.Box3().setFromObject(obj);
+  (window.__dbg ??= []).push({ target: { x, z }, final: { minZ: +fb.min.z.toFixed(2), maxZ: +fb.max.z.toFixed(2), minX: +fb.min.x.toFixed(2), maxX: +fb.max.x.toFixed(2) }, body: { minZ: +body.min.z.toFixed(2) } });
+}
+
+const house = await load("house-final.glb");
+house.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+scene.add(house);
+
+// Lawn height: raycast down onto the back lawn.
+const ray = new THREE.Raycaster(new THREE.Vector3(0, 100, -28), new THREE.Vector3(0, -1, 0));
+const hit = ray.intersectObject(house, true)[0]; const lawnY = hit ? hit.point.y : 2;
+
+// Driveway apron in front of the lot, path through the gate, street beyond, big grass ground.
+const padDepth = 8.5, padZ = LOT.frontZ + padDepth / 2 + 0.2;
+box(200, 0.2, 200, "#1f3320", 9, lawnY - 0.35, 0);                                   // ground
+box(LOT.maxX - LOT.minX, 0.12, padDepth, "#9a9a95", (LOT.minX + LOT.maxX) / 2, lawnY - 0.04, padZ); // pad
+box(3.2, 0.12, 4, "#9a9a95", GATE_X, lawnY - 0.03, LOT.frontZ - 1.6);                // path into gate
+const streetZ = LOT.frontZ + padDepth + 0.2 + 4;
+box(200, 0.1, 8, "#2b2d31", 9, lawnY - 0.06, streetZ);                               // street
+for (let x = -60; x < 80; x += 6) box(2.5, 0.11, 0.18, "#d9d4b8", x, lawnY - 0.05, streetZ); // lane dashes
+box(200, 0.25, 0.3, "#b5b5ae", 9, lawnY - 0.02, streetZ - 4.1);                      // curb
+
+// Cars: real lengths (m). Nose toward the house.
+const cars = [
+  ["porsche.glb", 4.56, -1.5],
+  ["rolls.glb", 5.55, 2.7],
+  ["ferrari.glb", 4.66, 6.9],
+  ["svj.glb", 4.94, 11.1],
+  ["revuelto.glb", 4.95, 15.3],
+  ["bugatti.glb", 4.67, 19.5],
+];
+const results = await Promise.allSettled(cars.map(([f]) => load(f)));
+results.forEach((r, i) => {
+  if (r.status === "fulfilled") placeCar(r.value, cars[i][1], cars[i][2], lawnY + 0.02, LOT.frontZ + 1.2, Number(q.get("yaw") || 0));
+});
+
+// Camera: front three-quarter, looking at the house + driveway.
+const center = new THREE.Vector3(Number(q.get("cx") ?? 9), lawnY + Number(q.get("cy") ?? 3), Number(q.get("cz") ?? -6));
+const az = Number(q.get("az") || 60) * Math.PI / 180, r = Number(q.get("r") || 52);
+cam.position.set(center.x + r * Math.sin(az), lawnY + Number(q.get("h") || 22), center.z + r * Math.cos(az));
+controls.target.copy(center); controls.autoRotate = q.get("spin") === "1"; controls.autoRotateSpeed = 0.5;
+(function loop() { controls.update(); renderer.render(scene, cam); requestAnimationFrame(loop); })();
+document.title = "done " + JSON.stringify({ lawnY: +lawnY.toFixed(2), cars: results.map((r) => r.status) });
+addEventListener("resize", () => { cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+</script></body></html>
