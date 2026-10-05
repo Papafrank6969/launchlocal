@@ -41,14 +41,13 @@ const clean = (v?: string | null): string | null => v?.trim() || null;
 
 export function leadToDraftSite(lead: LeadForDraft): DraftSiteInput {
   const category = lead.category.trim();
-  const city = lead.city.trim();
 
   return {
     businessName: lead.name.trim(),
-    // A neutral, factual starting-point tagline the operator personalises before
-    // sending. Deliberately not a claim ("trusted", "best") — an un-edited
-    // placeholder still has to be true for any business.
-    tagline: category && city ? `${category} in ${city}` : "",
+    // Blank on purpose: a generic "Your trusted <category> in <city>" line is
+    // the vacuous copy BRAND-AND-COMPLIANCE-STANDARDS.md bans, and the tagline
+    // is operator-written. Templates render nothing when it's empty.
+    tagline: "",
     category,
     address: clean(lead.address),
     phone: clean(lead.phone),

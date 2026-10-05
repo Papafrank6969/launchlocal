@@ -31,6 +31,7 @@ Last updated: 2026-09-06 by boss. App **live** at https://launchlocal-silk.verce
 | Track | Spec | Owner | Branch | PR | Status | Next action (whose) |
 | --- | --- | --- | --- | --- | --- | --- |
 | **Track 3 — `/today` DM worklist** | `docs/TODAY-QUEUE-PLAN.md` | _unassigned_ | `feature/today-queue` (off `origin/master`) | — | specced, not started | Assign to the next agent that starts; agent builds per plan. Boss+user owe plan §0 (enable Custom Search API + CSE) for prod verification. |
+| **Frat House 1/4 — `agent-runtime`** | `docs/FRAT-HOUSE-RUNTIME-PLAN.md` (map: `docs/FRAT-HOUSE-MAP.md`) | boss (Claude Code) | `feature/frat-house-runtime` | [#14](https://github.com/Papafrank6969/launchlocal/pull/14) | built, gate green, verified locally (live Haiku runs + budget stop + gate) | Frank reviews + merges. Vercel env (`ANTHROPIC_API_KEY`, `OPERATOR_PASSWORD`) already added by Frank 2026-10-04. Next modules: `brothers` ∥ `house-ui`. |
 
 **Goal context:** user wants a server that queues ~25 fresh leads/day (NYC + Long Island barbershops & salons) to DM manually after school (~3pm ET, 3yr-old IG account). Tracks 1 (deploy) + 2 (lead cron) SHIPPED. Track 3 (`/today` DM worklist) is the last one — specced.
 
@@ -50,17 +51,16 @@ Last updated: 2026-09-06 by boss. App **live** at https://launchlocal-silk.verce
 
 ### Compliance & brand pass (`docs/COMPLIANCE-AUDIT-2026-09.md`, standards in `docs/BRAND-AND-COMPLIANCE-STANDARDS.md`)
 
-Frank's "don't get sued / don't look vibe coded" pass, 2026-09-06. 7 tracks, carved to not collide. **C-A and C-E are blocked on Frank's decisions 1–5 in the audit; C-C and C-D can start now.** Suggested order: C-C, C-D → C-B → C-A, C-E → C-F → C-G.
+Frank's "don't get sued / don't look vibe coded" pass, 2026-09-06. 7 tracks, carved to not collide. Decisions 1–5 resolved (see audit). **Two PRs open (#12, #13) — Frank/boss to land.** Remaining: C-B + C-D need a working dev env; C-F needs a lawyer; C-G after #12/#13 land.
 
-| Track | Scope | Blocked on |
+| Track | Scope | Status |
 | --- | --- | --- |
-| **C-C — Brand fixes in templates** | Kill pill buttons + `uppercase tracking-widest` (`templates.tsx` `HeroCtaRow`), remove em dash from trust-bar snippet + `photoAttribution.ts` delimiter (+test), flatten the blank-service-card gradient, weak hero `alt` text, vague default tagline in `leadToSite.ts`. Findings B-1/2/3/5/6. | nothing — **ready** |
-| **C-D — Places data retention** | 30-day cache limit (Google Maps Platform Terms §3.2.3). Add `placesRefreshedAt`, refresh-or-null non-ID Places fields > 30d, review-text TTL. `places.ts`, `placesPhotos.ts`, `schema.prisma`, a cron. Finding F-2 (P0). | nothing — **ready** |
-| **C-B — Cookies & third-party embeds** | Self-host the ~13 Google Fonts families (`next/font`), replace/gate the Google Maps iframe, fix or retire the accept-only cookie banner. F-5/6/7. | Decision 2 (posture) |
-| **C-A — Client-site legal pages** | Rewrite `legalContent.ts` (real processors/retention/rights/fixed last-updated), add Cookie Policy + Refund/Cancellation pages, footer links. F-3/4/8. | Decisions 1, 2, 4 |
-| **C-E — App legal + hardening** | `/(app)/privacy` + `/(app)/terms` + footer links, `noindex` meta on `(app)`, contact-form consent line, submission retention, `docs/DATA-HANDLING.md` (SHIELD Act). F-9/10/11/12. | Decision 1 |
-| **C-F — Unclaimed pitch sites** | Disclosure banner ("prepared by LaunchLocal, not affiliated, claim/remove: …") + takedown path, or switch to auth-gated previews. F-1 (P0). | Decision 5 + lawyer |
-| **C-G — Guard tests** | `templates.test.ts` + repo-wide assertions: no em dash, no `rounded-full` on a button, no gradient, legal pages non-blank. | after C-A/C-C |
+| **C-C — Brand fixes in templates** | Pill buttons, em dashes, blank-card gradient, hero alt, tagline, scroll bar. B-1..6. | **PR [#12](https://github.com/Papafrank6969/launchlocal/pull/12)** — gate green, boss-reviewed, awaiting merge. |
+| **C-A + C-E — Legal pages** | `legalContent.ts` rewrite, client cookie-policy + refund pages, app privacy/terms, `(app)` noindex, contact-form consent line, `docs/DATA-HANDLING.md`. F-3/4/8/9/10/11. | **PR [#13](https://github.com/Papafrank6969/launchlocal/pull/13)** — gate green (400 tests). Land C-B with/before it (see PR notes). |
+| **C-D — Places data retention** | **Specced: `docs/PLACES-RETENTION-PLAN.md`.** `Lead.placesRefreshedAt`, `placesRetention.ts`, `fetchPlaceById`, `/api/cron/refresh-places` (`0 4 * * *`) + a 24-mo `ContactSubmission` purge. F-2 (P0), F-12. | Needs an agent with a working local Postgres (boss clone can't `prisma migrate dev`). |
+| **C-B — Cookies & third-party embeds** | **Specced: `docs/COOKIES-FONTS-PLAN.md`.** `next/font/google` self-host for all ~20 families, Maps iframe → directions card, delete the cookie banner. F-5/6/7. US-clean. | Needs an agent that can run the app (verify Network tab). |
+| **C-F — Unclaimed pitch sites** | Disclosure banner + takedown path (Frank's decision 5). F-1 (P0). | Ready + **lawyer**. |
+| **C-G — Guard tests** | `templates.test.ts` + repo-wide assertions: no em dash, no `rounded-full` button, no gradient, legal pages non-blank. | After #12 + #13 land. |
 
 ## Shipped
 

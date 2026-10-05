@@ -112,7 +112,17 @@ the still-open item of a real contact email (blocks C-A/C-E from *final*, not
 from starting) and the lawyer review of C-F. Standards + audit committed
 `77baa1d`.
 
-- **C-C** — brand fixes: _in progress (boss)._
-- **C-D** — Places retention: ready.
-- **C-B / C-A / C-E / C-F** — ready to assign.
+- **C-C** — brand fixes: **PR #12** (boss-reviewed, gate green, awaiting merge).
+- **C-D** — Places retention: **specced** → `docs/PLACES-RETENTION-PLAN.md`.
+  Needs an agent with a working local Postgres (boss clone can't `migrate dev`).
+- **C-B** — cookies/fonts: **specced** → `docs/COOKIES-FONTS-PLAN.md`. Needs an
+  app-capable clone to verify the Network tab.
+- **C-A / C-E** — ready once Frank supplies a contact email.
+- **C-F** — ready + lawyer.
 - **C-G** — after C-A/C-C.
+
+Boss note (2026-09-06): the boss's clone runs pure-logic work and docs fine
+(C-C landed that way) but **cannot run the app or Prisma migrations** — local
+`.env` still has a SQLite `file:` `DATABASE_URL` against a `postgresql` schema,
+no `DIRECT_URL`. C-D/C-B are specced to hand off rather than half-built with an
+unverifiable migration.

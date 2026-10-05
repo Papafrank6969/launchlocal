@@ -11,11 +11,11 @@ operator step that makes live lead search work.
 | **Places API (legacy)** (`maps.googleapis.com/maps/api/place/...`) | Tier-2 fallback in `findBusinesses` when Places API (New) errors; also powers review pulls | `GOOGLE_PLACES_API_KEY` | Kept as the fallback path — see `src/lib/places.ts`. |
 | **Geocoding API** (`maps.googleapis.com/maps/api/geocode/...`) | Resolves a `city` to lat/lng for radius searches | `GOOGLE_PLACES_API_KEY` | Not deprecated; used by both the New path (radius `locationRestriction`) and the legacy path. |
 | **Places Photos (New)** | "Pull photos from Google" in the site editor — place lookup with a `photos` field mask → photo resource names (`places/…/photos/…`) → `/media?maxWidthPx=` for bytes | `GOOGLE_PLACES_API_KEY` | Same key + "Places API (New)" enablement as the search path (no extra step). Legacy `place/photo` + Details `photos` kept as the fallback tier — see `src/lib/placesPhotos.ts`. |
-| **Custom Search JSON API** | On-demand Instagram handle lookup for leads with no website | `GOOGLE_CUSTOM_SEARCH_API_KEY` (+ `GOOGLE_CUSTOM_SEARCH_ENGINE_ID`) | Falls back to `GOOGLE_PLACES_API_KEY` if the dedicated key is unset. 100 queries/day free, ~$5/1k after — which is why lookup is a manual per-lead button. |
+| ~~Custom Search JSON API~~ | **No longer used.** Google closed it to new customers and shuts it down 2027-01-01; this project could never enable it (`PERMISSION_DENIED`). Instagram lookup moved to the **Brave Search API** (`BRAVE_SEARCH_API_KEY`, not a Google API). See `src/lib/instagramLookup.ts`. | — | `GOOGLE_CUSTOM_SEARCH_*` env vars can be deleted. |
 
 The daily lead cron (`/api/cron/daily-leads`) makes ~4–6 Places searches/day
 (~120–180/month) on top of interactive use — well inside the free tier. The
-cron does **not** call the Custom Search API. See `.env.example` for
+cron does **not** do Instagram lookups. See `.env.example` for
 `CRON_SECRET`, which authenticates the Vercel Cron request.
 
 The non-Google env vars used alongside these: `PEXELS_API_KEY` (stock photos),
