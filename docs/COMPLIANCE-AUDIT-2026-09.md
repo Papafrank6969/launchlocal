@@ -113,13 +113,21 @@ from starting) and the lawyer review of C-F. Standards + audit committed
 `77baa1d`.
 
 - **C-C** — brand fixes: **PR #12** (boss-reviewed, gate green, awaiting merge).
+- **C-A + C-E** — legal pages: **PR #13** (gate green). `legalContent.ts`
+  rewritten (F-3), client cookie-policy + refund pages added (F-4, F-8), app
+  privacy + terms added (F-9), `(app)` noindex meta (F-10), contact-form consent
+  line (F-8), `docs/DATA-HANDLING.md` (F-11). Contact email:
+  `Frank.Sulawa@icloud.com` (Frank's call, 2026-09-06). Submission 24-month
+  purge (F-12) folded into C-D's cron.
 - **C-D** — Places retention: **specced** → `docs/PLACES-RETENTION-PLAN.md`.
   Needs an agent with a working local Postgres (boss clone can't `migrate dev`).
 - **C-B** — cookies/fonts: **specced** → `docs/COOKIES-FONTS-PLAN.md`. Needs an
-  app-capable clone to verify the Network tab.
-- **C-A / C-E** — ready once Frank supplies a contact email.
+  app-capable clone to verify the Network tab. **Land before or with C-A** so
+  the Cookie Policy's "fonts served from this site's own servers" is true.
 - **C-F** — ready + lawyer.
 - **C-G** — after C-A/C-C.
+
+F-3, F-4, F-8, F-9, F-10, F-11 → addressed in PR #13. F-12 → moved to C-D.
 
 Boss note (2026-09-06): the boss's clone runs pure-logic work and docs fine
 (C-C landed that way) but **cannot run the app or Prisma migrations** — local
