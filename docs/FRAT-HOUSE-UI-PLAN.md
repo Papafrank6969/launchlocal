@@ -276,13 +276,10 @@ regular DOM, so it can be read and has real contrast.
 1. **Boss:** Should the nav label be "Frat House" or "House"? Default: "Frat House".
 2. **Boss:** 15s polling is cheap (two small queries) but runs whenever the tab
    is open. It pauses while the tab is hidden (`visibilitychange`).
-3. **Frank, blocking before deploy:** licenses for the house model
-   (`Downloads/modern-house.zip`, no license file inside) and the six car models.
-   The cars are real brands (Porsche, Rolls-Royce, Ferrari, Lamborghini ×2,
-   Bugatti), and the compliance audit applies. The files are **not** public:
-   `/house/*.glb` sits under the `/house` operator root, so the proxy returns
-   401 without the password (verified 2026-10-04). Record each model's source and
-   license here. If any one says non-commercial or no-redistribution, take it out.
+3. ~~**Frank, blocking before deploy:** licenses for the house and car models.~~
+   **Resolved 2026-10-04:** Frank knows the creator personally, and they gave him
+   permission to use the house and the six car models. The files stay behind the
+   operator password (`/house/*.glb` returns 401 without it).
 
 ---
 
