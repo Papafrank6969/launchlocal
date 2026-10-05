@@ -1,28 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { lookupInstagramHandle, redactKey } from "./instagramLookup";
+import { BRAVE_SEARCH_URL, lookupInstagramHandle } from "./instagramLookup";
 
-const apiKey = "test-api-key";
-const cx = "test-cx";
-
-function stubEnv(key: string, value: string | undefined) {
-  if (value === undefined) {
-    vi.stubEnv(key, "");
-    delete process.env[key];
-  } else {
-    vi.stubEnv(key, value);
-  }
+function jsonResponse(body: unknown, status = 200): Response {
+  return { ok: status >= 200 && status < 300, status, json: async () => body } as unknown as Response;
 }
+const results = (...urls: string[]) => ({ web: { results: urls.map((url) => ({ url, title: "t" })) } });
 
-function jsonResponse(body: unknown, status = 200, ok = true): Response {
-  return {
-    ok,
-    status,
-    json: async () => body,
-  } as unknown as Response;
-}
-
-function errorBody(value: unknown) {
-  return { error: value } as const;
+function withKey() {
+  vi.stubEnv("BRAVE_SEARCH_API_KEY", "test-brave-key");
 }
 
 afterEach(() => {
@@ -30,240 +15,62 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-describe("lookupInstagramHandle", () => {
-  it("returns not_configured when only the API key is missing, without calling fetch", async () => {
-    const fetched = vi.fn();
-    vi.stubGlobal("fetch", fetched);
-    stubEnv("GOOGLE_CUSTOM_SEARCH_API_KEY", undefined);
-    stubEnv("GOOGLE_CUSTOM_SEARCH_ENGINE_ID", cx);
-
-    const result = await lookupInstagramHandle("Bella's Lashes", "Austin");
-
-    expect(result).toEqual({ status: "not_configured" });
-    expect(fetched).not.toHaveBeenCalled();
+describe("lookupInstagramHandle (Brave Search)", () => {
+  it("returns not_configured without a key, without calling fetch", async () => {
+    vi.stubEnv("BRAVE_SEARCH_API_KEY", "");
+    const fetchMock = vi.spyOn(globalThis, "fetch");
+    expect(await lookupInstagramHandle("Fade Lab", "Massapequa, NY")).toEqual({ status: "not_configured" });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("returns not_configured when only the CSE id is missing, without calling fetch", async () => {
-    const fetched = vi.fn();
-    vi.stubGlobal("fetch", fetched);
-    stubEnv("GOOGLE_CUSTOM_SEARCH_API_KEY", apiKey);
-    stubEnv("GOOGLE_CUSTOM_SEARCH_ENGINE_ID", undefined);
-
-    const result = await lookupInstagramHandle("Bella's Lashes", "Austin");
-
-    expect(result).toEqual({ status: "not_configured" });
-    expect(fetched).not.toHaveBeenCalled();
+  it("queries site:instagram.com with the quoted name and city, key in the header only", async () => {
+    withKey();
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(jsonResponse(results()));
+    await lookupInstagramHandle("Fade Lab", "Massapequa, NY");
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url.startsWith(BRAVE_SEARCH_URL)).toBe(true);
+    expect(new URL(url).searchParams.get("q")).toBe('site:instagram.com "Fade Lab" "Massapequa, NY"');
+    expect(url).not.toContain("test-brave-key");
+    expect((init.headers as Record<string, string>)["X-Subscription-Token"]).toBe("test-brave-key");
   });
 
-  it("returns found, pulling the handle out of the first item's link", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(
-        jsonResponse({ items: [{ link: "https://www.instagram.com/bella.lashes/" }] })
-      )
+  it("returns the first real handle, skipping reserved paths", async () => {
+    withKey();
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      jsonResponse(results("https://www.instagram.com/explore/tags/barber/", "https://www.instagram.com/fadelab_ny/")),
     );
-    stubEnv("GOOGLE_CUSTOM_SEARCH_API_KEY", apiKey);
-    stubEnv("GOOGLE_CUSTOM_SEARCH_ENGINE_ID", cx);
-
-    const result = await lookupInstagramHandle("Bella's Lashes", "Austin");
-
-    expect(result).toEqual({ status: "found", handle: "bella.lashes" });
+    expect(await lookupInstagramHandle("Fade Lab", "Massapequa, NY")).toEqual({ status: "found", handle: "fadelab_ny" });
   });
 
-  it("skips a reserved path item and uses the next real handle", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(
-        jsonResponse({
-          items: [
-            { link: "https://www.instagram.com/explore/tags/lashes/" },
-            { link: "https://www.instagram.com/bella.lashes/" },
-          ],
-        })
-      )
-    );
-    stubEnv("GOOGLE_CUSTOM_SEARCH_API_KEY", apiKey);
-    stubEnv("GOOGLE_CUSTOM_SEARCH_ENGINE_ID", cx);
-
-    const result = await lookupInstagramHandle("Bella's Lashes", "Austin");
-
-    expect(result).toEqual({ status: "found", handle: "bella.lashes" });
+  it("returns not_found when nothing on instagram.com matches", async () => {
+    withKey();
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(jsonResponse(results("https://example.com/fade-lab")));
+    expect(await lookupInstagramHandle("Fade Lab", "Massapequa, NY")).toEqual({ status: "not_found" });
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(jsonResponse({}));
+    expect(await lookupInstagramHandle("Fade Lab", "Massapequa, NY")).toEqual({ status: "not_found" });
   });
 
-  it("returns not_found when the response is OK but has no items", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ items: [] })));
-    stubEnv("GOOGLE_CUSTOM_SEARCH_API_KEY", apiKey);
-    stubEnv("GOOGLE_CUSTOM_SEARCH_ENGINE_ID", cx);
-
-    const result = await lookupInstagramHandle("No One Here", "Nowhere");
-
-    expect(result).toEqual({ status: "not_found" });
+  it.each([401, 403, 422])("returns key_rejected on %i", async (status) => {
+    withKey();
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(jsonResponse({ type: "ErrorResponse" }, status));
+    expect(await lookupInstagramHandle("a", "b")).toEqual({ status: "key_rejected" });
   });
 
-  it("returns api_disabled on a 403 status", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(jsonResponse({ error: { message: "Forbidden" } }, 403, false))
-    );
-    stubEnv("GOOGLE_CUSTOM_SEARCH_API_KEY", apiKey);
-    stubEnv("GOOGLE_CUSTOM_SEARCH_ENGINE_ID", cx);
-
-    const result = await lookupInstagramHandle("Bella's Lashes", "Austin");
-
-    expect(result).toEqual({ status: "api_disabled" });
+  it("returns rate_limited on 429", async () => {
+    withKey();
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(jsonResponse({}, 429));
+    expect(await lookupInstagramHandle("a", "b")).toEqual({ status: "rate_limited" });
   });
 
-  it("returns api_disabled when the body reports PERMISSION_DENIED", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(
-        jsonResponse(
-          errorBody({ status: "PERMISSION_DENIED", message: "This project does not have access to Custom Search JSON API." }),
-          403,
-          false
-        )
-      )
-    );
-    stubEnv("GOOGLE_CUSTOM_SEARCH_API_KEY", apiKey);
-    stubEnv("GOOGLE_CUSTOM_SEARCH_ENGINE_ID", cx);
+  it("returns error on a 500, malformed JSON, or a network failure", async () => {
+    withKey();
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(jsonResponse({}, 500));
+    expect(await lookupInstagramHandle("a", "b")).toMatchObject({ status: "error", detail: expect.stringContaining("500") });
 
-    const result = await lookupInstagramHandle("Bella's Lashes", "Austin");
+    vi.spyOn(globalThis, "fetch").mockResolvedValue({ ok: true, status: 200, json: async () => { throw new SyntaxError("bad"); } } as unknown as Response);
+    expect(await lookupInstagramHandle("a", "b")).toMatchObject({ status: "error" });
 
-    expect(result).toEqual({ status: "api_disabled" });
-  });
-
-  it("returns api_disabled when an error reason is SERVICE_DISABLED", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(
-        jsonResponse(
-          errorBody({ message: "Service disabled", errors: [{ reason: "SERVICE_DISABLED", domain: "usageLimits" }] }),
-          403,
-          false
-        )
-      )
-    );
-    stubEnv("GOOGLE_CUSTOM_SEARCH_API_KEY", apiKey);
-    stubEnv("GOOGLE_CUSTOM_SEARCH_ENGINE_ID", cx);
-
-    const result = await lookupInstagramHandle("Bella's Lashes", "Austin");
-
-    expect(result).toEqual({ status: "api_disabled" });
-  });
-
-  it("returns rate_limited on a 429 status", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(jsonResponse({ error: { message: "Quota exceeded" } }, 429, false))
-    );
-    stubEnv("GOOGLE_CUSTOM_SEARCH_API_KEY", apiKey);
-    stubEnv("GOOGLE_CUSTOM_SEARCH_ENGINE_ID", cx);
-
-    const result = await lookupInstagramHandle("Bella's Lashes", "Austin");
-
-    expect(result).toEqual({ status: "rate_limited" });
-  });
-
-  it("returns rate_limited when the body reports RESOURCE_EXHAUSTED", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(
-        jsonResponse(
-          errorBody({ status: "RESOURCE_EXHAUSTED", message: "Quota violated" }),
-          503,
-          false
-        )
-      )
-    );
-    stubEnv("GOOGLE_CUSTOM_SEARCH_API_KEY", apiKey);
-    stubEnv("GOOGLE_CUSTOM_SEARCH_ENGINE_ID", cx);
-
-    const result = await lookupInstagramHandle("Bella's Lashes", "Austin");
-
-    expect(result).toEqual({ status: "rate_limited" });
-  });
-
-  it("returns error with a non-empty detail on a 500", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(jsonResponse({ error: { message: "Internal error" } }, 500, false))
-    );
-    stubEnv("GOOGLE_CUSTOM_SEARCH_API_KEY", apiKey);
-    stubEnv("GOOGLE_CUSTOM_SEARCH_ENGINE_ID", cx);
-
-    const result = await lookupInstagramHandle("Bella's Lashes", "Austin");
-
-    expect(result.status).toBe("error");
-    if (result.status === "error") {
-      expect(result.detail.length).toBeGreaterThan(0);
-    }
-  });
-
-  it("returns error with a non-empty detail on a malformed JSON response", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: false,
-        status: 500,
-        json: async () => {
-          throw new SyntaxError("Unexpected token");
-        },
-      } as unknown as Response)
-    );
-    stubEnv("GOOGLE_CUSTOM_SEARCH_API_KEY", apiKey);
-    stubEnv("GOOGLE_CUSTOM_SEARCH_ENGINE_ID", cx);
-
-    const result = await lookupInstagramHandle("Bella's Lashes", "Austin");
-
-    expect(result.status).toBe("error");
-    if (result.status === "error") {
-      expect(result.detail.length).toBeGreaterThan(0);
-    }
-  });
-
-  it("returns error with a non-empty detail when fetch rejects", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Network unreachable")));
-    stubEnv("GOOGLE_CUSTOM_SEARCH_API_KEY", apiKey);
-    stubEnv("GOOGLE_CUSTOM_SEARCH_ENGINE_ID", cx);
-
-    const result = await lookupInstagramHandle("Bella's Lashes", "Austin");
-
-    expect(result.status).toBe("error");
-    if (result.status === "error") {
-      expect(result.detail.length).toBeGreaterThan(0);
-    }
-  });
-
-  it("composes the query with site:instagram.com, the quoted name and city, and num=3", async () => {
-    const fetched = vi.fn().mockResolvedValue(jsonResponse({ items: [] }));
-    vi.stubGlobal("fetch", fetched);
-    stubEnv("GOOGLE_CUSTOM_SEARCH_API_KEY", apiKey);
-    stubEnv("GOOGLE_CUSTOM_SEARCH_ENGINE_ID", cx);
-
-    await lookupInstagramHandle("Bella's Lashes", "Austin");
-
-    const calledUrl = fetched.mock.calls[0][0] as string;
-    const decoded = decodeURIComponent(calledUrl);
-    expect(decoded).toContain("site:instagram.com");
-    expect(decoded).toContain('"Bella\'s Lashes"');
-    expect(decoded).toContain('"Austin"');
-    expect(decoded).toContain("num=3");
-  });
-});
-
-describe("redactKey", () => {
-  it("redacts a key query parameter", () => {
-    expect(redactKey("...q=foo&key=secret123&cx=abc...")).toBe(
-      "...q=foo&key=REDACTED&cx=abc..."
-    );
-  });
-
-  it("redacts a leading key parameter", () => {
-    expect(redactKey("key=secret123&cx=abc")).toBe("key=REDACTED&cx=abc");
-  });
-
-  it("returns the string unchanged when there is no key parameter", () => {
-    expect(redactKey("just some text")).toBe("just some text");
-    expect(redactKey("q=hello")).toBe("q=hello");
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("ECONNRESET"));
+    expect(await lookupInstagramHandle("a", "b")).toEqual({ status: "error", detail: "ECONNRESET" });
   });
 });
