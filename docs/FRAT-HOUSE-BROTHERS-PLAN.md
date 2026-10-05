@@ -211,3 +211,20 @@ One test file per brother plus `draftText.test.ts`, all with a fake `ctx`:
   `BRAND-AND-COMPLIANCE-STANDARDS.md` bans. It shows in every `SITE_DRAFT`
   preview and in today's one-click drafts. It needs its own small fix.
 - **After merge:** `UPDATE "Agent" SET enabled = false WHERE id = 'pledge';` in prod.
+
+## 9. Handle Hunter (added 2026-10-04, Frank's call: "Button + Handle Hunter")
+
+Un-parked now that lookups run on the Brave Search API (`feature/brave-handle-lookup`;
+Google's Custom Search JSON API closed to new customers and dies 2027-01-01).
+
+| Brother (`id`) | Job | Claude? | Writes |
+| --- | --- | --- | --- |
+| Handle Hunter (`handle-hunter`) | Looks up Instagram handles for up to **20** NEW, no-real-site leads that have no handle and haven't been tried in **30 days**. Runs **first** in the cron, so Rush Chair can draft for them the same day. | **none** (Brave Search, ~$0.005/lookup, inside the $5/month free credit at this volume) | `Lead.instagramHandle` when found (the same write as the "Find it" button); one `AgentTask` per attempt (`kind: "instagram_lookup"`, `DONE` found / `FAILED` not found) so misses aren't re-searched daily |
+
+- **Departure from §1** ("brothers only read"): Hunter writes the handle directly. It's
+  not outward-facing, and every DM draft shows the handle to Frank before he sends.
+- **Pacing:** 1.1s between lookups (Brave's per-second limit), so at most ~25s of the
+  cron's 60s. Stops early on `rate_limited` / `key_rejected` / `not_configured` with
+  a summary saying why. A transient `error` isn't recorded, so it retries tomorrow.
+- Pure job with injected `lookup` / `saveHandle` / `recordAttempt` / `sleep`; tested
+  with fakes.
