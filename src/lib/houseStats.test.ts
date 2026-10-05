@@ -39,5 +39,7 @@ describe("formatMicros", () => {
     expect(formatMicros(250_000)).toBe("$0.25");
     expect(formatMicros(2_000)).toBe("$0.002");
     expect(formatMicros(150)).toBe("<$0.001");
+    expect(formatMicros(4_500)).toBe("$0.005"); // half rounds up, not float-down
+    expect(formatMicros(125_000)).toBe("$0.13");
   });
 });

@@ -12,7 +12,7 @@ specced and built in the order below. Module ids are fixed; never rename them.
 | Module id | Responsibility | Depends on | Spec |
 | --- | --- | --- | --- |
 | `agent-runtime` | DB models (agents, runs, tasks, approvals, chat), the shared "run a brother" engine, Claude client wrapper, cost accounting + hard $1/day cap, cron + manual-run routes, operator password gate | — | `FRAT-HOUSE-RUNTIME-PLAN.md` |
-| `brothers` | The actual jobs: Scout (grade new leads), Rush Chair (draft first DMs), Follow-up (draft follow-ups for due leads), Builder (draft a site for warm leads), Treasurer (daily stats digest). Handle Hunter (IG handles) is parked until the Custom Search API is enabled. | `agent-runtime` | not yet written |
+| `brothers` | The actual jobs: Scout (grade new leads), Rush Chair (draft first DMs), Follow-up (draft follow-ups for due leads), Builder (draft a site for warm leads), Treasurer (daily stats digest). Handle Hunter (IG handles) is parked until the Custom Search API is enabled. | `agent-runtime` | `FRAT-HOUSE-BROTHERS-PLAN.md` |
 | `house-ui` | `/house`: Frank's 3D house (rotatable), one lit window per brother, stats bar (leads, DMs sent, replies, sites, spend vs budget), per-agent panel with Now / Queue / Schedule / Chat / Approvals tabs | `agent-runtime` | `FRAT-HOUSE-UI-PLAN.md` |
 | `approvals-flow` | Approve / edit / reject drafts. Approved DM = copy + open Instagram + mark sent (same mechanics as `/today`). Approved site = publish. | `agent-runtime`, `brothers` | not yet written |
 
