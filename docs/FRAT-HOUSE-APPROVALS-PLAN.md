@@ -1,6 +1,6 @@
 # Feature plan: Frat House: `approvals-flow`
 
-**Status:** specced, awaiting Frank's approval
+**Status:** approved 2026-10-04 (Frank took both §7 defaults), building
 **Module:** `approvals-flow` (see `docs/FRAT-HOUSE-MAP.md`; depends on `agent-runtime` #14, `brothers` #16, and the panel from `house-ui` #15)
 **Branch:** `feature/frat-house-approvals`, stacked on `feature/frat-house-brothers` (#16)
 **Scope class:**
@@ -12,7 +12,9 @@
   of `POST /api/sites`, moved out unchanged
 - `src/app/api/leads/[id]/route.ts` and `src/app/api/sites/route.ts` (now call
   the moved code; no behavior change)
-- `src/components/house/AgentPanel.tsx` (Approvals tab gets actions)
+- `src/components/house/AgentPanel.tsx` (Approvals tab gets actions) and
+  `src/app/api/agents/[id]/route.ts` (approvals include their lead's name,
+  handle and status for the cards)
 - `docs/FRAT-HOUSE-MAP.md`, `docs/BOARD.md`
 
 **Nothing else.** No schema change, no new dependency, no change to `/today`
@@ -133,12 +135,7 @@ check `/today` and the one-click draft by hand once.
 - **Never:** send a DM, email or anything else from the server; publish anything
   except through the existing one-click draft path Frank already uses.
 
-## 7. Open questions
+## 7. Decisions (Frank, 2026-10-04)
 
-1. **Frank:** Create site makes the site **PUBLISHED** (a live, noindexed pitch
-   link), exactly like the one-click Draft button, so the link works in a DM
-   right away. The alternative is DRAFT, meaning not reachable until you publish
-   it in the builder. Default: **PUBLISHED, same as the button.**
-2. **Frank:** Should DM cards have both **Reject** (Rush Chair may redraft that
-   lead tomorrow) and **Not a fit** (lead → LOST, never drafted again)?
-   Default: **both**.
+1. Create site makes it **PUBLISHED**, same as the one-click Draft button.
+2. DM cards get both **Reject** (may be redrafted) and **Not a fit** (lead → LOST).
