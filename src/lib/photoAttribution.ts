@@ -1,11 +1,13 @@
 /**
  * The footer photo-credit line can carry photos from more than one source
- * (Google Places + Pexels). Each source owns one `"<Prefix> — <names>"` segment;
+ * (Google Places + Pexels). Each source owns one `"<Prefix>: <names>"` segment;
  * these helpers add / replace / drop a source's segment without disturbing the
  * others.
  */
 
 const SEP = "  ·  ";
+/** Separates a source's prefix from its names within one segment. */
+const NAME_SEP = ": ";
 
 function segments(value: string | null | undefined): string[] {
   return (value ?? "")
@@ -18,14 +20,19 @@ function join(parts: string[]): string | null {
   return parts.length > 0 ? parts.join(SEP) : null;
 }
 
-/** Add or replace one source's segment (`line` = `"<Prefix> — <names>"`). */
+/** The source prefix of a segment — everything before the first `": "`. */
+function prefixOf(segment: string): string {
+  return segment.split(NAME_SEP)[0];
+}
+
+/** Add or replace one source's segment (`line` = `"<Prefix>: <names>"`). */
 export function mergeAttribution(existing: string | null | undefined, line: string): string | null {
-  const prefix = line.split(" — ")[0];
-  const kept = segments(existing).filter((s) => s.split(" — ")[0] !== prefix);
+  const prefix = prefixOf(line);
+  const kept = segments(existing).filter((s) => prefixOf(s) !== prefix);
   return join([...kept, line]);
 }
 
 /** Drop the segment for a source, e.g. `removeAttribution(x, "Photos via Pexels")`. */
 export function removeAttribution(existing: string | null | undefined, prefix: string): string | null {
-  return join(segments(existing).filter((s) => s.split(" — ")[0] !== prefix));
+  return join(segments(existing).filter((s) => prefixOf(s) !== prefix));
 }

@@ -144,6 +144,9 @@ mocked `fetch` (there's prior art — see `places.test.ts`).
    `db.lead.updateMany` in slices? No — need per-row `retentionAction` (all
    resolve to `downgrade` here) so a simple loop: `update({ data: { rating: null,
    reviewCount: null, placesRefreshedAt: now } })`. `downgraded++`.
+3b. **Old contact submissions** (folded in from audit F-12 / C-E) —
+   `db.contactSubmission.deleteMany({ where: { createdAt: { lt: cutoff(730) } } })`
+   (24 months). `submissionsPurged = result.count`. One line, no per-row logic.
 4. **Stale published-site Google data** — `db.site.findMany({ where: { status:
    "PUBLISHED", googleReviewsUpdatedAt: { not: null, lt: cutoff(30) } },
    take: 40 })`. For each with a `googlePlaceId ?? lead?.placeId`:
@@ -156,7 +159,7 @@ mocked `fetch` (there's prior art — see `places.test.ts`).
    - no place ID → same clear path. `sitesCleared++`.
 5. Wrap each of the four phases in its own `try/catch` so one failing phase
    doesn't abort the others.
-6. Respond `200` `{ refreshed, deleted, downgraded, sitesRefreshed, sitesCleared, errors }`.
+6. Respond `200` `{ refreshed, deleted, downgraded, submissionsPurged, sitesRefreshed, sitesCleared, errors }`.
 
 Helper: `cutoff(days: number) => new Date(Date.now() - days * 864e5)`.
 

@@ -41,13 +41,13 @@ const clean = (v?: string | null): string | null => v?.trim() || null;
 
 export function leadToDraftSite(lead: LeadForDraft): DraftSiteInput {
   const category = lead.category.trim();
-  const city = lead.city.trim();
 
   return {
     businessName: lead.name.trim(),
-    // A starting-point tagline the operator personalises before sending — matches
-    // the default the manual /builder/new flow has always used.
-    tagline: category && city ? `Your trusted ${category} in ${city}` : "",
+    // Blank on purpose: a generic "Your trusted <category> in <city>" line is
+    // the vacuous copy BRAND-AND-COMPLIANCE-STANDARDS.md bans, and the tagline
+    // is operator-written. Templates render nothing when it's empty.
+    tagline: "",
     category,
     address: clean(lead.address),
     phone: clean(lead.phone),

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { isUnclaimedPitchSite } from "@/lib/siteVisibility";
+import { normalizeBookingUrl } from "@/lib/bookingUrl";
 
 function url(base: string, path: string): string {
   return `${base}${path}`;
@@ -31,7 +32,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
     { loc: path("/contact"), lastmod: site.updatedAt.toISOString() },
     { loc: path("/privacy"), lastmod: site.updatedAt.toISOString() },
     { loc: path("/terms"), lastmod: site.updatedAt.toISOString() },
+    { loc: path("/cookie-policy"), lastmod: site.updatedAt.toISOString() },
   ];
+
+  if (normalizeBookingUrl(site.bookingUrl)) {
+    entries.push({ loc: path("/policies"), lastmod: site.updatedAt.toISOString() });
+  }
 
   if (site.story || site.about) entries.push({ loc: path("/about"), lastmod: site.updatedAt.toISOString() });
   if (site.serviceItems.length > 0) {

@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { SitePageShell, LastUpdated } from "@/components/site/SitePageShell";
 import { LegalSections } from "@/components/site/LegalSections";
-import { generateTermsOfService, LEGAL_LAST_UPDATED } from "@/lib/legalContent";
+import { generateCookiePolicy, LEGAL_LAST_UPDATED } from "@/lib/legalContent";
 import { pageMetadata } from "@/lib/seo";
 import { resolveDesignSystem } from "@/lib/templates";
 
@@ -12,21 +12,21 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const site = await db.site.findUnique({ where: { slug } });
   if (!site) return { title: "Site not found" };
   return pageMetadata({
-    title: `Terms of Service · ${site.businessName}`,
-    path: `/s/${slug}/terms`,
+    title: `Cookie Policy · ${site.businessName}`,
+    path: `/s/${slug}/cookie-policy`,
   });
 }
 
-export default async function TermsPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function CookiePolicyPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const site = await db.site.findUnique({ where: { slug } });
   if (!site || site.status !== "PUBLISHED") notFound();
 
-  const sections = generateTermsOfService(site);
+  const sections = generateCookiePolicy(site);
   const system = resolveDesignSystem(site);
 
   return (
-    <SitePageShell title="Terms of Service" subtitle={<LastUpdated date={LEGAL_LAST_UPDATED} />} system={system}>
+    <SitePageShell title="Cookie Policy" subtitle={<LastUpdated date={LEGAL_LAST_UPDATED} />} system={system}>
       <LegalSections sections={sections} />
     </SitePageShell>
   );

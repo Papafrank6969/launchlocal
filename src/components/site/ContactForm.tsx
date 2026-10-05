@@ -48,12 +48,12 @@ export function ContactForm({ slug, color }: { slug: string; color: string }) {
         setStatus({ type: "error", text: "Please fix the errors below and try again." });
         return;
       }
-      setStatus({ type: "success", text: "Message sent — we'll get back to you soon." });
+      setStatus({ type: "success", text: "Message sent. We'll get back to you soon." });
       setName("");
       setEmail("");
       setMessage("");
     } catch {
-      setStatus({ type: "error", text: "Something went wrong — try again." });
+      setStatus({ type: "error", text: "Something went wrong. Please try again." });
     } finally {
       setSubmitting(false);
     }
@@ -133,6 +133,13 @@ export function ContactForm({ slug, color }: { slug: string; color: string }) {
       >
         {submitting ? "Sending…" : "Send message"}
       </button>
+      <p className="text-xs opacity-70">
+        We use your details only to reply to you. See our{" "}
+        <a href={`/s/${slug}/privacy`} className="underline underline-offset-2">
+          Privacy Policy
+        </a>
+        .
+      </p>
       <FormStatus status={status} />
     </form>
   );
