@@ -37,13 +37,9 @@ describe("leadToDraftSite", () => {
     expect(d.serviceNames.every((s) => typeof s === "string" && s.length > 0)).toBe(true);
   });
 
-  it("builds a starting-point tagline from category + city", () => {
-    expect(leadToDraftSite(lead()).tagline).toBe("Your trusted lash technician in Austin, TX");
-  });
-
-  it("leaves the tagline blank when category or city is missing", () => {
+  it("never generates a tagline (operator-written; no generic copy)", () => {
+    expect(leadToDraftSite(lead()).tagline).toBe("");
     expect(leadToDraftSite(lead({ category: "" })).tagline).toBe("");
-    expect(leadToDraftSite(lead({ city: "  " })).tagline).toBe("");
   });
 
   it("never fabricates copy — no about/story/guarantee in the output", () => {
