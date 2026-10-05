@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { BRAVE_SEARCH_URL, lookupInstagramHandle } from "./instagramLookup";
+import { BRAVE_SEARCH_URL, lookupInstagramHandle, pickInstagramHandle } from "./instagramLookup";
 
 function jsonResponse(body: unknown, status = 200): Response {
   return { ok: status >= 200 && status < 300, status, json: async () => body } as unknown as Response;
@@ -72,5 +72,44 @@ describe("lookupInstagramHandle (Brave Search)", () => {
 
     vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("ECONNRESET"));
     expect(await lookupInstagramHandle("a", "b")).toEqual({ status: "error", detail: "ECONNRESET" });
+  });
+});
+
+// Real Brave results from 2026-10-04 (trimmed): the cases that broke "take the first link".
+const LUCALI = [
+  { url: "https://www.instagram.com/reel/DRQXAYRjCdO/", title: "Lucali In Brooklyn Is An All Time Great Pizza | David Portnoy ..." },
+  { url: "https://www.instagram.com/stoolpresidente/p/BpIXMQiBbhc/?hl=en", title: "Barstool Pizza Review - Lucali (Brooklyn)" },
+  { url: "https://www.instagram.com/popular/lucali-brooklyn-instagram/", title: "Lucali Brooklyn Instagram" },
+];
+const JOES = [
+  { url: "https://www.instagram.com/joespizza9508/", title: "Joe's Pizza (@joespizza9508) · New York, NY", description: "Joe&#x27;s Pizza (@joespizza9508) on Instagram: &quot;Located in Queens" },
+  { url: "https://www.instagram.com/joespizzala/?hl=en", title: "Joe's Pizza - LA (@joespizzala) - Instagram", description: "A Slice of New York in LA" },
+  { url: "https://www.instagram.com/newyorkcitykopp/reel/DHedv7bONIO/", title: "Kelly Kopp | Have you been to Joe's Pizza in New York City ..." },
+  { url: "https://www.instagram.com/joes.pza/", title: "#joespizza (@joes.pza) • Instagram photos and videos", description: "JOE'S PIZZA SANTA MONICA" },
+];
+
+describe("pickInstagramHandle", () => {
+  it("never takes a handle from someone else's post or reel about the business", () => {
+    expect(pickInstagramHandle(LUCALI, "Lucali", "Brooklyn")).toBeNull(); // was "stoolpresidente"
+  });
+
+  it("several matching profiles: the city picks one", () => {
+    expect(pickInstagramHandle(JOES, "Joe's Pizza", "New York")).toBe("joespizza9508");
+  });
+
+  it("several matching profiles and none mention the city: ambiguous, not found", () => {
+    expect(pickInstagramHandle(JOES, "Joe's Pizza", "Massapequa, NY")).toBeNull();
+  });
+
+  it("a single matching profile is accepted even without the city", () => {
+    expect(pickInstagramHandle([{ url: "https://www.instagram.com/fadelab_ny/", title: "Fade Lab Barbershop (@fadelab_ny) • Instagram" }], "Fade Lab", "Massapequa, NY")).toBe("fadelab_ny");
+  });
+
+  it("a profile whose name doesn't match the business is rejected", () => {
+    expect(pickInstagramHandle([{ url: "https://www.instagram.com/nyc_eats/", title: "NYC Eats (@nyc_eats) • Instagram" }], "Fade Lab", "Massapequa, NY")).toBeNull();
+  });
+
+  it("matches through accents and punctuation", () => {
+    expect(pickInstagramHandle([{ url: "https://www.instagram.com/cafebonjour.li/", title: "Café Bonjour (@cafebonjour.li)" }], "Cafe Bonjour", "Bay Shore, NY")).toBe("cafebonjour.li");
   });
 });
