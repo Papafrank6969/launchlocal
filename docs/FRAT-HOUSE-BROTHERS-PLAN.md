@@ -1,9 +1,10 @@
 # Feature plan: Frat House: `brothers`
 
-**Status:** specced, awaiting Frank's approval
+**Status:** approved 2026-10-04 (Frank took all three §7 defaults), building
 **Module:** `brothers` (see `docs/FRAT-HOUSE-MAP.md`; depends on `agent-runtime`, merged in #14)
-**Branch:** `feature/frat-house-brothers`, cut from `master` @ `2266dd5`. Rebase
-onto `master` after #15 (`house-ui`) merges: Treasurer reuses its `formatMicros`.
+**Branch:** `feature/frat-house-brothers`, stacked on `feature/frat-house-ui`
+(#15) because Treasurer reuses its `formatMicros`. Retarget the PR to `master`
+after #15 merges.
 **Scope class:** `src/lib/brothers/**` (one file per brother plus a sibling
 test, `index.ts`, and a shared `brotherData.ts` for the Prisma reads),
 `src/lib/brothers/pledge.ts` (deleted), `docs/FRAT-HOUSE-MAP.md` (spec link),
@@ -182,14 +183,9 @@ One test file per brother plus `draftText.test.ts`, all with a fake `ctx`:
 - **Never:** send, publish, create a site, or change a lead's status; call
   `chooseDesign` (unmetered Claude) from a brother; let a model write site copy.
 
-## 7. Open questions
+## 7. Decisions (Frank, 2026-10-04)
 
-1. **Frank:** Should drafts be Claude-personalized as above, or templates only
-   (no Claude for Rush Chair and Follow-up at all, $0/day)? Default:
-   **personalized, with the template fallback.**
-2. **Frank:** Is Builder propose-only (no site until you approve) OK? The
-   alternative is that Builder creates the PUBLISHED pitch site right away, like
-   the one-click button does. Default: **propose-only**, per the map's standing
-   rule.
-3. **Frank:** Limits: 10 Scout picks, 8 DM drafts, 8 follow-ups, 3 site
-   proposals, pause at 16 unread. Default: as listed.
+1. DM drafts are **Claude-personalized**, with the template fallback.
+2. Builder is **propose-only**. No site exists until Frank approves in `approvals-flow`.
+3. Limits as listed: 10 Scout picks, 8 DM drafts, 8 follow-ups, 3 site proposals,
+   pause at 16 unread.
