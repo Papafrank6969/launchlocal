@@ -6,8 +6,11 @@ import type { RushChairInput } from "./rushChair";
 import type { FollowUpInput } from "./followUp";
 import type { BuilderLead } from "./builder";
 import type { TreasurerInput } from "./treasurer";
+import { HUNTER_RETRY_DAYS, type HunterDeps } from "./handleHunter";
+import { lookupInstagramHandle } from "../instagramLookup";
 
-// The only DB access brothers have, and it's reads only. Writes go through ctx.propose().
+// The only DB access brothers have. Reads only, except Handle Hunter's handle
+// write and attempt log (plan §9). Everything else writes through ctx.propose().
 
 const SITES = { select: { id: true, slug: true, status: true } } as const;
 const previewBase = () => process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
@@ -90,5 +93,34 @@ export async function loadTreasurerInput(now = new Date()): Promise<TreasurerInp
     runs,
     events,
     pending: pending.map((p) => ({ kind: p.kind, count: p._count })),
+  };
+}
+
+const LOOKUP_KIND = "instagram_lookup";
+
+export async function loadHandleHunterDeps(now = new Date()): Promise<HunterDeps> {
+  const since = new Date(now.getTime() - HUNTER_RETRY_DAYS * 24 * 60 * 60 * 1000);
+  const [leads, tried] = await Promise.all([
+    db.lead.findMany({
+      where: { outreachStatus: "NEW", websiteStatus: { not: "HAS_SITE" }, instagramHandle: null },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, name: true, city: true },
+    }),
+    db.agentTask.findMany({ where: { kind: LOOKUP_KIND, createdAt: { gte: since } }, select: { leadId: true } }),
+  ]);
+  const triedIds = new Set(tried.map((t) => t.leadId));
+  return {
+    leads: leads.filter((l) => !triedIds.has(l.id)),
+    lookup: lookupInstagramHandle,
+    // Only fills an empty handle: never overwrites one Frank typed in.
+    saveHandle: async (leadId, handle) => {
+      await db.lead.updateMany({ where: { id: leadId, instagramHandle: null }, data: { instagramHandle: handle } });
+    },
+    recordAttempt: async (leadId, found) => {
+      await db.agentTask.create({
+        data: { agentId: "handle-hunter", kind: LOOKUP_KIND, leadId, status: found ? "DONE" : "FAILED", doneAt: new Date() },
+      });
+    },
+    sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
   };
 }

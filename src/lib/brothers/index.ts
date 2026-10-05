@@ -4,12 +4,20 @@ import { rushChairJob } from "./rushChair";
 import { followUpJob } from "./followUp";
 import { builderJob } from "./builder";
 import { treasurerJob } from "./treasurer";
-import { loadBuilderInput, loadFollowUpInput, loadRushChairInput, loadScoutInput, loadTreasurerInput } from "./brotherData";
+import { handleHunterJob } from "./handleHunter";
+import { loadBuilderInput, loadFollowUpInput, loadHandleHunterDeps, loadRushChairInput, loadScoutInput, loadTreasurerInput } from "./brotherData";
 
 // Every registered brother, in cron order (docs/FRAT-HOUSE-BROTHERS-PLAN.md).
 // The cron upserts each into the Agent table, so a new brother shows up on the
 // house just by being added here. Jobs are pure; the loaders do the DB reads.
 export const BROTHERS: BrotherDefinition[] = [
+  {
+    // First, so Rush Chair can draft for the handles it finds the same day.
+    id: "handle-hunter",
+    name: "Handle Hunter",
+    role: "Finds Instagram handles for new leads",
+    run: async (ctx) => handleHunterJob(await loadHandleHunterDeps(), ctx),
+  },
   {
     id: "scout",
     name: "Scout",
