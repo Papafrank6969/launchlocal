@@ -24,7 +24,7 @@ export async function generateMetadata({
   return {
     ...pageMetadata({
       title: site.businessName,
-      description: site.tagline || site.about || `${site.businessName} — contact info, services, and hours.`,
+      description: site.tagline || site.about || `${site.businessName}: contact info, services, and hours.`,
       path: `/s/${slug}`,
       image: site.photoUrl,
     }),
