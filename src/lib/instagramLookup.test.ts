@@ -23,13 +23,13 @@ describe("lookupInstagramHandle (Brave Search)", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("queries site:instagram.com with the quoted name and city, key in the header only", async () => {
+  it("queries site:instagram.com with the quoted name and the bare place, key in the header only", async () => {
     withKey();
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(jsonResponse(results()));
     await lookupInstagramHandle("Fade Lab", "Massapequa, NY");
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url.startsWith(BRAVE_SEARCH_URL)).toBe(true);
-    expect(new URL(url).searchParams.get("q")).toBe('site:instagram.com "Fade Lab" "Massapequa, NY"');
+    expect(new URL(url).searchParams.get("q")).toBe('site:instagram.com "Fade Lab" Massapequa');
     expect(url).not.toContain("test-brave-key");
     expect((init.headers as Record<string, string>)["X-Subscription-Token"]).toBe("test-brave-key");
   });
@@ -97,12 +97,12 @@ describe("pickInstagramHandle", () => {
     expect(pickInstagramHandle(JOES, "Joe's Pizza", "New York")).toBe("joespizza9508");
   });
 
-  it("several matching profiles and none mention the city: ambiguous, not found", () => {
-    expect(pickInstagramHandle(JOES, "Joe's Pizza", "Massapequa, NY")).toBeNull();
+  it("matching profiles that don't show the place or state: not found", () => {
+    expect(pickInstagramHandle(JOES, "Joe's Pizza", "Austin, TX")).toBeNull();
   });
 
-  it("a single matching profile is accepted even without the city", () => {
-    expect(pickInstagramHandle([{ url: "https://www.instagram.com/fadelab_ny/", title: "Fade Lab Barbershop (@fadelab_ny) • Instagram" }], "Fade Lab", "Massapequa, NY")).toBe("fadelab_ny");
+  it("a matching profile that shows the place or state is accepted", () => {
+    expect(pickInstagramHandle([{ url: "https://www.instagram.com/fadelab_ny/", title: "Fade Lab Barbershop (@fadelab_ny) • Instagram" }], "Fade Lab", "Massapequa, NY")).toBe("fadelab_ny"); // "ny" in the handle
   });
 
   it("a profile whose name doesn't match the business is rejected", () => {
@@ -110,6 +110,27 @@ describe("pickInstagramHandle", () => {
   });
 
   it("matches through accents and punctuation", () => {
-    expect(pickInstagramHandle([{ url: "https://www.instagram.com/cafebonjour.li/", title: "Café Bonjour (@cafebonjour.li)" }], "Cafe Bonjour", "Bay Shore, NY")).toBe("cafebonjour.li");
+    expect(pickInstagramHandle([{ url: "https://www.instagram.com/cafebonjour.li/", title: "Café Bonjour (@cafebonjour.li)", description: "Bay Shore, NY" }], "Cafe Bonjour", "Bay Shore, NY")).toBe("cafebonjour.li");
+  });
+
+  // Real Brave results from the 2026-10-04 Harlem / Washington Heights run.
+  const profile = (handle: string, title: string, description = "") => ({ url: `https://www.instagram.com/${handle}/`, title, description });
+
+  it("rejects same-name businesses elsewhere (bio or handle shows another place)", () => {
+    expect(pickInstagramHandle([profile("koolcutzbymoe", "CUTZ BY MOE (@koolcutzbymoe) • Instagram", "CUTZ BY MOE (@koolcutzbymoe) on Instagram: HOUSTON TX Tue - Fri")], "CUTZ BY MOE", "Harlem, NY")).toBeNull();
+    expect(pickInstagramHandle([profile("welovehair.barcelona", "WE LOVE HAIR (@welovehair.barcelona) • Instagram")], "We Love Hair", "Harlem, NY")).toBeNull();
+  });
+
+  it("matches whole words, not substrings ('In barbershop' isn't 'Dave's on Main barbershop')", () => {
+    expect(pickInstagramHandle([profile("davesonmain", "Dave’s on Main barbershop (@davesonmain) • Instagram", "Best in Sarasota")], "In barbershop", "Washington Heights, NY")).toBeNull();
+  });
+
+  it("accepts profiles that show the neighborhood or the state", () => {
+    expect(pickInstagramHandle([profile("new_harlem_unisex", "New Harlem Unisex (@new_harlem_unisex) • Instagram", "New Harlem Unisex in the heart of Harlem")], "New Harlem Unisex", "Harlem, NY")).toBe("new_harlem_unisex");
+    expect(pickInstagramHandle([profile("heights.finest", "Heights finest barbershop (@heights.finest) • Instagram", "2240 Amsterdam av New York ny 10032")], "Heights Finest", "Washington Heights, NY")).toBe("heights.finest");
+  });
+
+  it("a right-looking profile with no location at all is left for Frank (precision over recall)", () => {
+    expect(pickInstagramHandle([profile("dexter_vip_", "Dexter vip Barbershop (@dexter_vip_) • Instagram", "Artista")], "Dexter VIP Barbershop", "Harlem, NY")).toBeNull();
   });
 });

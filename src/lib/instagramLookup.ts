@@ -26,7 +26,10 @@ export async function lookupInstagramHandle(businessName: string, city: string):
   const apiKey = process.env.BRAVE_SEARCH_API_KEY;
   if (!apiKey) return { status: "not_configured" };
 
-  const query = `site:instagram.com "${businessName}" "${city}"`;
+  // Name as an exact phrase, place as a plain word: the exact "Harlem, NY" with
+  // its comma rarely appears on Instagram pages, so quoting it found nothing.
+  const place = city.split(",")[0].trim();
+  const query = `site:instagram.com "${businessName}" ${place}`;
   let res: Response;
   try {
     res = await fetch(`${BRAVE_SEARCH_URL}?q=${encodeURIComponent(query)}&count=10`, {
@@ -75,29 +78,54 @@ function displayName(title?: string): string | null {
   return title?.includes("(@") ? title.split("(@")[0] : null;
 }
 
+/** Lowercase words, apostrophes dropped first so "Joe's" is one word: "joes". */
+const words = (s: string) =>
+  decode(s).normalize("NFKD").toLowerCase().replace(/['’]/g, "").split(/[^a-z0-9]+/).filter(Boolean);
+
+/**
+ * Every word of the business name appears as a word (or word prefix: "barber"
+ * fits "barbers") in the profile's name, or the whole name is inside the
+ * handle. Whole words, so "In barbershop" can't match "Dave's on Main barbershop".
+ */
 function nameMatches(businessName: string, display: string | null, handle: string): boolean {
   const n = norm(businessName);
   if (n.length < 3) return false;
-  const d = display ? norm(display) : "";
-  const h = norm(handle);
-  return (d.length >= 3 && (d.includes(n) || n.includes(d))) || h.includes(n) || (h.length >= n.length * 0.6 && n.includes(h));
+  const nameWords = words(businessName);
+  const shown = display ? words(display) : [];
+  return nameWords.every((w) => shown.some((x) => x.startsWith(w))) || (n.length >= 5 && norm(handle).includes(n));
+}
+
+/**
+ * The profile says where it is: the place ("Harlem"), or the lead's state ("NY",
+ * plus "New York" / "NYC" for NY), appears in its name, handle or bio. Without
+ * this, same-name businesses elsewhere got through ("CUTZ BY MOE" in Houston).
+ */
+function placeMatches(r: BraveResult, handle: string, city: string): boolean {
+  const [placePart, statePart] = city.split(",").map((x) => x.trim());
+  const text = `${r.title ?? ""} ${r.description ?? ""} ${handle}`;
+  const flat = norm(text);
+  const ws = new Set(words(text));
+  const place = norm(placePart ?? "");
+  if (place.length >= 4 && flat.includes(place)) return true;
+  const state = (statePart ?? "").toLowerCase();
+  if (state.length === 2 && ws.has(state)) return true;
+  return (state === "ny" || place === "newyork") && (flat.includes("newyork") || ws.has("nyc"));
 }
 
 /**
  * Picks the business's own profile out of search results. A wrong handle means a
- * DM to a stranger, so this prefers "not found" over a guess:
- * - only profile pages count: a post *about* the business (`/<someone>/p/…`,
+ * DM to a stranger, so this prefers "not found" over a guess. A profile counts
+ * only if:
+ * - it's a profile page: a post *about* the business (`/<someone>/p/…`,
  *   `/reel/…`) is someone else's account;
- * - the profile's name (from the title) or handle must match the business name;
- * - if several profiles match, the city must appear in the result to pick one,
- *   and if none mention it, it's ambiguous: not found.
+ * - its name or handle matches the business name (whole words);
+ * - it shows it's in the lead's place or state.
+ * The first such profile (Brave's ranking) wins.
  */
 export function pickInstagramHandle(results: BraveResult[], businessName: string, city: string): string | null {
-  const matches = results
-    .map((r) => ({ r, handle: profileHandle(r.url) }))
-    .filter((c): c is { r: BraveResult; handle: string } => !!c.handle && nameMatches(businessName, displayName(c.r.title), c.handle));
-  if (matches.length === 1) return matches[0].handle;
-  const place = norm(city.split(",")[0] ?? "");
-  if (place.length < 3) return null;
-  return matches.find((c) => norm(`${c.r.title ?? ""} ${c.r.description ?? ""}`).includes(place))?.handle ?? null;
+  for (const r of results) {
+    const handle = profileHandle(r.url);
+    if (handle && nameMatches(businessName, displayName(r.title), handle) && placeMatches(r, handle, city)) return handle;
+  }
+  return null;
 }
