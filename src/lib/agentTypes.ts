@@ -23,6 +23,8 @@ export type BrotherDefinition = {
   house?: "villa";
   /** Claude model; defaults to the Agent row's (Haiku). Must be priced in agentCost.ts. */
   model?: string;
+  /** false: the daily Vercel cron skips him (he runs elsewhere, e.g. the Editor in GitHub Actions). */
+  cron?: false;
   /** Do the work. Return a one-line summary for the run log. */
   run(ctx: BrotherContext): Promise<string>;
 };

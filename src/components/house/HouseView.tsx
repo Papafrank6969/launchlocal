@@ -198,12 +198,12 @@ export function HouseView({ house = "frat" }: { house?: "frat" | "villa" }) {
                   <span>
                     {p.audience} · {p.pillar} · {new Date(p.createdAt).toLocaleDateString()}
                   </span>
-                  {p.videoUrl && (
-                    <a href={p.videoUrl} target="_blank" rel="noreferrer" className="text-blue-700 underline">
-                      video
-                    </a>
-                  )}
                 </div>
+                {p.videoUrl && (
+                  <video src={p.videoUrl} controls muted playsInline preload="metadata" className="mt-2 aspect-[9/16] w-40 rounded-lg bg-slate-900">
+                    <track kind="captions" />
+                  </video>
+                )}
                 <p className="mt-1 font-medium text-slate-900">{p.hook}</p>
                 {p.spec.beats && (
                   <ol className="mt-1 list-decimal pl-5 text-sm text-slate-700">

@@ -1,0 +1,22 @@
+{
+  "name": "launchlocal-video",
+  "private": true,
+  "description": "The Villa's Editor: renders SocialPost specs to MP4 with Remotion (docs/VILLA-PLAN.md).",
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio src/index.tsx",
+    "render-posts": "tsx render-posts.ts"
+  },
+  "dependencies": {
+    "@remotion/bundler": "4.0.533",
+    "@remotion/cli": "4.0.533",
+    "@remotion/google-fonts": "4.0.533",
+    "@remotion/renderer": "4.0.533",
+    "@types/react": "19.3.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "remotion": "4.0.533",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2"
+  }
+}

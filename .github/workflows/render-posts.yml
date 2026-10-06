@@ -1,0 +1,32 @@
+# The Villa's Editor (docs/VILLA-PLAN.md): renders DRAFTED SocialPosts to MP4
+# with Remotion and uploads them through URLs the app signs. Runs after the
+# 17:30 UTC agents cron, so Creative Director's post of the day is ready.
+name: Render posts
+
+on:
+  schedule:
+    - cron: "30 18 * * *"
+  workflow_dispatch:
+
+concurrency: render-posts
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: video
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: video/package-lock.json
+      - run: npm ci
+      - run: npx remotion browser ensure
+      - run: npm run render-posts
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}

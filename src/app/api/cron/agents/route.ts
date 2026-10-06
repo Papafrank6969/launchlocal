@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
   // Sequential on purpose: keeps the budget check accurate between brothers.
   // runBrother upserts the Agent row, so new brothers register themselves.
   for (const def of BROTHERS) {
-    if (disabled.has(def.id)) continue;
+    if (disabled.has(def.id) || def.cron === false) continue;
     results.push(await runBrother(def, "CRON", deps));
   }
 
