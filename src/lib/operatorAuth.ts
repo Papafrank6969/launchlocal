@@ -3,7 +3,7 @@
 
 const PUBLIC_PREFIXES = ["/s/", "/api/public/", "/api/cron/", "/_next/"];
 const PUBLIC_EXACT = new Set(["/privacy", "/terms", "/robots.txt", "/icon.svg", "/favicon.ico"]);
-const OPERATOR_ROOTS = ["/api/", "/builder", "/leads", "/outreach", "/pipeline", "/stats", "/house"];
+const OPERATOR_ROOTS = ["/api/", "/builder", "/leads", "/outreach", "/pipeline", "/stats", "/house", "/villa"];
 
 export function isPublicPath(pathname: string): boolean {
   if (PUBLIC_EXACT.has(pathname)) return true;

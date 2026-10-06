@@ -12,8 +12,8 @@ export function prismaRunnerDeps(): RunnerDeps {
     ensureAgent: (def) =>
       db.agent.upsert({
         where: { id: def.id },
-        create: { id: def.id, name: def.name, role: def.role },
-        update: { name: def.name, role: def.role },
+        create: { id: def.id, name: def.name, role: def.role, ...(def.model && { model: def.model }) },
+        update: { name: def.name, role: def.role, ...(def.model && { model: def.model }) },
         select: { id: true, model: true, status: true, lastRunAt: true },
       }),
     spentSince: async (since) => {

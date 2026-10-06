@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendored Draco decoder (from three/examples), served to /villa.
+    "public/draco/**",
     // Reference-only scripts for Frank's 3D house prototype (not app code).
     "docs/house-prototype/**",
   ]),

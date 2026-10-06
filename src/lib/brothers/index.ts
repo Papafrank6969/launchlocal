@@ -5,7 +5,8 @@ import { followUpJob } from "./followUp";
 import { builderJob } from "./builder";
 import { treasurerJob } from "./treasurer";
 import { handleHunterJob } from "./handleHunter";
-import { loadBuilderInput, loadFollowUpInput, loadHandleHunterDeps, loadRushChairInput, loadScoutInput, loadTreasurerInput } from "./brotherData";
+import { creativeDirectorJob } from "./creativeDirector";
+import { loadBuilderInput, loadCreativeDirectorInput, loadFollowUpInput, loadHandleHunterDeps, loadRushChairInput, loadScoutInput, loadTreasurerInput } from "./brotherData";
 
 // Every registered brother, in cron order (docs/FRAT-HOUSE-BROTHERS-PLAN.md).
 // The cron upserts each into the Agent table, so a new brother shows up on the
@@ -48,7 +49,18 @@ export const BROTHERS: BrotherDefinition[] = [
     role: "Writes yesterday's numbers: spend, runs, funnel, what's waiting",
     run: async (ctx) => treasurerJob(await loadTreasurerInput(), ctx),
   },
+  // The Villa (docs/VILLA-PLAN.md): social media brothers, shown on /villa.
+  {
+    id: "creative-director",
+    name: "Creative Director",
+    role: "Writes one TikTok/Reels post a day for LaunchLocal",
+    house: "villa",
+    model: "claude-sonnet-5-5", // Haiku kept inventing features; posts are public
+    run: async (ctx) => creativeDirectorJob(await loadCreativeDirectorInput(), ctx),
+  },
 ];
+
+export const inVilla = (id: string) => BROTHERS.some((b) => b.id === id && b.house === "villa");
 
 export function findBrother(id: string): BrotherDefinition | undefined {
   return BROTHERS.find((b) => b.id === id);

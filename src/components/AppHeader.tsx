@@ -13,6 +13,7 @@ const NAV_LINKS = [
   { href: "/builder", label: "Site Builder" },
   { href: "/stats", label: "Stats" },
   { href: "/house", label: "Frat House" },
+  { href: "/villa", label: "Villa" },
 ];
 
 export function AppHeader() {

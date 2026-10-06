@@ -10,6 +10,17 @@ const HouseScene = dynamic(() => import("./HouseScene"), {
   ssr: false,
   loading: () => <p className="p-6 text-sm text-slate-300">Loading the house…</p>,
 });
+const VillaScene = dynamic(() => import("./VillaScene"), {
+  ssr: false,
+  loading: () => <p className="p-6 text-sm text-slate-300">Loading the villa…</p>,
+});
+
+const POST_STATUS: Record<string, string> = {
+  DRAFTED: "bg-slate-100 text-slate-700",
+  RENDERED: "bg-blue-50 text-blue-700",
+  POSTED: "bg-emerald-50 text-emerald-700",
+  FAILED: "bg-red-50 text-red-700",
+};
 
 const POLL_MS = 15_000;
 
@@ -41,7 +52,8 @@ function Stat({ label, value }: { label: string; value: number | string }) {
   );
 }
 
-export function HouseView() {
+export function HouseView({ house = "frat" }: { house?: "frat" | "villa" }) {
+  const villa = house === "villa";
   const [data, setData] = useState<HouseResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
@@ -50,14 +62,14 @@ export function HouseView() {
 
   const refresh = useCallback(async () => {
     try {
-      const res = await fetch("/api/house", { cache: "no-store" });
+      const res = await fetch(villa ? "/api/house?house=villa" : "/api/house", { cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setData(await res.json());
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
-  }, []);
+  }, [villa]);
 
   // Poll every 15s while the tab is visible.
   useEffect(() => {
@@ -84,8 +96,10 @@ export function HouseView() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-      <h1 className="text-2xl font-semibold text-slate-900">Frat House</h1>
-      <p className="mt-1 text-slate-600">Who&apos;s working, what it costs, and what&apos;s waiting for you.</p>
+      <h1 className="text-2xl font-semibold text-slate-900">{villa ? "The Villa" : "Frat House"}</h1>
+      <p className="mt-1 text-slate-600">
+        {villa ? "The social media guys: what they wrote, rendered and posted." : "Who’s working, what it costs, and what’s waiting for you."}
+      </p>
       {error && (
         <p role="alert" className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
           Couldn&apos;t load the house ({error}). Retrying every 15s.
@@ -93,13 +107,25 @@ export function HouseView() {
       )}
 
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <Stat label="Leads in backlog" value={stats?.backlog ?? "–"} />
-        <Stat label="DMs sent (7d)" value={stats?.dmsSent7d ?? "–"} />
-        <Stat label="Replies (7d)" value={stats?.replies7d ?? "–"} />
-        <Stat label="Sites published" value={stats?.sitesPublished ?? "–"} />
-        <Stat label="Drafts waiting" value={stats?.draftsWaiting ?? "–"} />
+        {villa ? (
+          <>
+            <Stat label="Posts written (7d)" value={data ? Object.values(data.posts7d).reduce((a, b) => a + b, 0) : "–"} />
+            <Stat label="Rendered (7d)" value={data ? (data.posts7d.RENDERED ?? 0) : "–"} />
+            <Stat label="Posted (7d)" value={data ? (data.posts7d.POSTED ?? 0) : "–"} />
+            <Stat label="Failed (7d)" value={data ? (data.posts7d.FAILED ?? 0) : "–"} />
+            <Stat label="Guys in the villa" value={data ? agents.length : "–"} />
+          </>
+        ) : (
+          <>
+            <Stat label="Leads in backlog" value={stats?.backlog ?? "–"} />
+            <Stat label="DMs sent (7d)" value={stats?.dmsSent7d ?? "–"} />
+            <Stat label="Replies (7d)" value={stats?.replies7d ?? "–"} />
+            <Stat label="Sites published" value={stats?.sitesPublished ?? "–"} />
+            <Stat label="Drafts waiting" value={stats?.draftsWaiting ?? "–"} />
+          </>
+        )}
         <div className="rounded-xl border border-slate-200 bg-white p-4">
-          <div className="text-xs font-medium text-slate-500">Spend today</div>
+          <div className="text-xs font-medium text-slate-500">Spend today{villa ? " (both houses)" : ""}</div>
           <div className="mt-1 text-xl font-semibold tabular-nums text-slate-900">
             {stats ? formatMicros(stats.spentTodayMicros) : "–"}
             <span className="text-sm font-normal text-slate-500"> / {stats ? formatMicros(stats.budgetMicros) : "–"}</span>
@@ -121,14 +147,16 @@ export function HouseView() {
         <div aria-hidden="true" className="relative h-[60vh] min-h-80 overflow-hidden rounded-xl bg-[#0b1020]">
           {sceneFailed ? (
             <p className="p-6 text-sm text-slate-300">The 3D house couldn&apos;t load. Use the brother list.</p>
+          ) : villa ? (
+            <VillaScene agents={agents} reducedMotion={reducedMotion} onSelect={setSelected} onFail={() => setSceneFailed(true)} />
           ) : (
             <HouseScene agents={agents} reducedMotion={reducedMotion} onSelect={setSelected} onFail={() => setSceneFailed(true)} />
           )}
         </div>
 
-        <nav aria-label="Brothers" className="rounded-xl border border-slate-200 bg-white p-3">
-          <h2 className="px-2 pb-2 text-sm font-semibold text-slate-900">Brothers</h2>
-          {data && agents.length === 0 && <p className="px-2 text-sm text-slate-500">No brothers yet.</p>}
+        <nav aria-label={villa ? "Social team" : "Brothers"} className="rounded-xl border border-slate-200 bg-white p-3">
+          <h2 className="px-2 pb-2 text-sm font-semibold text-slate-900">{villa ? "Social team" : "Brothers"}</h2>
+          {data && agents.length === 0 && <p className="px-2 text-sm text-slate-500">Nobody lives here yet.</p>}
           <ul className="space-y-1">
             {agents.map((a) => (
               <li key={a.id}>
@@ -157,6 +185,41 @@ export function HouseView() {
           </ul>
         </nav>
       </div>
+
+      {villa && (
+        <section className="mt-6 rounded-xl border border-slate-200 bg-white p-4">
+          <h2 className="text-sm font-semibold text-slate-900">Latest posts</h2>
+          {data && data.recentPosts.length === 0 && <p className="mt-2 text-sm text-slate-500">No posts yet. Creative Director writes one a day.</p>}
+          <ul className="mt-3 divide-y divide-slate-100">
+            {data?.recentPosts.map((p) => (
+              <li key={p.id} className="py-3">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                  <span className={`rounded-full px-2 py-0.5 font-medium ${POST_STATUS[p.status]}`}>{p.status.toLowerCase()}</span>
+                  <span>
+                    {p.audience} · {p.pillar} · {new Date(p.createdAt).toLocaleDateString()}
+                  </span>
+                  {p.videoUrl && (
+                    <a href={p.videoUrl} target="_blank" rel="noreferrer" className="text-blue-700 underline">
+                      video
+                    </a>
+                  )}
+                </div>
+                <p className="mt-1 font-medium text-slate-900">{p.hook}</p>
+                {p.spec.beats && (
+                  <ol className="mt-1 list-decimal pl-5 text-sm text-slate-700">
+                    {p.spec.beats.map((b, i) => (
+                      <li key={i}>{b}</li>
+                    ))}
+                  </ol>
+                )}
+                <p className="mt-1 text-sm text-slate-500">
+                  {p.caption} {p.spec.hashtags?.map((h) => `#${h}`).join(" ")}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <AgentPanel agent={selectedAgent} onClose={() => setSelected(null)} onChanged={refresh} />
     </div>
