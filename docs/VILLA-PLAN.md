@@ -39,9 +39,21 @@ techs and barbers.
    model; brothers get a `house` field; first villa brother, **Creative
    Director**, writes one post spec a day (hook, on-screen beats, caption,
    hashtags) into a new `SocialPost` table. No keys needed.
-2. **Editor** (after Frank's example videos): Remotion composition renders
-   `SocialPost` specs to 1080×1920 MP4 in a scheduled GitHub Action (Vercel
-   functions can't run Chromium+ffmpeg renders), uploads to Vercel Blob.
+2. **Editor** (PR #23). `video/` is a separate Remotion project (own
+   package.json, kept out of the Next build). `Post` composition: 1080x1920,
+   30fps, ~16-18s: hook words pop in, each beat slides in while a code-drawn
+   phone mockup lights up the matching site section (`focusFor`), last beat is
+   the CTA with "Book now" lit, then a LaunchLocal end card. Text stays out of
+   the TikTok/Reels UI zones. Silent for now (API posts can't attach trending
+   sounds; licensed music is a later call).
+   `.github/workflows/render-posts.yml` runs daily 18:30 UTC (after the agents
+   cron) + manual: GET `/api/cron/villa/render-queue` → render → POST
+   `/api/cron/villa/upload-url` for a 15-minute signed Blob PUT URL (the app
+   signs with its Vercel OIDC credentials, so the Action holds no Blob token)
+   → PUT the MP4 → POST `/api/cron/villa/render-report`, which marks posts
+   RENDERED/FAILED and logs the run as the Editor's. All three routes need
+   `Bearer CRON_SECRET` and fail closed. GitHub secrets: `APP_URL`,
+   `CRON_SECRET`. Remotion is free for individuals/companies of up to 3 people.
 3. **Poster**: publishes rendered posts to Instagram (needs
    `INSTAGRAM_ACCESS_TOKEN`, `INSTAGRAM_USER_ID`), then TikTok per Frank's call.
    Posts go out with no human step, per Frank. Kill switch: the brother's

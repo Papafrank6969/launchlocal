@@ -58,6 +58,17 @@ export const BROTHERS: BrotherDefinition[] = [
     model: "claude-sonnet-5-5", // Haiku kept inventing features; posts are public
     run: async (ctx) => creativeDirectorJob(await loadCreativeDirectorInput(), ctx),
   },
+  {
+    // Renders need Chromium + ffmpeg, which Vercel functions can't run. The
+    // render-posts GitHub Action does the work and logs runs via
+    // /api/cron/villa/render-report. "Run now" here just says where he works.
+    id: "editor",
+    name: "Editor",
+    role: "Turns each post into a 9:16 video (Remotion)",
+    house: "villa",
+    cron: false,
+    run: async () => "renders run in GitHub Actions (render-posts workflow, daily 18:30 UTC)",
+  },
 ];
 
 export const inVilla = (id: string) => BROTHERS.some((b) => b.id === id && b.house === "villa");
