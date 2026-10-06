@@ -1,16 +1,18 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { budgetFromEnv } from "@/lib/agentBudget";
-import { BROTHERS } from "@/lib/brothers";
+import { BROTHERS, inVilla } from "@/lib/brothers";
 import { houseWindows, mergeAgents } from "@/lib/houseStats";
 
 export const dynamic = "force-dynamic";
 
-// Behind the operator password (src/proxy.ts). Polled by /house every 15s.
-export async function GET() {
+// Behind the operator password (src/proxy.ts). Polled by /house and /villa
+// (?house=villa) every 15s. Spend is shared: one budget across both houses.
+export async function GET(req: NextRequest) {
+  const villa = req.nextUrl.searchParams.get("house") === "villa";
   const { since7d, dayStart } = houseWindows(new Date());
 
-  const [backlog, dmsSent7d, replies7d, sitesPublished, draftsWaiting, spent, rows, lastRuns, queued, pending] = await Promise.all([
+  const [backlog, dmsSent7d, replies7d, sitesPublished, draftsWaiting, spent, rows, lastRuns, queued, pending, posts] = await Promise.all([
     db.lead.count({ where: { outreachStatus: "NEW", sites: { none: {} } } }),
     db.event.count({ where: { type: "LEAD_CONTACTED", createdAt: { gte: since7d } } }),
     db.event.count({ where: { type: "LEAD_RESPONDED", createdAt: { gte: since7d } } }),
@@ -26,9 +28,10 @@ export async function GET() {
     }),
     db.agentTask.groupBy({ by: ["agentId"], where: { status: "QUEUED" }, _count: true }),
     db.approval.groupBy({ by: ["agentId"], where: { state: "PENDING" }, _count: true }),
+    db.socialPost.groupBy({ by: ["status"], where: { createdAt: { gte: since7d } }, _count: true }),
   ]);
 
-  const agents = mergeAgents(BROTHERS, rows).map((a) => {
+  const agents = mergeAgents(BROTHERS, rows).filter((a) => inVilla(a.id) === villa).map((a) => {
     const run = lastRuns.find((r) => r.agentId === a.id);
     return {
       ...a,
@@ -50,6 +53,14 @@ export async function GET() {
       spentTodayMicros: spent._sum.costMicros ?? 0,
       budgetMicros: budgetFromEnv(process.env.AGENT_DAILY_BUDGET_MICROS),
     },
+    posts7d: Object.fromEntries(posts.map((p) => [p.status, p._count])),
+    recentPosts: villa
+      ? await db.socialPost.findMany({
+          orderBy: { createdAt: "desc" },
+          take: 10,
+          select: { id: true, status: true, audience: true, pillar: true, hook: true, caption: true, spec: true, videoUrl: true, createdAt: true },
+        })
+      : [],
     agents,
   });
 }
@@ -64,6 +75,18 @@ export type HouseResponse = {
     spentTodayMicros: number;
     budgetMicros: number;
   };
+  posts7d: Partial<Record<"DRAFTED" | "RENDERED" | "POSTED" | "FAILED", number>>;
+  recentPosts: {
+    id: string;
+    status: "DRAFTED" | "RENDERED" | "POSTED" | "FAILED";
+    audience: string;
+    pillar: string;
+    hook: string;
+    caption: string;
+    spec: { beats?: string[]; hashtags?: string[] };
+    videoUrl: string | null;
+    createdAt: string;
+  }[];
   agents: {
     id: string;
     name: string;

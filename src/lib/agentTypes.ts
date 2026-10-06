@@ -19,6 +19,10 @@ export type BrotherDefinition = {
   id: string; // matches Agent.id
   name: string;
   role: string;
+  /** Which house he lives in: the Frat House (/house, default) or the Villa (/villa). */
+  house?: "villa";
+  /** Claude model; defaults to the Agent row's (Haiku). Must be priced in agentCost.ts. */
+  model?: string;
   /** Do the work. Return a one-line summary for the run log. */
   run(ctx: BrotherContext): Promise<string>;
 };

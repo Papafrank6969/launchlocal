@@ -25,7 +25,7 @@ const CARS: [file: string, lengthM: number, x: number][] = [
 const LOT = { minX: -4.1, maxX: 21.6, frontZ: 3.5 };
 const GATE_X = 12.4;
 
-class Boundary extends Component<{ fallback: ReactNode; onError?: () => void; children: ReactNode }, { failed: boolean }> {
+export class Boundary extends Component<{ fallback: ReactNode; onError?: () => void; children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() {
     return { failed: true };
@@ -47,7 +47,7 @@ function Box({ size, color, position }: { size: [number, number, number]; color:
   );
 }
 
-function shadowAll(obj: THREE.Object3D) {
+export function shadowAll(obj: THREE.Object3D) {
   obj.traverse((o) => {
     if ((o as THREE.Mesh).isMesh) o.castShadow = o.receiveShadow = true;
   });
@@ -94,7 +94,7 @@ function Car({ file, lengthM, x, lawnY }: { file: string; lengthM: number; x: nu
   return <primitive object={car} />;
 }
 
-function Room({ agent, room, reducedMotion, onSelect }: { agent: SceneAgent; room: RoomSpec; reducedMotion: boolean; onSelect: (id: string) => void }) {
+export function Room({ agent, room, reducedMotion, onSelect }: { agent: SceneAgent; room: RoomSpec; reducedMotion: boolean; onSelect: (id: string) => void }) {
   const mat = useRef<THREE.MeshStandardMaterial>(null);
   const look = roomLook(agent.status, reducedMotion);
   useFrame(({ clock }) => {

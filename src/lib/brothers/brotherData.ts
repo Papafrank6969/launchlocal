@@ -8,9 +8,10 @@ import type { BuilderLead } from "./builder";
 import type { TreasurerInput } from "./treasurer";
 import { HUNTER_RETRY_DAYS, type HunterDeps } from "./handleHunter";
 import { lookupInstagramHandle } from "../instagramLookup";
+import type { CreativeDirectorInput } from "./creativeDirector";
 
 // The only DB access brothers have. Reads only, except Handle Hunter's handle
-// write and attempt log (plan §9). Everything else writes through ctx.propose().
+// write and attempt log (plan §9) and Creative Director's SocialPost insert. Everything else writes through ctx.propose().
 
 const SITES = { select: { id: true, slug: true, status: true } } as const;
 const previewBase = () => process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
@@ -122,5 +123,22 @@ export async function loadHandleHunterDeps(now = new Date()): Promise<HunterDeps
       });
     },
     sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  };
+}
+
+export async function loadCreativeDirectorInput(now = new Date()): Promise<CreativeDirectorInput> {
+  const dayStart = startOfDayET(now);
+  const recent = await db.socialPost.findMany({
+    orderBy: { createdAt: "desc" },
+    take: 14,
+    select: { audience: true, pillar: true, hook: true, createdAt: true },
+  });
+  return {
+    draftedToday: recent.some((p) => p.createdAt >= dayStart),
+    dayIndex: Math.round(dayStart.getTime() / 86_400_000),
+    recent,
+    save: async ({ audience, pillar, spec }) => {
+      await db.socialPost.create({ data: { audience, pillar, hook: spec.hook, caption: spec.caption, spec } });
+    },
   };
 }

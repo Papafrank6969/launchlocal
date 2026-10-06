@@ -343,3 +343,28 @@ model AgentMessage {
 
   @@index([agentId, createdAt])
 }
+
+// The Villa: social posts (docs/VILLA-PLAN.md). Creative Director writes the
+// spec; the Editor renders it; the Poster publishes it.
+enum SocialPostStatus {
+  DRAFTED
+  RENDERED
+  POSTED
+  FAILED
+}
+
+model SocialPost {
+  id        String           @id @default(cuid())
+  status    SocialPostStatus @default(DRAFTED)
+  audience  String // "lash" | "nail" | "brow" | "barber"
+  pillar    String // content pillar, for variety
+  hook      String
+  spec      Json // { hook, beats[], caption, hashtags[] }
+  caption   String
+  videoUrl  String?
+  error     String?
+  createdAt DateTime         @default(now())
+  postedAt  DateTime?
+
+  @@index([status, createdAt])
+}
