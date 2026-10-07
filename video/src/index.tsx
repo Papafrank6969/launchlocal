@@ -1,16 +1,18 @@
 import { Composition, registerRoot } from "remotion";
 import { durationFor, FPS, Post, type PostProps } from "./Post";
+import { TRACKS } from "./music";
 
 const sample: PostProps = {
   audience: "barber",
-  hook: "What a barber website needs, in plain words",
+  hook: "POV: your link in bio is a dead Linktree",
   beats: [
-    "Your services with prices, listed plain",
-    "A gallery of your cuts",
-    "Hours, address and a map",
-    "A link to the booking app you already use",
-    'Want one built for you? DM "SITE"',
+    "Clients want your prices without the DM",
+    "Your cuts in a real gallery",
+    "Hours and a map, not 'where u at'",
+    "Your booking app, one tap away",
+    `DM "SITE" and I'll build yours`,
   ],
+  music: TRACKS[0],
 };
 
 function Root() {
