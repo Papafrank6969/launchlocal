@@ -68,15 +68,16 @@ export const BROTHERS: BrotherDefinition[] = [
     role: "Turns each post into a 9:16 video (Remotion)",
     house: "villa",
     cron: false,
-    run: async () => "renders run in GitHub Actions (render-posts workflow, daily 18:30 UTC)",
+    run: async () => "renders run in GitHub Actions (render-posts workflow, daily 17:40 UTC)",
   },
   {
-    // Posts yesterday's render (the Editor runs after this cron), no human step.
-    // Kill switch: his enabled toggle on /villa.
+    // Runs right after the Editor's render (render-report), so a post goes out
+    // minutes after it's written. No human step. Kill switch: his toggle on /villa.
     id: "poster",
     name: "Poster",
     role: "Posts one video a day to Instagram and TikTok",
     house: "villa",
+    cron: false,
     run: async (ctx) => posterJob(await loadPosterDeps(), ctx),
   },
 ];
