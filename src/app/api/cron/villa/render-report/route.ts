@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { findBrother } from "@/lib/brothers";
+import { prismaRunnerDeps } from "@/lib/agentDeps";
+import { runBrother } from "@/lib/agentRunner";
 import { cronAllowed, EDITOR_ID, parseRenderReport, renderSummary } from "@/lib/villaRender";
 
 export const dynamic = "force-dynamic";
 
 // The render-posts GitHub Action reports its results here. Marks posts
-// RENDERED/FAILED and logs the run as the Editor's, so he shows up on /villa.
+// RENDERED/FAILED, logs the run as the Editor's, then hands a fresh video
+// straight to the Poster (unless he's switched off on /villa).
 export async function POST(req: NextRequest) {
   if (!cronAllowed(req.headers.get("authorization"), process.env.CRON_SECRET)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -39,5 +42,10 @@ export async function POST(req: NextRequest) {
       error: failedAll ? results.map((r) => ("error" in r ? r.error : "")).join("; ").slice(0, 500) : null,
     },
   });
-  return NextResponse.json({ ok: true, recorded: results.length });
+  let posted = null;
+  if (results.some((r) => "videoUrl" in r)) {
+    const poster = await db.agent.findUnique({ where: { id: "poster" }, select: { enabled: true } });
+    if (poster?.enabled !== false) posted = await runBrother(findBrother("poster")!, "CRON", prismaRunnerDeps());
+  }
+  return NextResponse.json({ ok: true, recorded: results.length, posted });
 }

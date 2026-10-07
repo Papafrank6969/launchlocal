@@ -46,7 +46,7 @@ techs and barbers.
    the CTA with "Book now" lit, then a LaunchLocal end card. Text stays out of
    the TikTok/Reels UI zones. Silent for now (API posts can't attach trending
    sounds; licensed music is a later call).
-   `.github/workflows/render-posts.yml` runs daily 18:30 UTC (after the agents
+   `.github/workflows/render-posts.yml` runs daily 17:40 UTC (after the agents
    cron) + manual: GET `/api/cron/villa/render-queue` → render → POST
    `/api/cron/villa/upload-url` for a 15-minute signed Blob PUT URL (the app
    signs with its Vercel OIDC credentials, so the Action holds no Blob token)
@@ -65,3 +65,9 @@ techs and barbers.
    evening's render), one `POST /v1/posts` to every connected account.
    Zernio publishes async; per-platform failures show in its dashboard.
    Unset env = no-op.
+
+**Same-day posting (2026-10-06):** the render Action runs at 17:40 UTC (was
+18:30) and `render-report` runs the Poster right after a successful render, so
+the post of the day goes out ~10 min after Creative Director writes it (was
+~23 h). The Poster is `cron: false`; his /villa toggle still stops him, and
+"Run now" still posts the oldest RENDERED video.
