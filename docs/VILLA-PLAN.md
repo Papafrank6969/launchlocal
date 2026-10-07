@@ -58,3 +58,10 @@ techs and barbers.
    `INSTAGRAM_ACCESS_TOKEN`, `INSTAGRAM_USER_ID`), then TikTok per Frank's call.
    Posts go out with no human step, per Frank. Kill switch: the brother's
    enabled toggle on `/villa`.
+   **Built (PR #24):** `src/lib/brothers/poster.ts`, last in the 17:30 UTC
+   agents cron. Frank chose a posting service for both platforms (2026-10-06):
+   Zernio (formerly Late), audited for TikTok so posts go public, first 2
+   accounts free. One video a day, oldest RENDERED post (the previous
+   evening's render), one `POST /v1/posts` to every connected account.
+   Zernio publishes async; per-platform failures show in its dashboard.
+   Unset env = no-op.
