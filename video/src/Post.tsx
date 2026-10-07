@@ -1,22 +1,25 @@
 import type React from "react";
-import { AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Audio, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { loadFont } from "@remotion/google-fonts/Inter";
 
 // One SocialPost spec as a 9:16 kinetic-text video. Code-made motion graphics
 // only: no people, no stock footage, no AI imagery (BRAND-AND-COMPLIANCE-STANDARDS).
 
-const { fontFamily } = loadFont("normal", { weights: ["600", "800"], subsets: ["latin"] });
+const { fontFamily } = loadFont("normal", { weights: ["600", "800", "900"], subsets: ["latin"] });
 
 export type PostProps = {
   audience: string;
   hook: string;
   beats: string[];
+  /** Royalty-free track (music.ts), streamed at render time; starts at its drop. */
+  music?: { url: string; startSec: number };
 };
 
 export const FPS = 30;
-export const HOOK_FRAMES = 75;
-export const BEAT_FRAMES = 78;
-export const END_FRAMES = 66;
+// Fast on purpose: short-form viewers swipe in under 2 s.
+export const HOOK_FRAMES = 48;
+export const BEAT_FRAMES = 54;
+export const END_FRAMES = 42;
 
 export const durationFor = (beats: number) => HOOK_FRAMES + beats * BEAT_FRAMES + END_FRAMES;
 
@@ -24,7 +27,7 @@ const INK = "#0b1020";
 const PAPER = "#f8f5ef";
 const ACCENT: Record<string, string> = {
   lash: "#f472b6",
-  nail: "#a78bfa",
+  nail: "#34d399", // no purple (BRAND-AND-COMPLIANCE-STANDARDS)
   brow: "#f59e0b",
   barber: "#38bdf8",
 };
@@ -32,31 +35,23 @@ const ACCENT: Record<string, string> = {
 // TikTok/Reels draw their UI over the bottom ~22% and right ~14%; text stays clear.
 const SAFE = { top: 260, left: 80, right: 170, bottom: 460 };
 
+// Words slam in one by one; the last word is the punchline, in the accent.
 function Hook({ text, accent }: { text: string; accent: string }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const words = text.split(" ");
   return (
-    <AbsoluteFill style={{ padding: `${SAFE.top + 120}px ${SAFE.right}px ${SAFE.bottom}px ${SAFE.left}px`, justifyContent: "center" }}>
-      <div style={{ fontSize: 104, fontWeight: 800, lineHeight: 1.05, color: PAPER, letterSpacing: -2 }}>
+    <AbsoluteFill style={{ padding: `${SAFE.top + 80}px ${SAFE.right}px ${SAFE.bottom}px ${SAFE.left}px`, justifyContent: "center" }}>
+      <div style={{ fontSize: 112, fontWeight: 900, lineHeight: 1.02, color: PAPER, letterSpacing: -3 }}>
         {words.map((w, i) => {
-          const s = spring({ frame: frame - i * 3, fps, config: { damping: 14, stiffness: 180 } });
+          const s = spring({ frame: frame - i * 2, fps, config: { damping: 11, stiffness: 260 } });
           return (
-            <span key={i} style={{ display: "inline-block", marginRight: 26, opacity: s, transform: `translateY(${(1 - s) * 60}px) scale(${0.9 + 0.1 * s})` }}>
+            <span key={i} style={{ display: "inline-block", marginRight: 24, opacity: Math.min(1, s * 2), transform: `scale(${1.4 - 0.4 * s})`, color: i === words.length - 1 ? accent : PAPER }}>
               {w}
             </span>
           );
         })}
       </div>
-      <div
-        style={{
-          marginTop: 48,
-          height: 14,
-          width: interpolate(frame, [words.length * 3, words.length * 3 + 18], [0, 360], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }),
-          background: accent,
-          borderRadius: 7,
-        }}
-      />
     </AbsoluteFill>
   );
 }
@@ -138,32 +133,38 @@ function Phone({ focus, accent, enter }: { focus: Section | null; accent: string
   );
 }
 
+// Caption-style: words pop in on a fast stagger, the longest word gets the accent.
 function Beat({ text, index, total, accent }: { text: string; index: number; total: number; accent: string }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const enter = spring({ frame, fps, config: { damping: 16, stiffness: 160 } });
-  const exit = interpolate(frame, [BEAT_FRAMES - 10, BEAT_FRAMES], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const exit = interpolate(frame, [BEAT_FRAMES - 6, BEAT_FRAMES], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const last = index === total - 1;
+  const words = text.split(" ");
+  const key = words.reduce((a, w, i) => (w.length > words[a].length ? i : a), 0);
   return (
     <AbsoluteFill style={{ padding: `${SAFE.top}px ${SAFE.right}px 0 ${SAFE.left}px` }}>
-      <div style={{ fontSize: 40, fontWeight: 600, color: accent, marginBottom: 28, opacity: enter }}>
-        {index + 1} / {total}
-      </div>
       <div
         style={{
-          fontSize: last ? 84 : 72,
-          fontWeight: 800,
-          lineHeight: 1.1,
-          letterSpacing: -1.5,
+          fontSize: last ? 88 : 80,
+          fontWeight: 900,
+          lineHeight: 1.06,
+          letterSpacing: -2,
           color: last ? INK : PAPER,
           background: last ? accent : "transparent",
           padding: last ? "28px 36px" : 0,
           borderRadius: last ? 28 : 0,
-          opacity: enter * (1 - exit),
-          transform: `translateX(${(1 - enter) * 120 - exit * 120}px)`,
+          opacity: 1 - exit,
+          transform: `translateY(${-exit * 60}px)`,
         }}
       >
-        {text}
+        {words.map((w, i) => {
+          const s = spring({ frame: frame - i * 2, fps, config: { damping: 12, stiffness: 300 } });
+          return (
+            <span key={i} style={{ display: "inline-block", marginRight: 20, opacity: Math.min(1, s * 2), transform: `translateY(${(1 - s) * 40}px) scale(${1.25 - 0.25 * s})`, color: !last && i === key ? accent : undefined }}>
+              {w}
+            </span>
+          );
+        })}
       </div>
     </AbsoluteFill>
   );
@@ -172,10 +173,12 @@ function Beat({ text, index, total, accent }: { text: string; index: number; tot
 function EndCard({ accent }: { accent: string }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const s = spring({ frame, fps, config: { damping: 18 } });
+  const s = spring({ frame, fps, config: { damping: 12, stiffness: 220 } });
+  // Fades out at the very end so the replay loops cleanly into the hook.
+  const out = interpolate(frame, [END_FRAMES - 8, END_FRAMES], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   return (
     <AbsoluteFill style={{ justifyContent: "center", alignItems: "center", padding: `${SAFE.top}px ${SAFE.right}px ${SAFE.bottom}px ${SAFE.left}px` }}>
-      <div style={{ opacity: s, transform: `scale(${0.85 + 0.15 * s})`, textAlign: "center" }}>
+      <div style={{ opacity: s * out, transform: `scale(${1.3 - 0.3 * s})`, textAlign: "center" }}>
         <div style={{ fontSize: 110, fontWeight: 800, color: PAPER, letterSpacing: -3 }}>
           Launch<span style={{ color: accent }}>Local</span>
         </div>
@@ -196,39 +199,60 @@ function PhoneTrack({ beats, accent }: { beats: string[]; accent: string }) {
   return <Phone focus={focus} accent={accent} enter={enter * out} />;
 }
 
-export function Post({ audience, hook, beats }: PostProps) {
+/** Frame index of every hard cut (hook -> beats -> end card). */
+export function cutsFor(beats: number): number[] {
+  return Array.from({ length: beats + 1 }, (_, i) => HOOK_FRAMES + i * BEAT_FRAMES);
+}
+
+export function Post({ audience, hook, beats, music }: PostProps) {
   const frame = useCurrentFrame();
+  const { fps, durationInFrames } = useVideoConfig();
   const accent = ACCENT[audience] ?? ACCENT.lash;
-  // Slow drifting accent shape so the background isn't static.
-  const drift = Math.sin(frame / 40) * 60;
+  const drift = Math.sin(frame / 18) * 90;
+  // Punch-zoom and a white flash on each cut, the editing style short-form uses.
+  const since = Math.min(frame, ...cutsFor(beats.length).map((c) => (frame >= c ? frame - c : Infinity)));
+  const punch = 1 + 0.08 * Math.max(0, 1 - since / 7);
+  const flash = Math.max(0, 0.35 - since * 0.12);
   return (
     <AbsoluteFill style={{ background: INK, fontFamily }}>
-      <div
-        style={{
-          position: "absolute",
-          width: 900,
-          height: 900,
-          borderRadius: "50%",
-          background: accent,
-          opacity: 0.12,
-          top: -300 + drift,
-          right: -380 - drift,
-        }}
-      />
-      <Sequence durationInFrames={HOOK_FRAMES}>
-        <Hook text={hook} accent={accent} />
-      </Sequence>
-      {beats.map((b, i) => (
-        <Sequence key={i} from={HOOK_FRAMES + i * BEAT_FRAMES} durationInFrames={BEAT_FRAMES}>
-          <Beat text={b} index={i} total={beats.length} accent={accent} />
+      {music && (
+        <Audio
+          src={music.url}
+          startFrom={Math.round(music.startSec * fps)}
+          volume={(f) => interpolate(f, [0, 6, durationInFrames - 20, durationInFrames], [0, 0.9, 0.9, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })}
+        />
+      )}
+      <AbsoluteFill style={{ transform: `scale(${punch})` }}>
+        <div
+          style={{
+            position: "absolute",
+            width: 900,
+            height: 900,
+            borderRadius: "50%",
+            background: accent,
+            opacity: 0.16,
+            top: -300 + drift,
+            right: -380 - drift,
+          }}
+        />
+        <Sequence durationInFrames={HOOK_FRAMES}>
+          <Hook text={hook} accent={accent} />
         </Sequence>
-      ))}
-      <Sequence from={HOOK_FRAMES} durationInFrames={beats.length * BEAT_FRAMES}>
-        <PhoneTrack beats={beats} accent={accent} />
-      </Sequence>
-      <Sequence from={HOOK_FRAMES + beats.length * BEAT_FRAMES}>
-        <EndCard accent={accent} />
-      </Sequence>
+        {beats.map((b, i) => (
+          <Sequence key={i} from={HOOK_FRAMES + i * BEAT_FRAMES} durationInFrames={BEAT_FRAMES}>
+            <Beat text={b} index={i} total={beats.length} accent={accent} />
+          </Sequence>
+        ))}
+        <Sequence from={HOOK_FRAMES} durationInFrames={beats.length * BEAT_FRAMES}>
+          <PhoneTrack beats={beats} accent={accent} />
+        </Sequence>
+        <Sequence from={HOOK_FRAMES + beats.length * BEAT_FRAMES}>
+          <EndCard accent={accent} />
+        </Sequence>
+      </AbsoluteFill>
+      <AbsoluteFill style={{ background: PAPER, opacity: flash }} />
+      {/* Progress bar: shows the video is short, so viewers stay to the end. */}
+      <div style={{ position: "absolute", top: 0, left: 0, height: 12, width: `${(100 * frame) / durationInFrames}%`, background: accent }} />
     </AbsoluteFill>
   );
 }

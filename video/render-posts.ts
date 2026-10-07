@@ -6,6 +6,7 @@ import path from "node:path";
 import { readFile } from "node:fs/promises";
 import { bundle } from "@remotion/bundler";
 import { renderMedia, selectComposition } from "@remotion/renderer";
+import { trackFor } from "./src/music";
 
 const { APP_URL, CRON_SECRET } = process.env;
 if (!APP_URL || !CRON_SECRET) throw new Error("APP_URL and CRON_SECRET must be set");
@@ -23,7 +24,7 @@ if (posts.length > 0) {
   const serveUrl = await bundle({ entryPoint: path.resolve("src/index.tsx") });
   for (const post of posts) {
     try {
-      const inputProps = { audience: post.audience, hook: post.hook, beats: post.beats };
+      const inputProps = { audience: post.audience, hook: post.hook, beats: post.beats, music: trackFor(post.id) };
       const composition = await selectComposition({ serveUrl, id: "Post", inputProps });
       const outputLocation = path.resolve("out", `${post.id}.mp4`);
       await renderMedia({ composition, serveUrl, codec: "h264", outputLocation, inputProps });
