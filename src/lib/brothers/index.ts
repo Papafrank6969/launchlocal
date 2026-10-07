@@ -71,11 +71,11 @@ export const BROTHERS: BrotherDefinition[] = [
     run: async () => "renders run in GitHub Actions (render-posts workflow, daily 18:30 UTC)",
   },
   {
-    // Last: may wait ~3 min on Instagram. Posts yesterday's render, no human step.
+    // Posts yesterday's render (the Editor runs after this cron), no human step.
     // Kill switch: his enabled toggle on /villa.
     id: "poster",
     name: "Poster",
-    role: "Publishes one Reel a day to Instagram",
+    role: "Posts one video a day to Instagram and TikTok",
     house: "villa",
     run: async (ctx) => posterJob(await loadPosterDeps(), ctx),
   },

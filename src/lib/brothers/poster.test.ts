@@ -1,31 +1,27 @@
 import { describe, expect, it } from "vitest";
-import { fullCaption, posterJob, POLL_TRIES, type PosterDeps } from "./poster";
+import { fullCaption, posterJob, zernioBody, type PosterDeps } from "./poster";
 import { fakeCtx } from "./testCtx";
 
 const post = { id: "p1", caption: "A simple site for your lash studio.", hashtags: ["lashtech", "nyclashes"], videoUrl: "https://x.public.blob.vercel-storage.com/p1.mp4" };
 
-function deps(statuses: string[], over: Partial<PosterDeps> = {}) {
-  const calls: string[] = [];
+function deps(status: number, over: Partial<PosterDeps> = {}) {
+  const sent: { url: string; init: RequestInit }[] = [];
   const posted: string[] = [];
   const failed: string[] = [];
-  const reply = (body: object, ok = true) => ({ ok, status: ok ? 200 : 400, json: async () => body }) as Response;
   const d: PosterDeps = {
-    token: "tok",
-    userId: "42",
+    apiKey: "sk_test",
+    instagramAccountId: "ig1",
+    tiktokAccountId: "tt1",
     next: post,
-    sleep: async () => {},
     markPosted: async (id) => void posted.push(id),
     markFailed: async (id, e) => void failed.push(`${id}: ${e}`),
     fetch: (async (url: string, init: RequestInit) => {
-      const u = new URL(url);
-      calls.push(`${init.method} ${u.pathname.split("/").slice(2).join("/")}`);
-      if (u.pathname.endsWith("/media")) return reply({ id: "c1" });
-      if (u.pathname.endsWith("/media_publish")) return reply({ id: "m1" });
-      return reply({ status_code: statuses.shift() ?? "IN_PROGRESS" });
-    }) as typeof fetch,
+      sent.push({ url, init });
+      return { ok: status < 300, status, json: async () => (status < 300 ? { post: { _id: "z1" } } : { error: "bad video" }) };
+    }) as unknown as typeof fetch,
     ...over,
   };
-  return { d, calls, posted, failed };
+  return { d, sent, posted, failed };
 }
 
 describe("fullCaption", () => {
@@ -35,38 +31,44 @@ describe("fullCaption", () => {
   });
 });
 
+describe("zernioBody", () => {
+  it("only includes connected platforms, TikTok settings only with TikTok", () => {
+    const ig = zernioBody(post, { instagram: "ig1" });
+    expect(ig.platforms).toEqual([{ platform: "instagram", accountId: "ig1" }]);
+    expect(ig).not.toHaveProperty("tiktokSettings");
+    const both = zernioBody(post, { instagram: "ig1", tiktok: "tt1" });
+    expect(both.platforms.map((p) => p.platform)).toEqual(["instagram", "tiktok"]);
+    expect(both.tiktokSettings?.privacy_level).toBe("PUBLIC_TO_EVERYONE");
+  });
+});
+
 describe("posterJob", () => {
-  it("does nothing until Instagram is connected", async () => {
-    const { d, calls } = deps([], { token: undefined });
-    expect(await posterJob(d, fakeCtx().ctx)).toMatch(/isn't connected/);
-    expect(calls).toEqual([]);
+  it("does nothing until Zernio is connected", async () => {
+    const { d, sent } = deps(200, { apiKey: undefined });
+    expect(await posterJob(d, fakeCtx().ctx)).toMatch(/no accounts connected/);
+    expect(sent).toEqual([]);
   });
 
-  it("creates a container, waits for FINISHED, publishes", async () => {
-    const { d, calls, posted } = deps(["IN_PROGRESS", "FINISHED"]);
-    expect(await posterJob(d, fakeCtx().ctx)).toBe("posted 1 Reel to Instagram");
-    expect(calls).toEqual(["POST 42/media", "GET c1", "GET c1", "POST 42/media_publish"]);
+  it("posts the video and marks it POSTED", async () => {
+    const { d, sent, posted } = deps(200);
+    expect(await posterJob(d, fakeCtx().ctx)).toBe("posted 1 video to Instagram + TikTok");
+    expect(sent[0].url).toBe("https://zernio.com/api/v1/posts");
+    expect((sent[0].init.headers as Record<string, string>).Authorization).toBe("Bearer sk_test");
     expect(posted).toEqual(["p1"]);
   });
 
-  it("marks the post FAILED when Instagram can't process it", async () => {
-    const { d, posted, failed } = deps(["ERROR"]);
-    await posterJob(d, fakeCtx().ctx);
+  it("marks the post FAILED when Zernio rejects it", async () => {
+    const { d, posted, failed } = deps(400);
+    expect(await posterJob(d, fakeCtx().ctx)).toBe("Zernio 400: bad video");
     expect(posted).toEqual([]);
-    expect(failed).toHaveLength(1);
+    expect(failed).toEqual(["p1: Zernio 400: bad video"]);
   });
 
-  it("leaves the post for tomorrow if processing never finishes", async () => {
-    const { d, calls, posted, failed } = deps([]);
-    expect(await posterJob(d, fakeCtx().ctx)).toMatch(/retry tomorrow/);
-    expect(calls.filter((c) => c === "GET c1")).toHaveLength(POLL_TRIES);
-    expect([...posted, ...failed]).toEqual([]);
-  });
-
-  it("throws Instagram's error message so the run logs it", async () => {
-    const { d } = deps([], {
-      fetch: (async () => ({ ok: false, status: 400, json: async () => ({ error: { message: "Invalid token" } }) })) as unknown as typeof fetch,
-    });
-    await expect(posterJob(d, fakeCtx().ctx)).rejects.toThrow("Instagram 400: Invalid token");
+  it("throws on outages and bad keys, leaving the post for tomorrow", async () => {
+    for (const status of [500, 429, 401]) {
+      const { d, failed } = deps(status);
+      await expect(posterJob(d, fakeCtx().ctx)).rejects.toThrow(`Zernio ${status}`);
+      expect(failed).toEqual([]);
+    }
   });
 });

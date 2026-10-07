@@ -151,8 +151,9 @@ export async function loadPosterDeps(): Promise<PosterDeps> {
     select: { id: true, caption: true, spec: true, videoUrl: true },
   });
   return {
-    token: process.env.INSTAGRAM_ACCESS_TOKEN,
-    userId: process.env.INSTAGRAM_USER_ID,
+    apiKey: process.env.ZERNIO_API_KEY,
+    instagramAccountId: process.env.ZERNIO_INSTAGRAM_ACCOUNT_ID,
+    tiktokAccountId: process.env.ZERNIO_TIKTOK_ACCOUNT_ID,
     next: next && {
       id: next.id,
       caption: next.caption,
@@ -160,7 +161,6 @@ export async function loadPosterDeps(): Promise<PosterDeps> {
       videoUrl: next.videoUrl!,
     },
     fetch,
-    sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
     markPosted: async (id) => {
       await db.socialPost.updateMany({ where: { id, status: "RENDERED" }, data: { status: "POSTED", postedAt: new Date(), error: null } });
     },
