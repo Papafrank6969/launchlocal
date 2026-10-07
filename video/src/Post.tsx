@@ -180,7 +180,7 @@ function EndCard({ accent }: { accent: string }) {
     <AbsoluteFill style={{ justifyContent: "center", alignItems: "center", padding: `${SAFE.top}px ${SAFE.right}px ${SAFE.bottom}px ${SAFE.left}px` }}>
       <div style={{ opacity: s * out, transform: `scale(${1.3 - 0.3 * s})`, textAlign: "center" }}>
         <div style={{ fontSize: 110, fontWeight: 800, color: PAPER, letterSpacing: -3 }}>
-          Launch<span style={{ color: accent }}>Local</span>
+          Scale <span style={{ color: accent }}>Strategies</span>
         </div>
         <div style={{ fontSize: 44, fontWeight: 600, color: PAPER, opacity: 0.75, marginTop: 20 }}>Websites for lash, nail, brow and barber pros</div>
       </div>
