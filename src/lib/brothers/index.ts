@@ -6,7 +6,8 @@ import { builderJob } from "./builder";
 import { treasurerJob } from "./treasurer";
 import { handleHunterJob } from "./handleHunter";
 import { creativeDirectorJob } from "./creativeDirector";
-import { loadBuilderInput, loadCreativeDirectorInput, loadFollowUpInput, loadHandleHunterDeps, loadRushChairInput, loadScoutInput, loadTreasurerInput } from "./brotherData";
+import { posterJob } from "./poster";
+import { loadBuilderInput, loadCreativeDirectorInput, loadFollowUpInput, loadHandleHunterDeps, loadPosterDeps, loadRushChairInput, loadScoutInput, loadTreasurerInput } from "./brotherData";
 
 // Every registered brother, in cron order (docs/FRAT-HOUSE-BROTHERS-PLAN.md).
 // The cron upserts each into the Agent table, so a new brother shows up on the
@@ -68,6 +69,15 @@ export const BROTHERS: BrotherDefinition[] = [
     house: "villa",
     cron: false,
     run: async () => "renders run in GitHub Actions (render-posts workflow, daily 18:30 UTC)",
+  },
+  {
+    // Last: may wait ~3 min on Instagram. Posts yesterday's render, no human step.
+    // Kill switch: his enabled toggle on /villa.
+    id: "poster",
+    name: "Poster",
+    role: "Publishes one Reel a day to Instagram",
+    house: "villa",
+    run: async (ctx) => posterJob(await loadPosterDeps(), ctx),
   },
 ];
 

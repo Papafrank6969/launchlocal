@@ -5,7 +5,7 @@ import { runBrother, type RunResult } from "@/lib/agentRunner";
 import { BROTHERS } from "@/lib/brothers";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 300; // the Poster waits on Instagram video processing
 
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;

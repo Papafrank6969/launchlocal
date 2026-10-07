@@ -9,6 +9,7 @@ import type { TreasurerInput } from "./treasurer";
 import { HUNTER_RETRY_DAYS, type HunterDeps } from "./handleHunter";
 import { lookupInstagramHandle } from "../instagramLookup";
 import type { CreativeDirectorInput } from "./creativeDirector";
+import type { PosterDeps } from "./poster";
 
 // The only DB access brothers have. Reads only, except Handle Hunter's handle
 // write and attempt log (plan §9) and Creative Director's SocialPost insert. Everything else writes through ctx.propose().
@@ -139,6 +140,32 @@ export async function loadCreativeDirectorInput(now = new Date()): Promise<Creat
     recent,
     save: async ({ audience, pillar, spec }) => {
       await db.socialPost.create({ data: { audience, pillar, hook: spec.hook, caption: spec.caption, spec } });
+    },
+  };
+}
+
+export async function loadPosterDeps(): Promise<PosterDeps> {
+  const next = await db.socialPost.findFirst({
+    where: { status: "RENDERED", videoUrl: { not: null } },
+    orderBy: { createdAt: "asc" },
+    select: { id: true, caption: true, spec: true, videoUrl: true },
+  });
+  return {
+    token: process.env.INSTAGRAM_ACCESS_TOKEN,
+    userId: process.env.INSTAGRAM_USER_ID,
+    next: next && {
+      id: next.id,
+      caption: next.caption,
+      hashtags: (next.spec as { hashtags?: string[] }).hashtags ?? [],
+      videoUrl: next.videoUrl!,
+    },
+    fetch,
+    sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    markPosted: async (id) => {
+      await db.socialPost.updateMany({ where: { id, status: "RENDERED" }, data: { status: "POSTED", postedAt: new Date(), error: null } });
+    },
+    markFailed: async (id, error) => {
+      await db.socialPost.updateMany({ where: { id, status: "RENDERED" }, data: { status: "FAILED", error } });
     },
   };
 }
