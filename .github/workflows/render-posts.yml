@@ -1,12 +1,13 @@
 # The Villa's Editor (docs/VILLA-PLAN.md): renders DRAFTED SocialPosts to MP4
-# with Remotion and uploads them through URLs the app signs. Runs 10 min after
-# the 17:30 UTC agents cron, so Creative Director's post of the day is ready;
-# the app posts it as soon as the render is reported.
+# with Remotion and uploads them through URLs the app signs. The 17:30 UTC
+# agents cron dispatches this as soon as Creative Director writes a post (GitHub
+# schedules can start hours late); the 21:00 schedule is only a backstop. The
+# app posts the video as soon as the render is reported.
 name: Render posts
 
 on:
   schedule:
-    - cron: "40 17 * * *"
+    - cron: "0 21 * * *"
   workflow_dispatch:
 
 concurrency: render-posts

@@ -46,8 +46,8 @@ techs and barbers.
    the CTA with "Book now" lit, then a LaunchLocal end card. Text stays out of
    the TikTok/Reels UI zones. Silent for now (API posts can't attach trending
    sounds; licensed music is a later call).
-   `.github/workflows/render-posts.yml` runs daily 17:40 UTC (after the agents
-   cron) + manual: GET `/api/cron/villa/render-queue` → render → POST
+   `.github/workflows/render-posts.yml` is dispatched by the agents cron
+   right after Creative Director writes (21:00 UTC schedule as backstop) + manual: GET `/api/cron/villa/render-queue` → render → POST
    `/api/cron/villa/upload-url` for a 15-minute signed Blob PUT URL (the app
    signs with its Vercel OIDC credentials, so the Action holds no Blob token)
    → PUT the MP4 → POST `/api/cron/villa/render-report`, which marks posts
@@ -71,3 +71,8 @@ techs and barbers.
 the post of the day goes out ~10 min after Creative Director writes it (was
 ~23 h). The Poster is `cron: false`; his /villa toggle still stops him, and
 "Run now" still posts the oldest RENDERED video.
+
+**Dispatched render (2026-10-07):** GitHub started the 17:40 schedule at 22:14
+UTC on the first live day, so the agents cron now dispatches `render-posts.yml`
+itself (needs `GITHUB_DISPATCH_TOKEN`, fine-grained PAT with Actions: write on
+this repo). The schedule moved to 21:00 UTC as a backstop if dispatch fails.

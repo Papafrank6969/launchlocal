@@ -68,7 +68,7 @@ export const BROTHERS: BrotherDefinition[] = [
     role: "Turns each post into a 9:16 video (Remotion)",
     house: "villa",
     cron: false,
-    run: async () => "renders run in GitHub Actions (render-posts workflow, daily 17:40 UTC)",
+    run: async () => "renders run in GitHub Actions (render-posts workflow, started by the agents cron)",
   },
   {
     // Runs right after the Editor's render (render-report), so a post goes out
