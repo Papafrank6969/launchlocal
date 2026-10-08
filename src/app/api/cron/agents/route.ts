@@ -30,5 +30,32 @@ export async function GET(req: NextRequest) {
     results.push(await runBrother(def, "CRON", deps));
   }
 
-  return NextResponse.json({ results });
+  // GitHub's own schedule can start hours late, so kick the render ourselves
+  // as soon as the Creative Director has written today's post.
+  const wrote = results.some((r) => r.id === "creative-director" && r.outcome === "OK");
+  const render = wrote ? await dispatchRender() : null;
+
+  return NextResponse.json({ results, render });
+}
+
+// Needs GITHUB_DISPATCH_TOKEN: fine-grained PAT, this repo only, Actions: write.
+async function dispatchRender(): Promise<string> {
+  const token = process.env.GITHUB_DISPATCH_TOKEN;
+  if (!token) return "skipped: GITHUB_DISPATCH_TOKEN not set";
+  const res = await fetch(
+    "https://api.github.com/repos/Papafrank6969/launchlocal/actions/workflows/render-posts.yml/dispatches",
+    {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        accept: "application/vnd.github+json",
+        "x-github-api-version": "2022-11-28",
+      },
+      body: JSON.stringify({ ref: "master" }),
+    }
+  );
+  if (res.ok) return "dispatched";
+  const err = `dispatch failed: HTTP ${res.status} ${await res.text()}`;
+  console.error(err);
+  return err;
 }
