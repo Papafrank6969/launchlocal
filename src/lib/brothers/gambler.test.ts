@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { candidates, gamblerJob, parsePicks, recordLine, type GamblerDeps, type Market } from "./gambler";
+import { candidates, gamblerJob, parseLean, parsePicks, recordLine, type GamblerDeps, type Market } from "./gambler";
 import { fakeCtx } from "./testCtx";
 
 const now = new Date("2026-10-18T16:00:00Z");
@@ -53,7 +53,8 @@ describe("parsePicks", () => {
 
 describe("recordLine", () => {
   it("is profit per $1 a pick, voids ignored", () => {
-    expect(recordLine([])).toBe("Record: no graded picks yet");
+    expect(recordLine([])).toBe("Record: none graded yet");
+    expect(recordLine([], "Leans")).toBe("Leans: none graded yet");
     // won at 50¢ pays +$1, lost -$1, won at 25¢ pays +$3
     expect(recordLine([{ price: 0.5, result: "won" }, { price: 0.4, result: "lost" }, { price: 0.25, result: "won" }, { price: 0.5, result: "void" }])).toBe(
       "Record: 2-1, +$3.00 betting $1 a pick (before fees)",
@@ -76,12 +77,31 @@ describe("gamblerJob", () => {
   });
 
   it("files picks once a day with his record", async () => {
-    const { ctx, proposals } = fakeCtx(JSON.stringify([{ ticker: "G-GB", prob: 0.56, why: "Dallas is on a short week." }]));
-    const { d, saved } = deps({ graded: [{ price: 0.5, result: "won" }] });
+    const { ctx, proposals } = fakeCtx(
+      JSON.stringify([
+        { ticker: "G-GB", prob: 0.56, why: "Dallas is on a short week." },
+        { ticker: "G-GB", prob: 0.56, why: "same", lean: true },
+      ]),
+    );
+    const { d, saved } = deps({ graded: [{ price: 0.5, result: "won", lean: false }, { price: 0.5, result: "lost", lean: true }] });
     expect(await gamblerJob(d, ctx)).toBe("picked 1 from 1 games");
-    expect(saved).toEqual([{ ticker: "G-GB", title: "Green Bay over Dallas", price: 0.46, prob: 0.56, reason: "Dallas is on a short week.", gameAt: gb.gameAt }]);
+    // A real pick that day: no lean saved on top of it.
+    expect(saved).toEqual([{ ticker: "G-GB", title: "Green Bay over Dallas", price: 0.46, prob: 0.56, reason: "Dallas is on a short week.", gameAt: gb.gameAt, lean: false }]);
     expect(proposals[0].body).toContain('Green Bay to beat Dallas: buy "Green Bay" at 46¢ or less. He says 56%.');
-    expect(proposals[0].body).toContain("Record: 1-0");
+    expect(proposals[0].body).toContain("Picks: 1-0");
+    expect(proposals[0].body).toContain("Leans: 0-1");
+  });
+
+  it("files his best lean, paper only, on a no-pick day", async () => {
+    // 3-point edge: under the pick bar, fine for a lean.
+    const { ctx, proposals } = fakeCtx(JSON.stringify([{ ticker: "G-GB", prob: 0.49, why: "Slight rest edge.", lean: true }]));
+    const { d, saved } = deps();
+    expect(await gamblerJob(d, ctx)).toBe("no picks from 1 games, 1 lean");
+    expect(saved).toEqual([{ ticker: "G-GB", title: "Green Bay over Dallas", price: 0.46, prob: 0.49, reason: "Slight rest edge.", gameAt: gb.gameAt, lean: true }]);
+    expect(proposals[0].title).toBe("No picks today");
+    expect(proposals[0].body).toContain("Lean (paper only, don't bet): Green Bay over Dallas at 46¢. He says 49%.");
+    // A "lean" at or below the ask isn't a lean.
+    expect(parseLean(JSON.stringify([{ ticker: "G-GB", prob: 0.46, lean: true }]), [gb])).toBeNull();
   });
 
   it("reads news for each game and passes it to Claude", async () => {

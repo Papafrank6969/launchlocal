@@ -269,3 +269,7 @@ Robinhood himself. `src/lib/brothers/gambler.ts`, Sonnet 5.5, on /house.
 - Every tick he grades finished picks from Kalshi's settlement (`BetPick`
   table) and each note carries his record (profit betting $1 a pick, before
   fees). Frank watches the record before trusting him with real money.
+- Leans (2026-10-09, after two days of zero picks): on a no-pick day he still
+  files his single best lean (any edge over the ask), saved as `BetPick.lean`
+  and graded the same way. Paper only, never bet; notes show the Picks and
+  Leans records separately, so the record builds while real picks are rare.
