@@ -5,7 +5,8 @@ import { runBrother, type RunResult } from "@/lib/agentRunner";
 import { BROTHERS } from "@/lib/brothers";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+// Seven brothers run back to back; 60s cut the run off before the render dispatch.
+export const maxDuration = 300;
 
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
@@ -34,6 +35,12 @@ export async function GET(req: NextRequest) {
   // as soon as the Creative Director has written today's post.
   const wrote = results.some((r) => r.id === "creative-director" && r.outcome === "OK");
   const render = wrote ? await dispatchRender() : null;
+  // Function logs don't last, so a failed dispatch shows on /villa as the Editor's error.
+  if (render && render !== "dispatched") {
+    await db.agentRun.create({
+      data: { agentId: "editor", trigger: "CRON", outcome: "ERROR", finishedAt: new Date(), summary: "render not started", error: render.slice(0, 500) },
+    });
+  }
 
   return NextResponse.json({ results, render });
 }
