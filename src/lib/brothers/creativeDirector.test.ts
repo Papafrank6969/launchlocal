@@ -16,8 +16,8 @@ function input(over: Partial<Parameters<typeof creativeDirectorJob>[0]> = {}) {
 
 describe("audienceFor", () => {
   it("rotates daily and handles negatives", () => {
-    expect([0, 1, 2, 3, 4].map(audienceFor)).toEqual(["lash", "nail", "brow", "barber", "lash"]);
-    expect(audienceFor(-1)).toBe("barber");
+    expect([0, 1, 2].map(audienceFor)).toEqual(["detailer", "tattoo", "detailer"]);
+    expect(audienceFor(-1)).toBe("tattoo");
   });
 });
 
@@ -65,11 +65,11 @@ describe("creativeDirectorJob", () => {
     const { ctx, asks, nows } = fakeCtx(JSON.stringify(good));
     const { input: i, saved } = input({ dayIndex: 3, recent: [{ audience: "lash", pillar: "how-to", hook: "Old hook" }] });
     const summary = await creativeDirectorJob(i, ctx);
-    expect(summary).toBe('wrote a myth post for barber: "Your Instagram is not a booking page"');
-    expect(saved).toEqual([{ audience: "barber", pillar: "myth", spec: expect.objectContaining({ hook: good.hook }) }]);
+    expect(summary).toBe('wrote a myth post for tattoo: "Your Instagram is not a booking page"');
+    expect(saved).toEqual([{ audience: "tattoo", pillar: "myth", spec: expect.objectContaining({ hook: good.hook }) }]);
     expect(asks[0].prompt).toContain("- Old hook");
-    expect(asks[0].prompt).toContain("independent barbers");
-    expect(nows).toEqual(["writing a myth post for barbers"]);
+    expect(asks[0].prompt).toContain("independent tattoo artists");
+    expect(nows).toEqual(["writing a myth post for tattoo artists"]);
   });
 
   it("saves nothing when the reply breaks the rules", async () => {

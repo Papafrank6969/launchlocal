@@ -4,8 +4,10 @@ import { scrubDraft } from "./draftText";
 // The Villa's first brother (docs/VILLA-PLAN.md): writes one LaunchLocal promo
 // post spec a day. The Editor renders it, the Poster publishes it.
 
-export const AUDIENCES = ["lash", "nail", "brow", "barber"] as const;
+// The outreach niches (leadTargets.ts TARGET_CATEGORIES); was lash/nail/brow/barber until 2026-10-09.
+export const AUDIENCES = ["detailer", "tattoo"] as const;
 export type Audience = (typeof AUDIENCES)[number];
+const WHO: Record<Audience, string> = { detailer: "auto detailers", tattoo: "tattoo artists" };
 export const PILLARS = ["how-to", "myth", "demo", "behind-the-scenes"] as const;
 
 export const HOOK_MAX = 55;
@@ -31,9 +33,9 @@ export type CreativeDirectorInput = {
 export const SITE_FEATURES =
   "services with prices, a photo gallery, hours, address with a map, phone and email, an FAQ, real Google reviews (only if the business has them), a link to the booking app they already use, a contact form, a link to their Instagram, their own domain";
 
-const SYSTEM = `You write short-form video posts (TikTok + Instagram Reels) for Scale Strategies, Frank's Instagram and TikTok. Frank builds simple booking websites for independent lash techs, nail techs, brow artists and barbers.
+const SYSTEM = `You write short-form video posts (TikTok + Instagram Reels) for Scale Strategies, Frank's Instagram and TikTok. Frank builds simple booking websites for independent auto detailers and tattoo artists.
 The video is code-made motion graphics over a hip-hop beat: big on-screen text lines, a fast cut every 2 seconds. No people, no voiceover.
-Who watches: techs and barbers in their 20s who run their business from their phone. Write like one of them texting a friend, not like a marketer or a business coach.
+Who watches: detailers and tattoo artists in their 20s who run their business from their phone. Write like one of them texting a friend, not like a marketer or a business coach.
 Formats that work on them: "POV: ...", "things nobody tells you about ...", "stop ...", "if your link in bio is ...", a relatable annoyance from their day (the same price question in DMs, "where are you located", a Linktree with 9 links). Pick one and commit.
 Rules, all strict:
 - Never mention a real business, person, client or result. No numbers about clients, bookings, money or growth. No testimonials. No guarantees.
@@ -106,7 +108,7 @@ export async function creativeDirectorJob(input: CreativeDirectorInput, ctx: Bro
   const recent = input.recent.slice(0, RECENT);
   const pillar = pickPillar(recent.map((r) => r.pillar));
 
-  const who = audience === "barber" ? "barbers" : `${audience} techs`;
+  const who = WHO[audience];
   await ctx.setNow(`writing a ${pillar} post for ${who}`);
   const reply = await ctx.ask({
     system: SYSTEM,

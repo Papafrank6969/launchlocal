@@ -26,10 +26,8 @@ export const durationFor = (beats: number) => HOOK_FRAMES + beats * BEAT_FRAMES 
 const INK = "#0b1020";
 const PAPER = "#f8f5ef";
 const ACCENT: Record<string, string> = {
-  lash: "#f472b6",
-  nail: "#34d399", // no purple (BRAND-AND-COMPLIANCE-STANDARDS)
-  brow: "#f59e0b",
-  barber: "#38bdf8",
+  detailer: "#38bdf8", // no purple (BRAND-AND-COMPLIANCE-STANDARDS)
+  tattoo: "#f87171",
 };
 
 // TikTok/Reels draw their UI over the bottom ~22% and right ~14%; text stays clear.
@@ -182,7 +180,7 @@ function EndCard({ accent }: { accent: string }) {
         <div style={{ fontSize: 110, fontWeight: 800, color: PAPER, letterSpacing: -3 }}>
           Scale <span style={{ color: accent }}>Strategies</span>
         </div>
-        <div style={{ fontSize: 44, fontWeight: 600, color: PAPER, opacity: 0.75, marginTop: 20 }}>Websites for lash, nail, brow and barber pros</div>
+        <div style={{ fontSize: 44, fontWeight: 600, color: PAPER, opacity: 0.75, marginTop: 20 }}>Websites for detailers and tattoo artists</div>
       </div>
     </AbsoluteFill>
   );
@@ -207,7 +205,7 @@ export function cutsFor(beats: number): number[] {
 export function Post({ audience, hook, beats, music }: PostProps) {
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
-  const accent = ACCENT[audience] ?? ACCENT.lash;
+  const accent = ACCENT[audience] ?? ACCENT.detailer;
   const drift = Math.sin(frame / 18) * 90;
   // Punch-zoom and a white flash on each cut, the editing style short-form uses.
   const since = Math.min(frame, ...cutsFor(beats.length).map((c) => (frame >= c ? frame - c : Infinity)));

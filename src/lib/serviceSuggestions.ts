@@ -144,6 +144,10 @@ const SERVICE_SUGGESTIONS: ServiceSuggestionGroup[] = [
     services: ["Custom design", "Repairs & resizing", "Cleaning & inspection", "Appraisals", "Watch battery replacement"],
   },
   {
+    categories: ["auto detailing", "car detailing", "mobile detailing", "detailing", "ceramic coating"],
+    services: ["Interior detail", "Exterior wash & wax", "Full detail", "Paint correction", "Ceramic coating"],
+  },
+  {
     categories: ["auto repair", "mechanic"],
     services: ["Oil changes", "Brake service", "Engine diagnostics", "State inspection", "Tire service"],
   },

@@ -5,6 +5,9 @@ export type OutreachLead = {
   websiteStatus: "NONE" | "POOR" | "HAS_SITE";
 };
 
+// The templates say "a <category>" and "<category>s"; a search category isn't always a noun.
+const CATEGORY_NOUN: Record<string, string> = { "auto detailing": "detailer" };
+
 const NO_SITE_OPENERS = [
   (l: OutreachLead) => `Hey! I was looking for a ${l.category} in ${l.city} and came across ${l.name} — couldn't find a website for you online, though.`,
   (l: OutreachLead) => `Hi ${l.name}! Big fan of local ${l.category}s in ${l.city} — noticed you don't have a website yet.`,
@@ -39,7 +42,7 @@ export function generateOutreachMessage(
   opts: { previewUrl?: string | null } = {}
 ): string {
   const openers = lead.websiteStatus === "NONE" ? NO_SITE_OPENERS : POOR_SITE_OPENERS;
-  const opener = openers[variant % openers.length](lead);
+  const opener = openers[variant % openers.length]({ ...lead, category: CATEGORY_NOUN[lead.category] ?? lead.category });
   const closer = opts.previewUrl
     ? PREVIEW_CLOSERS[variant % PREVIEW_CLOSERS.length](opts.previewUrl)
     : CLOSERS[variant % CLOSERS.length];

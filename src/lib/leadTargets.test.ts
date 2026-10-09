@@ -6,17 +6,17 @@ describe("LEAD_TARGETS", () => {
     expect(LEAD_TARGETS).toHaveLength(94);
   });
 
-  it("every entry's category is barber or salon", () => {
+  it("every entry's category is auto detailing or tattoo shop", () => {
     for (const t of LEAD_TARGETS) {
-      expect(["barber", "salon"]).toContain(t.category);
+      expect(["auto detailing", "tattoo shop"]).toContain(t.category);
     }
   });
 
-  it("orders barber before salon for each city", () => {
+  it("orders detailing before tattoo for each city", () => {
     for (let i = 0; i < LEAD_TARGETS.length; i += 2) {
       expect(LEAD_TARGETS[i].city).toBe(LEAD_TARGETS[i + 1].city);
-      expect(LEAD_TARGETS[i].category).toBe("barber");
-      expect(LEAD_TARGETS[i + 1].category).toBe("salon");
+      expect(LEAD_TARGETS[i].category).toBe("auto detailing");
+      expect(LEAD_TARGETS[i + 1].category).toBe("tattoo shop");
     }
   });
 

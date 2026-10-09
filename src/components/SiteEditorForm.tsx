@@ -272,7 +272,7 @@ export function SiteEditorForm({
             className="input"
             value={data.category ?? ""}
             onChange={(e) => set("category", e.target.value)}
-            placeholder="e.g. lash technician, nail salon, brow artist"
+            placeholder="e.g. auto detailing, tattoo shop"
           />
           <p className="mt-1 text-xs text-slate-500">Drives the bespoke design generated for this site.</p>
         </Field>

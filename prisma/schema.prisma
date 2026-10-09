@@ -356,7 +356,7 @@ enum SocialPostStatus {
 model SocialPost {
   id        String           @id @default(cuid())
   status    SocialPostStatus @default(DRAFTED)
-  audience  String // "lash" | "nail" | "brow" | "barber"
+  audience  String // "detailer" | "tattoo" (lash/nail/brow/barber before 2026-10-09)
   pillar    String // content pillar, for variety
   hook      String
   spec      Json // { hook, beats[], caption, hashtags[] }

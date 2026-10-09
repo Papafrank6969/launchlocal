@@ -29,10 +29,12 @@ describe("suggestedFaqs", () => {
     expect(lash.some((f) => /patch test/i.test(f.question))).toBe(true);
     expect(brow.some((f) => /heal/i.test(f.question))).toBe(true);
     expect(barber.some((f) => /walk-in|beard/i.test(f.question))).toBe(true);
+    expect(suggestedFaqs("auto detailing").some((f) => /ceramic/i.test(f.question))).toBe(true);
+    expect(suggestedFaqs("tattoo shop").some((f) => /deposit/i.test(f.question))).toBe(true);
   });
 
   it("every suggestion has a non-empty question and answer", () => {
-    for (const category of ["nail technician", "lash technician", "brow technician", "barber"]) {
+    for (const category of ["nail technician", "lash technician", "brow technician", "barber", "auto detailing", "tattoo shop"]) {
       for (const faq of suggestedFaqs(category)) {
         expect(faq.question.trim().length).toBeGreaterThan(0);
         expect(faq.answer.trim().length).toBeGreaterThan(0);

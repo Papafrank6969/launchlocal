@@ -6,7 +6,8 @@ type FaqSuggestionGroup = { categories: string[]; faqs: FaqSuggestion[] };
  * with the same real questions before booking — timelines, aftercare, pain,
  * touch-ups. Never fabricated claims about a specific business; an operator
  * can edit or remove any of these after adding one. Deliberately scoped to
- * the trades where this actually matters (lash/nail/brow, barbershops) rather
+ * the trades where this actually matters (lash/nail/brow, barbershops,
+ * detailers, tattoo shops) rather
  * than a generic catch-all — a vague FAQ suggestion is worse than none.
  */
 const FAQ_SUGGESTIONS: FaqSuggestionGroup[] = [
@@ -122,6 +123,65 @@ const FAQ_SUGGESTIONS: FaqSuggestionGroup[] = [
         question: "How do I explain the cut I want?",
         answer:
           "A photo is the easiest way — bring one if you have it. Otherwise let your barber know how you'd like the sides, the length on top, and how you usually style it, and they'll guide you from there.",
+      },
+    ],
+  },
+  {
+    categories: ["auto detailing", "car detailing", "mobile detailing", "detailing", "ceramic coating"],
+    faqs: [
+      {
+        question: "How long does a full detail take?",
+        answer:
+          "Most full details take a few hours, depending on the size and condition of the vehicle. We'll give you a time estimate when you book.",
+      },
+      {
+        question: "Do you come to me?",
+        answer:
+          "Let clients know whether you're mobile, shop-based, or both, and what you need on site (a driveway, water or power).",
+      },
+      {
+        question: "What's the difference between wax and a ceramic coating?",
+        answer:
+          "Wax adds shine and protection for a few weeks to a few months. A ceramic coating bonds to the paint and protects it much longer, so it costs more and takes more prep.",
+      },
+      {
+        question: "Can you get out pet hair, stains and smells?",
+        answer:
+          "Usually, yes. Let us know about pet hair, stains or odors when you book so we can plan the time and products for it.",
+      },
+      {
+        question: "What happens if it rains?",
+        answer:
+          "Let clients know your weather policy, for example rescheduling outdoor appointments at no charge.",
+      },
+    ],
+  },
+  {
+    categories: ["tattoo", "tattoo shop", "tattoo artist"],
+    faqs: [
+      {
+        question: "How much will my tattoo cost?",
+        answer:
+          "Price depends on size, placement and detail. Send your idea and placement and we'll give you a quote before you book.",
+      },
+      {
+        question: "Do you take walk-ins?",
+        answer:
+          "Let clients know whether you take walk-ins, do flash days, or work by appointment only.",
+      },
+      {
+        question: "Do I need a deposit?",
+        answer:
+          "Let clients know your deposit policy: how much, how to pay it, and whether it comes off the final price.",
+      },
+      {
+        question: "How old do I have to be?",
+        answer: "You must be 18 or older with a valid photo ID.",
+      },
+      {
+        question: "How do I take care of my new tattoo?",
+        answer:
+          "Keep it clean, follow the aftercare instructions we give you, and stay out of pools and direct sun while it heals. Reach out if you have any questions during healing.",
       },
     ],
   },

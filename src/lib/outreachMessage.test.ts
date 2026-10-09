@@ -33,6 +33,12 @@ describe("generateOutreachMessage", () => {
     expect(msg.toLowerCase()).not.toContain("mockup");
   });
 
+  it("says 'detailer', not 'auto detailing', for a detailing lead", () => {
+    const d = { name: "Shine Co", category: "auto detailing", city: "Freeport, NY", websiteStatus: "NONE" as const };
+    expect(generateOutreachMessage(d, 0)).toContain("looking for a detailer in");
+    expect(generateOutreachMessage(d, 1)).toContain("local detailers in");
+  });
+
   it("treats an empty preview URL as no preview", () => {
     const msg = generateOutreachMessage({ ...lead, websiteStatus: "NONE" }, 0, { previewUrl: "" });
     expect(msg.toLowerCase()).toContain("mockup");
