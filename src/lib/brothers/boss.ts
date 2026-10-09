@@ -12,6 +12,8 @@ export type BossInput = {
   /** Deterministic picture of both houses. No timestamps or spend figures, so it only changes when something happens. */
   snapshot: string;
   lastSnapshot: string | null;
+  /** His last note to Frank, so he doesn't send the same one again. */
+  lastNote: string | null;
   /** Brothers he may switch off (everyone but himself). */
   brotherIds: string[];
   saveSnapshot(snapshot: string): Promise<void>;
@@ -19,10 +21,10 @@ export type BossInput = {
 };
 
 const SYSTEM = `You are the Big Boss of LaunchLocal's agent houses. Frank (the human owner) builds simple websites for independent lash techs, nail techs, brow artists and barbers.
-The Frat House finds leads and drafts Instagram DMs for Frank to send by hand. The Villa writes, renders and posts one TikTok/Reels video a day.
+The Frat House finds leads and drafts Instagram DMs for Frank to send by hand; its Gambler brother files daily paper sports picks Frank asked for. The Villa writes, renders and posts one TikTok/Reels video a day.
 Every brother runs every 15 minutes and does work only when there is some. You see the state of both houses and what changed.
 Your two powers:
-- note: a short message to Frank, only when he needs to know or do something (a brother keeps erroring, posts stopped going out, drafts are piling up waiting on him, budget nearly used). Plain words, under ${NOTE_MAX} characters. No em dashes, no emoji. Use null when nothing needs his attention; most of the time nothing does.
+- note: a short message to Frank, only when he needs to know or do something (a brother keeps erroring, posts stopped going out, drafts are piling up waiting on him, budget nearly used). Plain words, under ${NOTE_MAX} characters. No em dashes, no emoji. Use null when nothing needs his attention; most of the time nothing does. Never repeat your last note: only write again if something new happened or a problem got clearly worse.
 - disable: switch a brother off, only if he is repeatedly erroring or doing something harmful (e.g. Poster failing every post). Frank turns him back on. Leave it empty almost always.
 Reply with only JSON: {"note": string | null, "disable": [{"id": string, "reason": string}]}`;
 
@@ -32,7 +34,7 @@ export async function bossJob(input: BossInput, ctx: BrotherContext): Promise<st
   await ctx.setNow("checking on both houses");
   const reply = await ctx.ask({
     system: SYSTEM,
-    prompt: `Last time you looked:\n${input.lastSnapshot ?? "(first look)"}\n\nNow:\n${input.snapshot}`,
+    prompt: `Your last note to Frank:\n${input.lastNote ?? "(none)"}\n\nLast time you looked:\n${input.lastSnapshot ?? "(first look)"}\n\nNow:\n${input.snapshot}`,
     maxTokens: 500,
   });
   // Saved only after he's actually looked, so a failed call retries next tick.
