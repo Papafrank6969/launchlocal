@@ -3,11 +3,11 @@ import { durationFor, FPS, Post, type PostProps } from "./Post";
 import { TRACKS } from "./music";
 
 const sample: PostProps = {
-  audience: "barber",
+  audience: "detailer",
   hook: "POV: your link in bio is a dead Linktree",
   beats: [
     "Clients want your prices without the DM",
-    "Your cuts in a real gallery",
+    "Your work in a real gallery",
     "Hours and a map, not 'where u at'",
     "Your booking app, one tap away",
     `DM "SITE" and I'll build yours`,

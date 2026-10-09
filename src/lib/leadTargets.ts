@@ -56,11 +56,15 @@ const SUFFOLK_CITIES = [
   "Amityville, NY",
 ];
 
+/**
+ * Niches where one job pays for a $1k site (Frank's call, 2026-10-09; was
+ * barber + salon). Places searches these, and the brothers only work leads in
+ * them, so the old barber/salon backlog is left alone.
+ */
+export const TARGET_CATEGORIES = ["auto detailing", "tattoo shop"];
+
 function expand(cities: string[]): LeadTarget[] {
-  return cities.flatMap((city) => [
-    { city, category: "barber" as const },
-    { city, category: "salon" as const },
-  ]);
+  return cities.flatMap((city) => TARGET_CATEGORIES.map((category) => ({ city, category })));
 }
 
 export const LEAD_TARGETS: LeadTarget[] = [

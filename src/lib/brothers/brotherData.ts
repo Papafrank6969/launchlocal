@@ -12,11 +12,14 @@ import type { CreativeDirectorInput } from "./creativeDirector";
 import type { PosterDeps } from "./poster";
 import type { BossInput } from "./boss";
 import { LEAGUES, type GamblerDeps, type Market } from "./gambler";
+import { TARGET_CATEGORIES } from "../leadTargets";
 
 // The only DB access brothers have. Reads only, except Handle Hunter's handle
 // write and attempt log (plan §9) and Creative Director's SocialPost insert. Everything else writes through ctx.propose().
 
 const SITES = { select: { id: true, slug: true, status: true } } as const;
+// New outreach only goes to the target niches; follow-ups to leads already DMed carry on.
+const TARGETED = { in: TARGET_CATEGORIES };
 const previewBase = () => process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
 async function pendingLeadIds(kind: ApprovalKind): Promise<Set<string>> {
@@ -30,7 +33,7 @@ async function filedNoteToday(agentId: string, now: Date): Promise<boolean> {
 
 export async function loadScoutInput(now = new Date()): Promise<ScoutInput> {
   const leads = await db.lead.findMany({
-    where: { outreachStatus: "NEW", websiteStatus: { not: "HAS_SITE" } },
+    where: { outreachStatus: "NEW", websiteStatus: { not: "HAS_SITE" }, category: TARGETED },
     include: { sites: SITES },
   });
   return {
@@ -43,7 +46,7 @@ export async function loadRushChairInput(): Promise<RushChairInput> {
   // Same query as /api/leads/outreach-queue.
   const [leads, drafted] = await Promise.all([
     db.lead.findMany({
-      where: { outreachStatus: "NEW", websiteStatus: { not: "HAS_SITE" }, NOT: { instagramHandle: null } },
+      where: { outreachStatus: "NEW", websiteStatus: { not: "HAS_SITE" }, NOT: { instagramHandle: null }, category: TARGETED },
       include: { sites: SITES },
     }),
     pendingLeadIds("DM_DRAFT"),
@@ -106,7 +109,7 @@ export async function loadHandleHunterDeps(now = new Date()): Promise<HunterDeps
   const since = new Date(now.getTime() - HUNTER_RETRY_DAYS * 24 * 60 * 60 * 1000);
   const [leads, tried, doneToday] = await Promise.all([
     db.lead.findMany({
-      where: { outreachStatus: "NEW", websiteStatus: { not: "HAS_SITE" }, instagramHandle: null },
+      where: { outreachStatus: "NEW", websiteStatus: { not: "HAS_SITE" }, instagramHandle: null, category: TARGETED },
       orderBy: { createdAt: "asc" },
       select: { id: true, name: true, city: true },
     }),
