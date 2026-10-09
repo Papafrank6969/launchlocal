@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { prismaRunnerDeps } from "@/lib/agentDeps";
-import { runBrother, type RunResult } from "@/lib/agentRunner";
+import { runBrother } from "@/lib/agentRunner";
 import { BROTHERS } from "@/lib/brothers";
 
 export const dynamic = "force-dynamic";
@@ -24,18 +24,24 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // Answer right away and work after: a tick can outlast the outside cron's
+  // 30s timeout (Handle Hunter alone paces ~20s of lookups). Results land on /house.
+  after(tick);
+  return NextResponse.json({ started: true }, { status: 202 });
+}
+
+async function tick() {
   const tickStart = new Date();
   const deps = prismaRunnerDeps();
   const disabled = new Set(
     (await db.agent.findMany({ where: { enabled: false }, select: { id: true } })).map((a) => a.id)
   );
-  const results: RunResult[] = [];
 
   // Sequential on purpose: keeps the budget check accurate between brothers.
   // runBrother upserts the Agent row, so new brothers register themselves.
   for (const def of BROTHERS) {
     if (disabled.has(def.id) || def.cron === false) continue;
-    results.push(await runBrother(def, "CRON", deps));
+    await runBrother(def, "CRON", deps);
   }
 
   // GitHub's own schedule can start hours late, so kick the render ourselves:
@@ -53,8 +59,6 @@ export async function GET(req: NextRequest) {
       data: { agentId: "editor", trigger: "CRON", outcome: "ERROR", finishedAt: new Date(), summary: "render not started", error: render.slice(0, 500) },
     });
   }
-
-  return NextResponse.json({ results, render });
 }
 
 // Needs GITHUB_DISPATCH_TOKEN: fine-grained PAT, this repo only, Actions: write.
