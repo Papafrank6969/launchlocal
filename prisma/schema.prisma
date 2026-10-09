@@ -380,6 +380,7 @@ model BetPick {
   reason    String
   gameAt    DateTime // when the market is expected to settle
   result    String? // "won" | "lost" | "void"; null until graded
+  lean      Boolean   @default(false) // paper-only best lean on a no-pick day, never bet
   createdAt DateTime  @default(now())
   gradedAt  DateTime?
 

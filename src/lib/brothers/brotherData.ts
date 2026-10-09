@@ -239,7 +239,7 @@ type KalshiMarket = { ticker: string; event_ticker: string; yes_sub_title: strin
 export async function loadGamblerDeps(now = new Date()): Promise<GamblerDeps> {
   const [due, graded, filedToday] = await Promise.all([
     db.betPick.findMany({ where: { result: null, gameAt: { lte: now } }, select: { id: true, ticker: true } }),
-    db.betPick.findMany({ where: { result: { not: null } }, select: { price: true, result: true } }),
+    db.betPick.findMany({ where: { result: { not: null } }, select: { price: true, result: true, lean: true } }),
     filedNoteToday("gambler", now),
   ]);
   const etHour = Number(new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hour: "numeric", hourCycle: "h23" }).format(now));
@@ -248,7 +248,7 @@ export async function loadGamblerDeps(now = new Date()): Promise<GamblerDeps> {
     etHour,
     filedToday,
     due,
-    graded: graded.map((g) => ({ price: g.price, result: g.result! })),
+    graded: graded.map((g) => ({ price: g.price, result: g.result!, lean: g.lean })),
     markets: async () => {
       const pages = await Promise.all(Object.keys(LEAGUES).map((s) => kalshi(`/markets?series_ticker=${s}&status=open&limit=1000`)));
       return pages.flatMap((p) =>
