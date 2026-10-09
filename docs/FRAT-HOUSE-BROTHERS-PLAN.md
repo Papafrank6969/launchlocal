@@ -249,3 +249,23 @@ $3/day budget (`AGENT_DAILY_BUDGET_MICROS=3000000`).
   (stored in `CronState` id `boss`), so a few calls a day. Powers: a NOTE to
   Frank, and switching a brother off. He can't switch anyone on, approve, send
   or spend.
+
+## 11. The Gambler (added 2026-10-08, Frank's call: paper picks, placed by hand)
+
+Robinhood has no official API for its prediction markets, and logging in as
+Frank breaks its terms, so the Gambler only gives picks; Frank places them on
+Robinhood himself. `src/lib/brothers/gambler.ts`, Sonnet 5.5, on /house.
+
+- Prices: Kalshi's public market data (no account), game-winner markets for
+  NFL, NBA, MLB, NHL, college football. Liquid (spread <= 4c), 10-90c, not
+  started, settling within 36h.
+- Once a day from 11am ET: one Claude call, up to 3 picks, each needing a
+  5-point edge over the ask (Robinhood's fee is 5-10%), enforced in code. Files
+  a NOTE either way, so he never re-asks the same day.
+- News: before picking he reads the past day's top 3 Brave News results
+  (`BRAVE_SEARCH_API_KEY`, same as Handle Hunter) for the 12 soonest games,
+  paced 1/sec. Headlines are treated as data; code still enforces tickers and
+  the edge rule. About 360 Brave searches a month.
+- Every tick he grades finished picks from Kalshi's settlement (`BetPick`
+  table) and each note carries his record (profit betting $1 a pick, before
+  fees). Frank watches the record before trusting him with real money.

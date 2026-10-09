@@ -368,3 +368,20 @@ model SocialPost {
 
   @@index([status, createdAt])
 }
+
+// The Gambler's paper picks (src/lib/brothers/gambler.ts). Frank places real
+// bets by hand; these are graded from Kalshi's settlement for the record.
+model BetPick {
+  id        String    @id @default(cuid())
+  ticker    String // Kalshi market; the pick is always YES on it
+  title     String // "Green Bay over Dallas"
+  price     Float // ask in dollars when picked, 0-1
+  prob      Float // his win probability
+  reason    String
+  gameAt    DateTime // when the market is expected to settle
+  result    String? // "won" | "lost" | "void"; null until graded
+  createdAt DateTime  @default(now())
+  gradedAt  DateTime?
+
+  @@index([result, gameAt])
+}

@@ -8,7 +8,8 @@ import { handleHunterJob } from "./handleHunter";
 import { creativeDirectorJob } from "./creativeDirector";
 import { posterJob } from "./poster";
 import { bossJob } from "./boss";
-import { loadBossInput, loadBuilderInput, loadCreativeDirectorInput, loadFollowUpInput, loadHandleHunterDeps, loadPosterDeps, loadRushChairInput, loadScoutInput, loadTreasurerInput } from "./brotherData";
+import { gamblerJob } from "./gambler";
+import { loadBossInput, loadBuilderInput, loadCreativeDirectorInput, loadFollowUpInput, loadGamblerDeps, loadHandleHunterDeps, loadPosterDeps, loadRushChairInput, loadScoutInput, loadTreasurerInput } from "./brotherData";
 
 // Every registered brother, in cron order (docs/FRAT-HOUSE-BROTHERS-PLAN.md).
 // The cron upserts each into the Agent table, so a new brother shows up on the
@@ -50,6 +51,14 @@ export const BROTHERS: BrotherDefinition[] = [
     name: "Treasurer",
     role: "Writes yesterday's numbers: spend, runs, funnel, what's waiting",
     run: async (ctx) => treasurerJob(await loadTreasurerInput(), ctx),
+  },
+  {
+    // Paper sports picks for Frank to place by hand on Robinhood (no API there).
+    id: "gambler",
+    name: "Gambler",
+    role: "Picks sports bets from Kalshi prices and keeps his own record",
+    model: "claude-sonnet-5-5",
+    run: async (ctx) => gamblerJob(await loadGamblerDeps(), ctx),
   },
   // The Villa (docs/VILLA-PLAN.md): social media brothers, shown on /villa.
   {
