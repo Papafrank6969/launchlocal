@@ -11,6 +11,7 @@ import { lookupInstagramHandle } from "../instagramLookup";
 import type { CreativeDirectorInput } from "./creativeDirector";
 import type { PosterDeps } from "./poster";
 import type { BossInput } from "./boss";
+import { LEAGUES, type GamblerDeps, type Market } from "./gambler";
 
 // The only DB access brothers have. Reads only, except Handle Hunter's handle
 // write and attempt log (plan §9) and Creative Director's SocialPost insert. Everything else writes through ctx.propose().
@@ -215,6 +216,58 @@ export async function loadBossInput(now = new Date()): Promise<BossInput> {
     },
     disable: async (id) => {
       await db.agent.update({ where: { id }, data: { enabled: false } });
+    },
+  };
+}
+
+const KALSHI = "https://api.elections.kalshi.com/trade-api/v2";
+
+async function kalshi(path: string): Promise<Record<string, unknown>> {
+  const res = await fetch(`${KALSHI}${path}`, { headers: { accept: "application/json" } });
+  if (!res.ok) throw new Error(`Kalshi ${path.split("?")[0]}: HTTP ${res.status}`);
+  return res.json();
+}
+
+type KalshiMarket = { ticker: string; event_ticker: string; yes_sub_title: string; yes_bid_dollars: string; yes_ask_dollars: string; expected_expiration_time: string; status: string; result: string };
+
+export async function loadGamblerDeps(now = new Date()): Promise<GamblerDeps> {
+  const [due, graded, filedToday] = await Promise.all([
+    db.betPick.findMany({ where: { result: null, gameAt: { lte: now } }, select: { id: true, ticker: true } }),
+    db.betPick.findMany({ where: { result: { not: null } }, select: { price: true, result: true } }),
+    filedNoteToday("gambler", now),
+  ]);
+  const etHour = Number(new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hour: "numeric", hourCycle: "h23" }).format(now));
+  return {
+    now,
+    etHour,
+    filedToday,
+    due,
+    graded: graded.map((g) => ({ price: g.price, result: g.result! })),
+    markets: async () => {
+      const pages = await Promise.all(LEAGUES.map((s) => kalshi(`/markets?series_ticker=${s}&status=open&limit=1000`)));
+      return pages.flatMap((p) =>
+        (p.markets as KalshiMarket[]).map(
+          (m): Market => ({
+            ticker: m.ticker,
+            event: m.event_ticker,
+            team: m.yes_sub_title,
+            bid: Number(m.yes_bid_dollars),
+            ask: Number(m.yes_ask_dollars),
+            gameAt: new Date(m.expected_expiration_time),
+          }),
+        ),
+      );
+    },
+    settlement: async (ticker) => {
+      const m = (await kalshi(`/markets/${encodeURIComponent(ticker)}`)).market as KalshiMarket;
+      if (m.status !== "finalized" && m.status !== "settled") return null;
+      return m.result === "yes" || m.result === "no" ? m.result : "void";
+    },
+    grade: async (id, result) => {
+      await db.betPick.update({ where: { id }, data: { result, gradedAt: new Date() } });
+    },
+    save: async (picks) => {
+      await db.betPick.createMany({ data: picks });
     },
   };
 }
