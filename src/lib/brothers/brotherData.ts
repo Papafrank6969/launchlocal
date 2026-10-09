@@ -244,7 +244,7 @@ export async function loadGamblerDeps(now = new Date()): Promise<GamblerDeps> {
     due,
     graded: graded.map((g) => ({ price: g.price, result: g.result! })),
     markets: async () => {
-      const pages = await Promise.all(LEAGUES.map((s) => kalshi(`/markets?series_ticker=${s}&status=open&limit=1000`)));
+      const pages = await Promise.all(Object.keys(LEAGUES).map((s) => kalshi(`/markets?series_ticker=${s}&status=open&limit=1000`)));
       return pages.flatMap((p) =>
         (p.markets as KalshiMarket[]).map(
           (m): Market => ({
@@ -263,6 +263,8 @@ export async function loadGamblerDeps(now = new Date()): Promise<GamblerDeps> {
       if (m.status !== "finalized" && m.status !== "settled") return null;
       return m.result === "yes" || m.result === "no" ? m.result : "void";
     },
+    news: braveNews,
+    sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
     grade: async (id, result) => {
       await db.betPick.update({ where: { id }, data: { result, gradedAt: new Date() } });
     },
@@ -270,4 +272,22 @@ export async function loadGamblerDeps(now = new Date()): Promise<GamblerDeps> {
       await db.betPick.createMany({ data: picks });
     },
   };
+}
+
+const stripTags = (t: string) => t.replace(/<[^>]+>/g, "").replace(/&#x27;|&#39;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
+
+/** Top 3 news results from the past day. The key stays in a header. */
+async function braveNews(query: string): Promise<string[]> {
+  const key = process.env.BRAVE_SEARCH_API_KEY;
+  if (!key) return [];
+  try {
+    const res = await fetch(`https://api.search.brave.com/res/v1/news/search?q=${encodeURIComponent(query)}&count=3&freshness=pd`, {
+      headers: { Accept: "application/json", "X-Subscription-Token": key },
+    });
+    if (!res.ok) return [];
+    const body = (await res.json()) as { results?: { title?: string; description?: string; age?: string }[] };
+    return (body.results ?? []).slice(0, 3).map((r) => stripTags(`${r.title ?? ""}: ${r.description ?? ""}${r.age ? ` (${r.age})` : ""}`).slice(0, 300));
+  } catch {
+    return [];
+  }
 }

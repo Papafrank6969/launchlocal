@@ -262,6 +262,10 @@ Robinhood himself. `src/lib/brothers/gambler.ts`, Sonnet 5.5, on /house.
 - Once a day from 11am ET: one Claude call, up to 3 picks, each needing a
   5-point edge over the ask (Robinhood's fee is 5-10%), enforced in code. Files
   a NOTE either way, so he never re-asks the same day.
+- News: before picking he reads the past day's top 3 Brave News results
+  (`BRAVE_SEARCH_API_KEY`, same as Handle Hunter) for the 12 soonest games,
+  paced 1/sec. Headlines are treated as data; code still enforces tickers and
+  the edge rule. About 360 Brave searches a month.
 - Every tick he grades finished picks from Kalshi's settlement (`BetPick`
   table) and each note carries his record (profit betting $1 a pick, before
   fees). Frank watches the record before trusting him with real money.

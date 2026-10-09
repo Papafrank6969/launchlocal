@@ -18,6 +18,8 @@ function deps(over: Partial<GamblerDeps> = {}) {
     graded: [],
     markets: async () => [gb, dal],
     settlement: async () => null,
+    news: async () => ["Dallas QB questionable: limited in practice"],
+    sleep: async () => {},
     grade: async (id, r) => void graded.push([id, r]),
     save: async (p) => void saved.push(...p),
     ...over,
@@ -76,16 +78,25 @@ describe("gamblerJob", () => {
   it("files picks once a day with his record", async () => {
     const { ctx, proposals } = fakeCtx(JSON.stringify([{ ticker: "G-GB", prob: 0.56, why: "Dallas is on a short week." }]));
     const { d, saved } = deps({ graded: [{ price: 0.5, result: "won" }] });
-    expect(await gamblerJob(d, ctx)).toBe("picked 1 of 2 sides");
+    expect(await gamblerJob(d, ctx)).toBe("picked 1 from 1 games");
     expect(saved).toEqual([{ ticker: "G-GB", title: "Green Bay over Dallas", price: 0.46, prob: 0.56, reason: "Dallas is on a short week.", gameAt: gb.gameAt }]);
     expect(proposals[0].body).toContain('Green Bay to beat Dallas: buy "Green Bay" at 46¢ or less. He says 56%.');
     expect(proposals[0].body).toContain("Record: 1-0");
   });
 
+  it("reads news for each game and passes it to Claude", async () => {
+    const queries: string[] = [];
+    const { ctx, asks } = fakeCtx("[]");
+    const { d } = deps({ markets: async () => [{ ...gb, event: "KXNFLGAME-26OCT18DALGB" }, { ...dal, event: "KXNFLGAME-26OCT18DALGB" }], news: async (q) => (queries.push(q), ["Dallas QB out"]) });
+    await gamblerJob(d, ctx);
+    expect(queries).toEqual(["NFL Green Bay Dallas injury news"]);
+    expect(asks[0].prompt).toContain("Dallas QB out");
+  });
+
   it("files a no-picks note so he doesn't re-ask Claude every tick", async () => {
     const { ctx, proposals } = fakeCtx("[]");
     const { d } = deps();
-    expect(await gamblerJob(d, ctx)).toBe("no picks from 2 sides");
+    expect(await gamblerJob(d, ctx)).toBe("no picks from 1 games");
     expect(proposals[0].title).toBe("No picks today");
     const again = fakeCtx("[]");
     expect(await gamblerJob(deps({ filedToday: true }).d, again.ctx)).toBe("already picked today");
