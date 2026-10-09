@@ -1,11 +1,18 @@
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { prismaRunnerDeps } from "@/lib/agentDeps";
-import { runBrother, type RunResult } from "@/lib/agentRunner";
+import { runBrother } from "@/lib/agentRunner";
 import { BROTHERS } from "@/lib/brothers";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+// Every brother runs back to back; 60s cut the run off before the render dispatch.
+export const maxDuration = 300;
+
+/** A draft this old was missed by its render (failed dispatch, late runner): dispatch again. */
+const RENDER_STUCK_MS = 20 * 60 * 1000;
+
+// Hit every 15 minutes by an outside cron (plus Vercel's daily cron as a
+// backstop). Brothers do work only when there is some, so most ticks are free.
 
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
@@ -17,25 +24,41 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // Answer right away and work after: a tick can outlast the outside cron's
+  // 30s timeout (Handle Hunter alone paces ~20s of lookups). Results land on /house.
+  after(tick);
+  return NextResponse.json({ started: true }, { status: 202 });
+}
+
+async function tick() {
+  const tickStart = new Date();
   const deps = prismaRunnerDeps();
   const disabled = new Set(
     (await db.agent.findMany({ where: { enabled: false }, select: { id: true } })).map((a) => a.id)
   );
-  const results: RunResult[] = [];
 
   // Sequential on purpose: keeps the budget check accurate between brothers.
   // runBrother upserts the Agent row, so new brothers register themselves.
   for (const def of BROTHERS) {
     if (disabled.has(def.id) || def.cron === false) continue;
-    results.push(await runBrother(def, "CRON", deps));
+    await runBrother(def, "CRON", deps);
   }
 
-  // GitHub's own schedule can start hours late, so kick the render ourselves
-  // as soon as the Creative Director has written today's post.
-  const wrote = results.some((r) => r.id === "creative-director" && r.outcome === "OK");
-  const render = wrote ? await dispatchRender() : null;
-
-  return NextResponse.json({ results, render });
+  // GitHub's own schedule can start hours late, so kick the render ourselves:
+  // right after Creative Director writes, and again if a draft sat unrendered.
+  const needsRender = await db.socialPost.count({
+    where: {
+      status: "DRAFTED",
+      OR: [{ createdAt: { gte: tickStart } }, { createdAt: { lte: new Date(tickStart.getTime() - RENDER_STUCK_MS) } }],
+    },
+  });
+  const render = needsRender ? await dispatchRender() : null;
+  // Function logs don't last, so a failed dispatch shows on /villa as the Editor's error.
+  if (render && render !== "dispatched") {
+    await db.agentRun.create({
+      data: { agentId: "editor", trigger: "CRON", outcome: "ERROR", finishedAt: new Date(), summary: "render not started", error: render.slice(0, 500) },
+    });
+  }
 }
 
 // Needs GITHUB_DISPATCH_TOKEN: fine-grained PAT, this repo only, Actions: write.

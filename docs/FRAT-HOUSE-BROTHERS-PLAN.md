@@ -228,3 +228,24 @@ Google's Custom Search JSON API closed to new customers and dies 2027-01-01).
   a summary saying why. A transient `error` isn't recorded, so it retries tomorrow.
 - Pure job with injected `lookup` / `saveHandle` / `recordAttempt` / `sleep`; tested
   with fakes.
+
+## 10. Always on + the Big Boss (added 2026-10-08, Frank's call)
+
+Frank: brothers work around the clock, no schedule; a boss runs both houses;
+$3/day budget (`AGENT_DAILY_BUDGET_MICROS=3000000`).
+
+- **Tick:** an outside cron (cron-job.org, free) hits `GET /api/cron/agents`
+  every 15 minutes with `Authorization: Bearer CRON_SECRET`. Vercel's daily
+  17:30 UTC cron stays as a backstop (Hobby crons are daily only). Every brother
+  already does work only when there's some (once-a-day notes and posts, paused
+  at 16 drafts waiting, Handle Hunter only tries a lead once per 30 days), so
+  idle ticks cost nothing. Creative Director stays at one post a day on purpose:
+  new accounts posting more get flagged as spam.
+- **Render:** dispatched when a draft is written this tick, and again for any
+  draft left unrendered 20+ minutes (failed dispatch, late runner).
+- **Big Boss** (`src/lib/brothers/boss.ts`, Sonnet 5.5, on /house): runs last
+  each tick. He builds a snapshot of both houses with no timestamps or spend
+  figures, and calls Claude only when it differs from the last one he looked at
+  (stored in `CronState` id `boss`), so a few calls a day. Powers: a NOTE to
+  Frank, and switching a brother off. He can't switch anyone on, approve, send
+  or spend.

@@ -10,6 +10,7 @@ import { HUNTER_RETRY_DAYS, type HunterDeps } from "./handleHunter";
 import { lookupInstagramHandle } from "../instagramLookup";
 import type { CreativeDirectorInput } from "./creativeDirector";
 import type { PosterDeps } from "./poster";
+import type { BossInput } from "./boss";
 
 // The only DB access brothers have. Reads only, except Handle Hunter's handle
 // write and attempt log (plan §9) and Creative Director's SocialPost insert. Everything else writes through ctx.propose().
@@ -166,6 +167,54 @@ export async function loadPosterDeps(): Promise<PosterDeps> {
     },
     markFailed: async (id, error) => {
       await db.socialPost.updateMany({ where: { id, status: "RENDERED" }, data: { status: "FAILED", error } });
+    },
+  };
+}
+
+const BOSS_STATE = "boss";
+
+export async function loadBossInput(now = new Date()): Promise<BossInput> {
+  const dayStart = startOfDayET(now);
+  const [agents, lastRuns, pending, posts, spent, state] = await Promise.all([
+    db.agent.findMany({ where: { id: { not: "boss" } }, select: { id: true, enabled: true }, orderBy: { id: "asc" } }),
+    db.agentRun.findMany({
+      where: { agentId: { not: "boss" }, trigger: { not: "CHAT" }, finishedAt: { not: null } },
+      orderBy: { startedAt: "desc" },
+      distinct: ["agentId"],
+      select: { agentId: true, outcome: true, summary: true, error: true },
+    }),
+    db.approval.groupBy({ by: ["kind"], where: { state: "PENDING" }, _count: true, orderBy: { kind: "asc" } }),
+    db.socialPost.groupBy({ by: ["status"], where: { createdAt: { gte: new Date(now.getTime() - 7 * 86_400_000) } }, _count: true, orderBy: { status: "asc" } }),
+    db.agentRun.aggregate({ _sum: { costMicros: true }, where: { startedAt: { gte: dayStart } } }),
+    db.cronState.findUnique({ where: { id: BOSS_STATE } }),
+  ]);
+  const budget = budgetFromEnv(process.env.AGENT_DAILY_BUDGET_MICROS);
+  const runOf = (id: string) => lastRuns.find((r) => r.agentId === id);
+  // No timestamps or spend amounts: the snapshot only changes when something happens.
+  const snapshot = [
+    `Day (ET): ${dayStart.toLocaleDateString("en-US", { timeZone: "America/New_York" })}`,
+    `Budget: ${(spent._sum.costMicros ?? 0) >= budget * 0.8 ? "80%+ used today" : "fine"}`,
+    "Brothers:",
+    ...agents.map((a) => {
+      const r = runOf(a.id);
+      return `- ${a.id} (${a.enabled ? "on" : "off"}): ${r ? `${r.outcome} ${r.summary ?? ""}${r.error ? ` error: ${r.error}` : ""}` : "never ran"}`;
+    }),
+    `Waiting on Frank: ${pending.map((p) => `${p._count} ${p.kind}`).join(", ") || "nothing"}`,
+    `Villa posts, last 7 days: ${posts.map((p) => `${p._count} ${p.status}`).join(", ") || "none"}`,
+  ].join("\n");
+  return {
+    snapshot,
+    lastSnapshot: state?.lastRunNote ?? null,
+    brotherIds: agents.map((a) => a.id),
+    saveSnapshot: async (text) => {
+      await db.cronState.upsert({
+        where: { id: BOSS_STATE },
+        create: { id: BOSS_STATE, lastRunAt: now, lastRunNote: text },
+        update: { lastRunAt: now, lastRunNote: text },
+      });
+    },
+    disable: async (id) => {
+      await db.agent.update({ where: { id }, data: { enabled: false } });
     },
   };
 }
