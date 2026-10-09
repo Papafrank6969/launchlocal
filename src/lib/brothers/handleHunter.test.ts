@@ -10,6 +10,7 @@ function fakeDeps(n: number, results: (i: number) => InstagramLookupResult) {
   const looked: string[] = [];
   const deps: HunterDeps = {
     leads: Array.from({ length: n }, (_, i) => ({ id: `l${i}`, name: `Shop ${i}`, city: "Bayside, NY" })),
+    doneToday: 0,
     lookup: async (name) => {
       looked.push(name);
       return results(looked.length - 1);
@@ -28,6 +29,18 @@ function fakeDeps(n: number, results: (i: number) => InstagramLookupResult) {
 }
 
 describe("handleHunterJob", () => {
+  it("stops at the daily cap across runs", async () => {
+    const { ctx } = fakeCtx();
+    const partial = fakeDeps(30, () => ({ status: "not_found" }));
+    partial.deps.doneToday = HUNTER_LOOKUPS - 5;
+    await handleHunterJob(partial.deps, ctx);
+    expect(partial.looked).toHaveLength(5);
+    const full = fakeDeps(30, () => ({ status: "not_found" }));
+    full.deps.doneToday = HUNTER_LOOKUPS;
+    expect(await handleHunterJob(full.deps, ctx)).toBe(`done for today (${HUNTER_LOOKUPS} lookups)`);
+    expect(full.looked).toHaveLength(0);
+  });
+
   it(`looks up at most ${HUNTER_LOOKUPS}, saves found handles, records every hit and miss, paces calls`, async () => {
     const f = fakeDeps(25, (i) => (i % 2 === 0 ? { status: "found", handle: `shop${i}` } : { status: "not_found" }));
     const c = fakeCtx();

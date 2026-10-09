@@ -8,6 +8,7 @@ function input(snapshot: string, lastSnapshot: string | null) {
   const i: BossInput = {
     snapshot,
     lastSnapshot,
+    lastNote: "Drafts are piling up.",
     brotherIds: ["scout", "poster"],
     saveSnapshot: async (s) => void saved.push(s),
     disable: async (id) => void disabled.push(id),
@@ -32,6 +33,7 @@ describe("bossJob", () => {
     const { i, saved, disabled } = input("new", "old");
     expect(await bossJob(i, ctx)).toBe("wrote Frank a note, switched off poster");
     expect(asks).toHaveLength(1);
+    expect(asks[0].prompt).toContain("Your last note to Frank:\nDrafts are piling up.");
     expect(saved).toEqual(["new"]);
     expect(disabled).toEqual(["poster"]);
     expect(proposals[0].kind).toBe("NOTE");

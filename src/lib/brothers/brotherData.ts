@@ -104,17 +104,19 @@ const LOOKUP_KIND = "instagram_lookup";
 
 export async function loadHandleHunterDeps(now = new Date()): Promise<HunterDeps> {
   const since = new Date(now.getTime() - HUNTER_RETRY_DAYS * 24 * 60 * 60 * 1000);
-  const [leads, tried] = await Promise.all([
+  const [leads, tried, doneToday] = await Promise.all([
     db.lead.findMany({
       where: { outreachStatus: "NEW", websiteStatus: { not: "HAS_SITE" }, instagramHandle: null },
       orderBy: { createdAt: "asc" },
       select: { id: true, name: true, city: true },
     }),
     db.agentTask.findMany({ where: { kind: LOOKUP_KIND, createdAt: { gte: since } }, select: { leadId: true } }),
+    db.agentTask.count({ where: { kind: LOOKUP_KIND, createdAt: { gte: startOfDayET(now) } } }),
   ]);
   const triedIds = new Set(tried.map((t) => t.leadId));
   return {
     leads: leads.filter((l) => !triedIds.has(l.id)),
+    doneToday,
     lookup: lookupInstagramHandle,
     // Only fills an empty handle: never overwrites one Frank typed in.
     saveHandle: async (leadId, handle) => {
@@ -176,7 +178,7 @@ const BOSS_STATE = "boss";
 
 export async function loadBossInput(now = new Date()): Promise<BossInput> {
   const dayStart = startOfDayET(now);
-  const [agents, lastRuns, pending, posts, spent, state] = await Promise.all([
+  const [agents, lastRuns, pending, posts, spent, state, lastNote, firstPost] = await Promise.all([
     db.agent.findMany({ where: { id: { not: "boss" } }, select: { id: true, enabled: true }, orderBy: { id: "asc" } }),
     db.agentRun.findMany({
       where: { agentId: { not: "boss" }, trigger: { not: "CHAT" }, finishedAt: { not: null } },
@@ -184,10 +186,13 @@ export async function loadBossInput(now = new Date()): Promise<BossInput> {
       distinct: ["agentId"],
       select: { agentId: true, outcome: true, summary: true, error: true },
     }),
-    db.approval.groupBy({ by: ["kind"], where: { state: "PENDING" }, _count: true, orderBy: { kind: "asc" } }),
+    // Notes aren't blockers, and counting them made his own notes change what he sees.
+    db.approval.groupBy({ by: ["kind"], where: { state: "PENDING", kind: { not: "NOTE" } }, _count: true, orderBy: { kind: "asc" } }),
     db.socialPost.groupBy({ by: ["status"], where: { createdAt: { gte: new Date(now.getTime() - 7 * 86_400_000) } }, _count: true, orderBy: { status: "asc" } }),
     db.agentRun.aggregate({ _sum: { costMicros: true }, where: { startedAt: { gte: dayStart } } }),
     db.cronState.findUnique({ where: { id: BOSS_STATE } }),
+    db.approval.findFirst({ where: { agentId: "boss" }, orderBy: { createdAt: "desc" }, select: { body: true } }),
+    db.socialPost.findFirst({ where: { status: "POSTED" }, orderBy: { createdAt: "asc" }, select: { createdAt: true } }),
   ]);
   const budget = budgetFromEnv(process.env.AGENT_DAILY_BUDGET_MICROS);
   const runOf = (id: string) => lastRuns.find((r) => r.agentId === id);
@@ -201,11 +206,12 @@ export async function loadBossInput(now = new Date()): Promise<BossInput> {
       return `- ${a.id} (${a.enabled ? "on" : "off"}): ${r ? `${r.outcome} ${r.summary ?? ""}${r.error ? ` error: ${r.error}` : ""}` : "never ran"}`;
     }),
     `Waiting on Frank: ${pending.map((p) => `${p._count} ${p.kind}`).join(", ") || "nothing"}`,
-    `Villa posts, last 7 days: ${posts.map((p) => `${p._count} ${p.status}`).join(", ") || "none"}`,
+    `Villa posts, last 7 days: ${posts.map((p) => `${p._count} ${p.status}`).join(", ") || "none"}${firstPost ? ` (first ever post ${firstPost.createdAt.toLocaleDateString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric" })})` : ""}`,
   ].join("\n");
   return {
     snapshot,
     lastSnapshot: state?.lastRunNote ?? null,
+    lastNote: lastNote?.body ?? null,
     brotherIds: agents.map((a) => a.id),
     saveSnapshot: async (text) => {
       await db.cronState.upsert({

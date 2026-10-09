@@ -4,12 +4,14 @@ import type { InstagramLookupResult } from "../instagramLookup";
 // Finds Instagram handles for new leads so Rush Chair has someone to DM
 // (docs/FRAT-HOUSE-BROTHERS-PLAN.md §9). No Claude: Brave Search lookups only.
 
+/** Per ET day, not per run: ticks come every 15 min and Brave bills per search. */
 export const HUNTER_LOOKUPS = 20;
 export const HUNTER_RETRY_DAYS = 30;
 export const HUNTER_PACE_MS = 1100; // Brave's per-second limit
 
 export type HunterDeps = {
   leads: { id: string; name: string; city: string }[]; // NEW, no handle, not tried in 30 days; oldest first
+  doneToday: number; // lookups recorded since midnight ET
   lookup(name: string, city: string): Promise<InstagramLookupResult>;
   saveHandle(leadId: string, handle: string): Promise<void>;
   recordAttempt(leadId: string, found: boolean): Promise<void>;
@@ -23,7 +25,9 @@ const STOP: Partial<Record<InstagramLookupResult["status"], string>> = {
 };
 
 export async function handleHunterJob(deps: HunterDeps, ctx: BrotherContext): Promise<string> {
-  const leads = deps.leads.slice(0, HUNTER_LOOKUPS);
+  const left = Math.max(0, HUNTER_LOOKUPS - deps.doneToday);
+  if (left === 0) return `done for today (${HUNTER_LOOKUPS} lookups)`;
+  const leads = deps.leads.slice(0, left);
   if (leads.length === 0) return "no new leads need a handle";
 
   const counts = { found: 0, missed: 0, errors: 0 };
