@@ -7,7 +7,8 @@ import { treasurerJob } from "./treasurer";
 import { handleHunterJob } from "./handleHunter";
 import { creativeDirectorJob } from "./creativeDirector";
 import { posterJob } from "./poster";
-import { loadBuilderInput, loadCreativeDirectorInput, loadFollowUpInput, loadHandleHunterDeps, loadPosterDeps, loadRushChairInput, loadScoutInput, loadTreasurerInput } from "./brotherData";
+import { bossJob } from "./boss";
+import { loadBossInput, loadBuilderInput, loadCreativeDirectorInput, loadFollowUpInput, loadHandleHunterDeps, loadPosterDeps, loadRushChairInput, loadScoutInput, loadTreasurerInput } from "./brotherData";
 
 // Every registered brother, in cron order (docs/FRAT-HOUSE-BROTHERS-PLAN.md).
 // The cron upserts each into the Agent table, so a new brother shows up on the
@@ -79,6 +80,15 @@ export const BROTHERS: BrotherDefinition[] = [
     house: "villa",
     cron: false,
     run: async (ctx) => posterJob(await loadPosterDeps(), ctx),
+  },
+  {
+    // Last on every tick so he sees what everyone just did. In charge of both
+    // houses, so he lives on /house. Thinks only when something changed.
+    id: "boss",
+    name: "Big Boss",
+    role: "Watches both houses, tells Frank what needs him, benches brothers who misbehave",
+    model: "claude-sonnet-5-5",
+    run: async (ctx) => bossJob(await loadBossInput(), ctx),
   },
 ];
 
