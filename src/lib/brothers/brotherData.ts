@@ -236,12 +236,7 @@ export async function loadBossInput(now = new Date()): Promise<BossInput> {
     disable: async (id) => {
       await db.agent.update({ where: { id }, data: { enabled: false } });
     },
-    notify: async (text) => {
-      const token = process.env.TELEGRAM_BOT_TOKEN;
-      const chatId = token ? await telegramChatId() : null;
-      if (token && chatId) await sendTelegram(token, chatId, `From the Boss:
-${text}`);
-    },
+    notify: (text) => pushToFrank(`From the Boss:\n${text}`),
   };
 }
 
@@ -296,6 +291,7 @@ export async function loadGamblerDeps(now = new Date()): Promise<GamblerDeps> {
     save: async (picks) => {
       await db.betPick.createMany({ data: picks });
     },
+    notify: (text) => pushToFrank(`From the Gambler:\n${text}`),
   };
 }
 
@@ -348,6 +344,13 @@ export const chatStore: Pick<ChatDeps, "loadContext" | "saveMessages"> = {
     });
   },
 };
+
+/** Sends to Frank's Telegram; a no-op until the bot is set up. */
+async function pushToFrank(text: string): Promise<void> {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = token ? await telegramChatId() : null;
+  if (token && chatId) await sendTelegram(token, chatId, text);
+}
 
 /** Frank's Telegram chat id, claimed once by /api/telegram/setup; null until then. */
 export async function telegramChatId(): Promise<string | null> {
