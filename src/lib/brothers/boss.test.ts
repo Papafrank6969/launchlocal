@@ -1,6 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { bossJob, parseBossReply, type BossInput } from "./boss";
+import { bossJob, goalLine, parseBossReply, type BossInput } from "./boss";
 import { fakeCtx } from "./testCtx";
+
+describe("goalLine", () => {
+  it("shows sales against the straight-line pace to $10k", () => {
+    // Day one: nothing expected yet.
+    expect(goalLine(0, 0, 0, new Date("2026-10-09T04:00:00Z"))).toBe(
+      "Goal: $0 of $10,000 by Mar 31 (0 sites sold at $1,000; on pace means 0 by now; 174 days left). DMs sent yesterday: 0, last 7 days: 0 (pace: 10 a day).",
+    );
+    // Halfway (Jan 3-ish): 5 sales expected.
+    expect(goalLine(2, 12, 60, new Date("2027-01-04T05:00:00Z"))).toContain("$2,000 of $10,000 by Mar 31 (2 sites sold at $1,000; on pace means 5 by now; 87 days left)");
+    // Past the deadline: clamps, never negative.
+    expect(goalLine(11, 0, 0, new Date("2027-05-01T04:00:00Z"))).toContain("$11,000 of $10,000 by Mar 31 (11 sites sold at $1,000; on pace means 10 by now; 0 days left)");
+  });
+});
 
 function input(snapshot: string, lastSnapshot: string | null) {
   const saved: string[] = [];
