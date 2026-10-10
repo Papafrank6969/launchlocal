@@ -19,6 +19,7 @@ import nodemailer from "nodemailer";
 import { ImapFlow } from "imapflow";
 import { simpleParser } from "mailparser";
 import { BUSINESS, type Inbound, type MailerDeps } from "./mailer";
+import { FINDER_RETRY_DAYS, isSocial, type FinderDeps } from "./emailFinder";
 
 // The only DB access brothers have. Reads only, except Handle Hunter's handle
 // write and attempt log (plan §9) and Creative Director's SocialPost insert. Everything else writes through ctx.propose().
@@ -469,5 +470,42 @@ export async function loadMailerDeps(now = new Date()): Promise<MailerDeps> {
     },
     notify: (text) => pushToFrank(text),
     sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  };
+}
+
+const FINDER_KIND = "email_lookup";
+
+export async function loadEmailFinderDeps(now = new Date()): Promise<FinderDeps> {
+  const since = new Date(now.getTime() - FINDER_RETRY_DAYS * 86_400_000);
+  const [leads, tried, doneToday] = await Promise.all([
+    db.lead.findMany({
+      where: { category: TARGETED, websiteStatus: "POOR", email: null, NOT: { existingUrl: null }, outreachStatus: { in: ["NEW", "CONTACTED"] } },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, name: true, existingUrl: true },
+    }),
+    db.agentTask.findMany({ where: { kind: FINDER_KIND, createdAt: { gte: since } }, select: { leadId: true } }),
+    db.agentTask.count({ where: { kind: FINDER_KIND, createdAt: { gte: startOfDayET(now) } } }),
+  ]);
+  const triedIds = new Set(tried.map((t) => t.leadId));
+  return {
+    leads: leads.filter((l) => !triedIds.has(l.id) && !isSocial(l.existingUrl!)).map((l) => ({ id: l.id, name: l.name, url: l.existingUrl! })),
+    doneToday,
+    fetchPage: async (url) => {
+      try {
+        const res = await fetch(url, { signal: AbortSignal.timeout(8_000), redirect: "follow", headers: { "User-Agent": "Mozilla/5.0 (compatible; LaunchLocal/1.0)" } });
+        if (!res.ok || !(res.headers.get("content-type") ?? "").includes("html")) return null;
+        return (await res.text()).slice(0, 500_000);
+      } catch {
+        return null;
+      }
+    },
+    save: async (lead, email) => {
+      await db.lead.updateMany({ where: { id: lead.id, email: null }, data: { email } });
+      if (await db.emailSuppression.findUnique({ where: { email } })) return;
+      await db.emailContact.createMany({ data: [{ email, company: lead.name, source: "lead-site" }], skipDuplicates: true });
+    },
+    recordAttempt: async (leadId, found) => {
+      await db.agentTask.create({ data: { agentId: "email-finder", kind: FINDER_KIND, leadId, status: found ? "DONE" : "FAILED", doneAt: new Date() } });
+    },
   };
 }
