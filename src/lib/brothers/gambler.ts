@@ -47,6 +47,8 @@ export type GamblerDeps = {
   sleep(ms: number): Promise<void>;
   grade(id: string, result: Result): Promise<void>;
   save(picks: NewPick[]): Promise<void>;
+  /** Pushes the day's note to Frank's phone (Telegram); a no-op until that's set up. */
+  notify(text: string): Promise<void>;
 };
 
 const SYSTEM = `You pick sports bets for Frank, who places them by hand on Robinhood's prediction markets. Each market pays $1 if the team wins; the price is what one contract costs, so a 46 cent price means the market gives that team about a 46% chance.
@@ -164,17 +166,20 @@ export async function gamblerJob(deps: GamblerDeps, ctx: BrotherContext): Promis
     ? picks.map((p, i) => `${i + 1}. ${p.team} to beat ${opponent(p)}: buy "${p.team}" at ${cents(p.ask)} or less. He says ${Math.round(p.prob * 100)}%. ${p.why}`)
     : ["No picks today: nothing priced far enough off to beat the fee."];
   if (lean) lines.push(`Lean (paper only, don't bet): ${lean.team} over ${opponent(lean)} at ${cents(lean.ask)}. He says ${Math.round(lean.prob * 100)}%. ${lean.why}`);
-  await ctx.propose({
-    kind: "NOTE",
-    title: picks.length ? `Today's picks (${picks.length})` : "No picks today",
-    body: [
-      ...lines,
-      "",
-      "Kalshi prices; check Robinhood's price before you bet. Paper picks, not advice.",
-      recordLine(deps.graded.filter((g) => !g.lean), "Picks"),
-      recordLine(deps.graded.filter((g) => g.lean), "Leans"),
-    ].join("\n"),
-  });
+  const title = picks.length ? `Today's picks (${picks.length})` : "No picks today";
+  const body = [
+    ...lines,
+    "",
+    "Kalshi prices; check Robinhood's price before you bet. Paper picks, not advice.",
+    recordLine(deps.graded.filter((g) => !g.lean), "Picks"),
+    recordLine(deps.graded.filter((g) => g.lean), "Leans"),
+  ].join("\n");
+  await ctx.propose({ kind: "NOTE", title, body });
+  // The note is already on /house, so a failed push only gets reported.
+  const pushFailed = await deps.notify(`${title}\n\n${body}`).then(
+    () => false,
+    () => true,
+  );
   const summary = picks.length ? `picked ${picks.length} from ${games.length} games` : `no picks from ${games.length} games${lean ? ", 1 lean" : ""}`;
-  return [graded, summary].filter(Boolean).join(", ");
+  return [graded, summary, pushFailed ? "Telegram push failed" : null].filter(Boolean).join(", ");
 }

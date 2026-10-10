@@ -10,6 +10,7 @@ const dal: Market = { ticker: "G-DAL", event: "G", team: "Dallas", bid: 0.53, as
 function deps(over: Partial<GamblerDeps> = {}) {
   const graded: [string, string][] = [];
   const saved: unknown[] = [];
+  const pushed: string[] = [];
   const d: GamblerDeps = {
     now,
     etHour: 12,
@@ -22,9 +23,10 @@ function deps(over: Partial<GamblerDeps> = {}) {
     sleep: async () => {},
     grade: async (id, r) => void graded.push([id, r]),
     save: async (p) => void saved.push(...p),
+    notify: async (t) => void pushed.push(t),
     ...over,
   };
-  return { d, graded, saved };
+  return { d, graded, saved, pushed };
 }
 
 describe("candidates", () => {
@@ -90,6 +92,15 @@ describe("gamblerJob", () => {
     expect(proposals[0].body).toContain('Green Bay to beat Dallas: buy "Green Bay" at 46¢ or less. He says 56%.');
     expect(proposals[0].body).toContain("Picks: 1-0");
     expect(proposals[0].body).toContain("Leans: 0-1");
+  });
+
+  it("pushes the note to Frank's phone, and only reports a failed push", async () => {
+    const { ctx, proposals } = fakeCtx(JSON.stringify([{ ticker: "G-GB", prob: 0.56, why: "Short week." }]));
+    const { d, pushed } = deps();
+    await gamblerJob(d, ctx);
+    expect(pushed).toEqual([`Today's picks (1)\n\n${proposals[0].body}`]);
+    const failing = deps({ notify: async () => Promise.reject(new Error("502")) });
+    expect(await gamblerJob(failing.d, fakeCtx("[]").ctx)).toBe("no picks from 1 games, Telegram push failed");
   });
 
   it("files his best lean, paper only, on a no-pick day", async () => {
