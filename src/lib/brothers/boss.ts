@@ -34,6 +34,8 @@ export type BossInput = {
   brotherIds: string[];
   saveSnapshot(snapshot: string): Promise<void>;
   disable(id: string): Promise<void>;
+  /** Pushes his note to Frank's phone (Telegram); a no-op until that's set up. */
+  notify(text: string): Promise<void>;
 };
 
 const SYSTEM = `You are the Big Boss of LaunchLocal's agent houses. Frank (the human owner) builds simple websites for independent auto detailers and tattoo artists.
@@ -60,9 +62,14 @@ export async function bossJob(input: BossInput, ctx: BrotherContext): Promise<st
   const { note, disabled } = parseBossReply(reply, input.brotherIds);
   for (const d of disabled) await input.disable(d.id);
   const body = [note, ...disabled.map((d) => `Switched off ${d.id}: ${d.reason}`)].filter(Boolean).join("\n\n");
-  if (body) await ctx.propose({ kind: "NOTE", title: "From the Boss", body });
+  let pushFailed = false;
+  if (body) {
+    await ctx.propose({ kind: "NOTE", title: "From the Boss", body });
+    // The note is already on /house, so a failed push only gets reported.
+    await input.notify(body).catch(() => (pushFailed = true));
+  }
 
-  const parts = [note ? "wrote Frank a note" : "nothing for Frank", ...disabled.map((d) => `switched off ${d.id}`)];
+  const parts = [note ? "wrote Frank a note" : "nothing for Frank", ...disabled.map((d) => `switched off ${d.id}`), ...(pushFailed ? ["Telegram push failed"] : [])];
   return parts.join(", ");
 }
 

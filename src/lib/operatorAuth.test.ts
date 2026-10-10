@@ -21,6 +21,7 @@ describe("isPublicPath", () => {
     "/_next/static/chunks/main.js",
     "/favicon.ico",
     "/images/hero.jpg",
+    "/api/telegram",
   ])("lets %s through without a password", (path) => {
     expect(isPublicPath(path)).toBe(true);
   });
@@ -41,6 +42,7 @@ describe("isPublicPath", () => {
     "/api/leads/search",
     "/api/sites/abc123",
     "/api/agents/pledge/run",
+    "/api/telegram/setup",
   ])("requires the password for %s", (path) => {
     expect(isPublicPath(path)).toBe(false);
   });

@@ -63,6 +63,10 @@ describe("buildChatPrompt", () => {
     expect(p).not.toContain("run 5");
     expect(buildChatPrompt(def, { runs: [], drafts: [] })).toContain("none yet");
   });
+  it("gives the Boss the house picture, and nobody else", () => {
+    expect(buildChatPrompt(def, { runs: [], drafts: [], house: "Goal: $0 of $10,000" })).toContain("Both houses right now:\nGoal: $0 of $10,000");
+    expect(buildChatPrompt(def, { runs: [], drafts: [] })).not.toContain("Both houses");
+  });
 });
 
 describe("chatTranscript", () => {
