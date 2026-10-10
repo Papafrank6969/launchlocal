@@ -8,6 +8,22 @@ import { scrubDraft } from "./draftText";
 
 export const NOTE_MAX = 600;
 
+/** Frank's goal (2026-10-09): $10k from $1k sites by March 31, 2027, which needs ~10 DMs a day. Dates are ET midnights. */
+export const GOAL = { start: new Date("2026-10-09T04:00:00Z"), end: new Date("2027-04-01T04:00:00Z"), target: 10_000, price: 1_000, dmsPerDay: 10 };
+
+/** Snapshot line for the goal. Pass the ET day start, so it only changes once a day or when a sale lands. */
+export function goalLine(sales: number, dmsYesterday: number, dmsLast7: number, dayStart: Date): string {
+  const span = GOAL.end.getTime() - GOAL.start.getTime();
+  const share = Math.min(1, Math.max(0, (dayStart.getTime() - GOAL.start.getTime()) / span));
+  const expected = Math.floor((GOAL.target / GOAL.price) * share);
+  const daysLeft = Math.max(0, Math.round((GOAL.end.getTime() - dayStart.getTime()) / 86_400_000));
+  const usd = (n: number) => `$${n.toLocaleString("en-US")}`;
+  return [
+    `Goal: ${usd(sales * GOAL.price)} of ${usd(GOAL.target)} by Mar 31 (${sales} sites sold at ${usd(GOAL.price)}; on pace means ${expected} by now; ${daysLeft} days left).`,
+    `DMs sent yesterday: ${dmsYesterday}, last 7 days: ${dmsLast7} (pace: ${GOAL.dmsPerDay} a day).`,
+  ].join(" ");
+}
+
 export type BossInput = {
   /** Deterministic picture of both houses. No timestamps or spend figures, so it only changes when something happens. */
   snapshot: string;
@@ -23,6 +39,7 @@ export type BossInput = {
 const SYSTEM = `You are the Big Boss of LaunchLocal's agent houses. Frank (the human owner) builds simple websites for independent auto detailers and tattoo artists.
 The Frat House finds leads and drafts Instagram DMs for Frank to send by hand; its Gambler brother files daily paper sports picks Frank asked for. The Villa writes, renders and posts one TikTok/Reels video a day.
 Every brother runs every 15 minutes and does work only when there is some. You see the state of both houses and what changed.
+Frank's goal: $10,000 from $1,000 sites by March 31, 2027, which takes about 10 DMs sent a day. The Goal line shows where he stands. On Mondays, and on the day a sale comes in, include one line on the goal in your note: on pace or behind, and the one thing to do about it (usually send more DMs). Other days, only mention it if no DMs went out yesterday.
 Your two powers:
 - note: a short message to Frank, only when he needs to know or do something (a brother keeps erroring, posts stopped going out, drafts are piling up waiting on him, budget nearly used). Plain words, under ${NOTE_MAX} characters. No em dashes, no emoji. Use null when nothing needs his attention; most of the time nothing does. Never repeat your last note: only write again if something new happened or a problem got clearly worse.
 - disable: switch a brother off, only if he is repeatedly erroring or doing something harmful (e.g. Poster failing every post). Frank turns him back on. Leave it empty almost always.

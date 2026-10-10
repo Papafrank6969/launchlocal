@@ -10,7 +10,7 @@ import { HUNTER_RETRY_DAYS, type HunterDeps } from "./handleHunter";
 import { lookupInstagramHandle } from "../instagramLookup";
 import type { CreativeDirectorInput } from "./creativeDirector";
 import type { PosterDeps } from "./poster";
-import type { BossInput } from "./boss";
+import { GOAL, goalLine, type BossInput } from "./boss";
 import { LEAGUES, type GamblerDeps, type Market } from "./gambler";
 import { TARGET_CATEGORIES } from "../leadTargets";
 
@@ -197,11 +197,19 @@ export async function loadBossInput(now = new Date()): Promise<BossInput> {
     db.approval.findFirst({ where: { agentId: "boss" }, orderBy: { createdAt: "desc" }, select: { body: true } }),
     db.socialPost.findFirst({ where: { status: "POSTED" }, orderBy: { createdAt: "asc" }, select: { createdAt: true } }),
   ]);
+  // Goal numbers count whole ET days only, so they don't change his snapshot every time a DM is marked sent.
+  const yesterday = startOfDayET(new Date(dayStart.getTime() - 1));
+  const [won, dmsYesterday, dmsLast7] = await Promise.all([
+    db.event.findMany({ where: { type: "LEAD_WON", createdAt: { gte: GOAL.start } }, distinct: ["leadId"], select: { leadId: true } }),
+    db.event.count({ where: { type: "LEAD_CONTACTED", createdAt: { gte: yesterday, lt: dayStart } } }),
+    db.event.count({ where: { type: "LEAD_CONTACTED", createdAt: { gte: new Date(dayStart.getTime() - 7 * 86_400_000), lt: dayStart } } }),
+  ]);
   const budget = budgetFromEnv(process.env.AGENT_DAILY_BUDGET_MICROS);
   const runOf = (id: string) => lastRuns.find((r) => r.agentId === id);
   // No timestamps or spend amounts: the snapshot only changes when something happens.
   const snapshot = [
-    `Day (ET): ${dayStart.toLocaleDateString("en-US", { timeZone: "America/New_York" })}`,
+    `Day (ET): ${dayStart.toLocaleDateString("en-US", { timeZone: "America/New_York", weekday: "long", month: "numeric", day: "numeric", year: "numeric" })}`,
+    goalLine(won.length, dmsYesterday, dmsLast7, dayStart),
     `Budget: ${(spent._sum.costMicros ?? 0) >= budget * 0.8 ? "80%+ used today" : "fine"}`,
     "Brothers:",
     ...agents.map((a) => {
