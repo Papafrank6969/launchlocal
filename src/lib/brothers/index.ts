@@ -10,7 +10,8 @@ import { posterJob } from "./poster";
 import { bossJob } from "./boss";
 import { gamblerJob } from "./gambler";
 import { mailerJob } from "./mailer";
-import { loadBossInput, loadBuilderInput, loadCreativeDirectorInput, loadFollowUpInput, loadGamblerDeps, loadHandleHunterDeps, loadMailerDeps, loadPosterDeps, loadRushChairInput, loadScoutInput, loadTreasurerInput } from "./brotherData";
+import { emailFinderJob } from "./emailFinder";
+import { loadBossInput, loadBuilderInput, loadCreativeDirectorInput, loadEmailFinderDeps, loadFollowUpInput, loadGamblerDeps, loadHandleHunterDeps, loadMailerDeps, loadPosterDeps, loadRushChairInput, loadScoutInput, loadTreasurerInput } from "./brotherData";
 
 // Every registered brother, in cron order (docs/FRAT-HOUSE-BROTHERS-PLAN.md).
 // The cron upserts each into the Agent table, so a new brother shows up on the
@@ -90,6 +91,13 @@ export const BROTHERS: BrotherDefinition[] = [
     house: "villa",
     cron: false,
     run: async (ctx) => posterJob(await loadPosterDeps(), ctx),
+  },
+  {
+    // Before the Mailer, so an email found this tick can go out the same day.
+    id: "email-finder",
+    name: "Email Finder",
+    role: "Reads leads' weak sites for a published email and adds it to the Mailer",
+    run: async (ctx) => emailFinderJob(await loadEmailFinderDeps(), ctx),
   },
   {
     // Cold email from Frank's Gmail (ported from ~/projects/cold-email-pipeline). No Claude.
