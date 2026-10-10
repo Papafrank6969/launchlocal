@@ -18,7 +18,7 @@ import { TARGET_CATEGORIES } from "../leadTargets";
 // write and attempt log (plan §9) and Creative Director's SocialPost insert. Everything else writes through ctx.propose().
 
 const SITES = { select: { id: true, slug: true, status: true } } as const;
-// New outreach only goes to the target niches; follow-ups to leads already DMed carry on.
+// Outreach and follow-ups only go to the target niches (Frank dropped the old barber/salon leads, 2026-10-09).
 const TARGETED = { in: TARGET_CATEGORIES };
 const previewBase = () => process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
@@ -62,7 +62,7 @@ export async function loadFollowUpInput(now = new Date()): Promise<FollowUpInput
   // Same query as /api/leads/follow-up-queue.
   const [leads, drafted] = await Promise.all([
     db.lead.findMany({
-      where: { outreachStatus: "CONTACTED", NOT: { instagramHandle: null }, followUpAt: { not: null, lte: now } },
+      where: { outreachStatus: "CONTACTED", NOT: { instagramHandle: null }, followUpAt: { not: null, lte: now }, category: TARGETED },
       include: { sites: SITES },
     }),
     pendingLeadIds("FOLLOW_UP_DRAFT"),
