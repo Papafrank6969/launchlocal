@@ -2,7 +2,8 @@
 // is protected except published client sites and what they need to work.
 
 const PUBLIC_PREFIXES = ["/s/", "/api/public/", "/api/cron/", "/_next/"];
-const PUBLIC_EXACT = new Set(["/privacy", "/terms", "/robots.txt", "/icon.svg", "/favicon.ico"]);
+// /api/telegram checks Telegram's webhook secret itself; /api/telegram/setup stays behind the password.
+const PUBLIC_EXACT = new Set(["/privacy", "/terms", "/robots.txt", "/icon.svg", "/favicon.ico", "/api/telegram"]);
 const OPERATOR_ROOTS = ["/api/", "/builder", "/leads", "/outreach", "/pipeline", "/stats", "/house", "/villa"];
 
 export function isPublicPath(pathname: string): boolean {

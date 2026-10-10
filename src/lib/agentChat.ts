@@ -15,6 +15,8 @@ export type ChatContext = {
   runs: { outcome: string | null; summary: string | null }[]; // newest first, up to 5
   drafts: string[]; // pending approval titles
   history: ChatMessage[]; // oldest first
+  /** The Boss only: his live picture of both houses and the goal, so he can answer "how are we doing?". */
+  house?: string;
 };
 
 export type ChatDeps = Pick<RunnerDeps, "now" | "budgetMicros" | "ensureAgent" | "spentSince" | "startRun" | "finishRun" | "callClaude"> & {
@@ -33,7 +35,7 @@ export function chatMessageError(message: unknown): string | null {
   return null;
 }
 
-export function buildChatPrompt(def: Pick<BrotherDefinition, "name" | "role">, ctx: Pick<ChatContext, "runs" | "drafts">): string {
+export function buildChatPrompt(def: Pick<BrotherDefinition, "name" | "role">, ctx: Pick<ChatContext, "runs" | "drafts" | "house">): string {
   const runs = ctx.runs.slice(0, 5).map((r) => `- ${r.outcome ?? "RUNNING"}: ${r.summary ?? "(no summary)"}`);
   const drafts = ctx.drafts.map((t) => `- ${t}`);
   return [
@@ -42,6 +44,7 @@ export function buildChatPrompt(def: Pick<BrotherDefinition, "name" | "role">, c
     `You can't send, publish or approve anything; your drafts need Frank's approval.`,
     `Your last runs (newest first):\n${runs.length ? runs.join("\n") : "- none yet"}`,
     `Your drafts waiting for Frank:\n${drafts.length ? drafts.join("\n") : "- none"}`,
+    ...(ctx.house ? [`Both houses right now:\n${ctx.house}\nAnswer from this; if it doesn't say, tell Frank you can't see that.`] : []),
   ].join("\n\n");
 }
 

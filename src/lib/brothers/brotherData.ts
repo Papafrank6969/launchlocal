@@ -13,6 +13,8 @@ import type { PosterDeps } from "./poster";
 import { GOAL, goalLine, type BossInput } from "./boss";
 import { LEAGUES, type GamblerDeps, type Market } from "./gambler";
 import { TARGET_CATEGORIES } from "../leadTargets";
+import { CHAT_HISTORY, type ChatDeps, type ChatMessage } from "../agentChat";
+import { sendTelegram, TELEGRAM_CHAT_STATE } from "../telegram";
 
 // The only DB access brothers have. Reads only, except Handle Hunter's handle
 // write and attempt log (plan §9) and Creative Director's SocialPost insert. Everything else writes through ctx.propose().
@@ -234,6 +236,12 @@ export async function loadBossInput(now = new Date()): Promise<BossInput> {
     disable: async (id) => {
       await db.agent.update({ where: { id }, data: { enabled: false } });
     },
+    notify: async (text) => {
+      const token = process.env.TELEGRAM_BOT_TOKEN;
+      const chatId = token ? await telegramChatId() : null;
+      if (token && chatId) await sendTelegram(token, chatId, `From the Boss:
+${text}`);
+    },
   };
 }
 
@@ -307,4 +315,49 @@ async function braveNews(query: string): Promise<string[]> {
   } catch {
     return [];
   }
+}
+
+/** Chat history and context, shared by the /house chat tab and the Boss's Telegram. */
+export const chatStore: Pick<ChatDeps, "loadContext" | "saveMessages"> = {
+  loadContext: async (agentId) => {
+    const [runs, drafts, history, house] = await Promise.all([
+      db.agentRun.findMany({
+        where: { agentId, trigger: { not: "CHAT" } },
+        orderBy: { startedAt: "desc" },
+        take: 5,
+        select: { outcome: true, summary: true },
+      }),
+      db.approval.findMany({ where: { agentId, state: "PENDING" }, select: { title: true } }),
+      db.agentMessage.findMany({
+        where: { agentId },
+        orderBy: { createdAt: "desc" },
+        take: CHAT_HISTORY,
+        select: { role: true, content: true },
+      }),
+      agentId === "boss" ? loadBossInput().then((b) => b.snapshot) : undefined,
+    ]);
+    return { runs, drafts: drafts.map((d) => d.title), history: history.reverse() as ChatMessage[], house };
+  },
+  saveMessages: async (agentId, user, reply) => {
+    const now = Date.now();
+    await db.agentMessage.createMany({
+      data: [
+        { agentId, role: "user", content: user, createdAt: new Date(now) },
+        { agentId, role: "assistant", content: reply, createdAt: new Date(now + 1) },
+      ],
+    });
+  },
+};
+
+/** Frank's Telegram chat id, claimed once by /api/telegram/setup; null until then. */
+export async function telegramChatId(): Promise<string | null> {
+  return (await db.cronState.findUnique({ where: { id: TELEGRAM_CHAT_STATE } }))?.lastRunNote ?? null;
+}
+
+export async function saveTelegramChatId(chatId: string): Promise<void> {
+  await db.cronState.upsert({
+    where: { id: TELEGRAM_CHAT_STATE },
+    create: { id: TELEGRAM_CHAT_STATE, lastRunAt: new Date(), lastRunNote: chatId },
+    update: { lastRunAt: new Date(), lastRunNote: chatId },
+  });
 }

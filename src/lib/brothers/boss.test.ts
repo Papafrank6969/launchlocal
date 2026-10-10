@@ -15,9 +15,10 @@ describe("goalLine", () => {
   });
 });
 
-function input(snapshot: string, lastSnapshot: string | null) {
+function input(snapshot: string, lastSnapshot: string | null, notify?: BossInput["notify"]) {
   const saved: string[] = [];
   const disabled: string[] = [];
+  const pushed: string[] = [];
   const i: BossInput = {
     snapshot,
     lastSnapshot,
@@ -25,8 +26,9 @@ function input(snapshot: string, lastSnapshot: string | null) {
     brotherIds: ["scout", "poster"],
     saveSnapshot: async (s) => void saved.push(s),
     disable: async (id) => void disabled.push(id),
+    notify: notify ?? (async (t) => void pushed.push(t)),
   };
-  return { i, saved, disabled };
+  return { i, saved, disabled, pushed };
 }
 
 describe("bossJob", () => {
@@ -43,7 +45,7 @@ describe("bossJob", () => {
     const { ctx, asks, proposals } = fakeCtx(
       '{"note": "Poster failed 3 times — check Zernio.", "disable": [{"id": "poster", "reason": "keeps failing"}, {"id": "boss", "reason": "x"}, {"id": "nobody"}]}',
     );
-    const { i, saved, disabled } = input("new", "old");
+    const { i, saved, disabled, pushed } = input("new", "old");
     expect(await bossJob(i, ctx)).toBe("wrote Frank a note, switched off poster");
     expect(asks).toHaveLength(1);
     expect(asks[0].prompt).toContain("Your last note to Frank:\nDrafts are piling up.");
@@ -51,13 +53,24 @@ describe("bossJob", () => {
     expect(disabled).toEqual(["poster"]);
     expect(proposals[0].kind).toBe("NOTE");
     expect(proposals[0].body).toBe("Poster failed 3 times, check Zernio.\n\nSwitched off poster: keeps failing");
+    expect(pushed).toEqual([proposals[0].body]);
+  });
+
+  it("keeps the note when the phone push fails, and says so", async () => {
+    const { ctx, proposals } = fakeCtx('{"note": "Heads up.", "disable": []}');
+    const { i } = input("new", "old", async () => {
+      throw new Error("Telegram 502");
+    });
+    expect(await bossJob(i, ctx)).toBe("wrote Frank a note, Telegram push failed");
+    expect(proposals).toHaveLength(1);
   });
 
   it("stays silent when he has nothing to say", async () => {
     const { ctx, proposals } = fakeCtx('{"note": null, "disable": []}');
-    const { i, saved } = input("new", null);
+    const { i, saved, pushed } = input("new", null);
     expect(await bossJob(i, ctx)).toBe("nothing for Frank");
     expect(proposals).toHaveLength(0);
+    expect(pushed).toHaveLength(0);
     expect(saved).toEqual(["new"]);
   });
 
