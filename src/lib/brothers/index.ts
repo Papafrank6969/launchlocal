@@ -9,7 +9,8 @@ import { creativeDirectorJob } from "./creativeDirector";
 import { posterJob } from "./poster";
 import { bossJob } from "./boss";
 import { gamblerJob } from "./gambler";
-import { loadBossInput, loadBuilderInput, loadCreativeDirectorInput, loadFollowUpInput, loadGamblerDeps, loadHandleHunterDeps, loadPosterDeps, loadRushChairInput, loadScoutInput, loadTreasurerInput } from "./brotherData";
+import { mailerJob } from "./mailer";
+import { loadBossInput, loadBuilderInput, loadCreativeDirectorInput, loadFollowUpInput, loadGamblerDeps, loadHandleHunterDeps, loadMailerDeps, loadPosterDeps, loadRushChairInput, loadScoutInput, loadTreasurerInput } from "./brotherData";
 
 // Every registered brother, in cron order (docs/FRAT-HOUSE-BROTHERS-PLAN.md).
 // The cron upserts each into the Agent table, so a new brother shows up on the
@@ -89,6 +90,13 @@ export const BROTHERS: BrotherDefinition[] = [
     house: "villa",
     cron: false,
     run: async (ctx) => posterJob(await loadPosterDeps(), ctx),
+  },
+  {
+    // Cold email from Frank's Gmail (ported from ~/projects/cold-email-pipeline). No Claude.
+    id: "mailer",
+    name: "Mailer",
+    role: "Sends Frank's 3-step cold email sequence and stops it the moment anyone replies",
+    run: async (ctx) => (process.env.SMTP_PASSWORD ? mailerJob(await loadMailerDeps(), ctx) : "not set up: SMTP_PASSWORD missing"),
   },
   {
     // Last on every tick so he sees what everyone just did. In charge of both

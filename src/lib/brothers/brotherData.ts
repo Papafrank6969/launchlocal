@@ -15,6 +15,10 @@ import { LEAGUES, type GamblerDeps, type Market } from "./gambler";
 import { TARGET_CATEGORIES } from "../leadTargets";
 import { CHAT_HISTORY, type ChatDeps, type ChatMessage } from "../agentChat";
 import { sendTelegram, TELEGRAM_CHAT_STATE } from "../telegram";
+import nodemailer from "nodemailer";
+import { ImapFlow } from "imapflow";
+import { simpleParser } from "mailparser";
+import { BUSINESS, type Inbound, type MailerDeps } from "./mailer";
 
 // The only DB access brothers have. Reads only, except Handle Hunter's handle
 // write and attempt log (plan §9) and Creative Director's SocialPost insert. Everything else writes through ctx.propose().
@@ -363,4 +367,107 @@ export async function saveTelegramChatId(chatId: string): Promise<void> {
     create: { id: TELEGRAM_CHAT_STATE, lastRunAt: new Date(), lastRunNote: chatId },
     update: { lastRunAt: new Date(), lastRunNote: chatId },
   });
+}
+
+const INBOX_LOOKBACK_MS = 2 * 86_400_000;
+
+/** The Mailer's Gmail (SMTP + read-only IMAP) and email tables. Needs SMTP_PASSWORD (a Gmail app password). */
+export async function loadMailerDeps(now = new Date()): Promise<MailerDeps> {
+  const auth = { user: BUSINESS.from, pass: process.env.SMTP_PASSWORD ?? "" };
+  const [suppressed, contacts, sentToday, first] = await Promise.all([
+    db.emailSuppression.findMany({ select: { email: true } }),
+    db.emailContact.findMany({ where: { status: "active" }, orderBy: { createdAt: "asc" }, include: { sends: { select: { step: true, sentAt: true, messageId: true } } } }),
+    db.emailSend.count({ where: { sentAt: { gte: startOfDayET(now) } } }),
+    db.emailSend.findFirst({ orderBy: { sentAt: "asc" }, select: { sentAt: true } }),
+  ]);
+  const blocked = new Set(suppressed.map((s) => s.email));
+  const et = Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hour: "numeric", minute: "numeric", weekday: "short", hourCycle: "h23" })
+      .formatToParts(now)
+      .map((p) => [p.type, p.value]),
+  );
+  const smtp = nodemailer.createTransport({ host: "smtp.gmail.com", port: 587, secure: false, auth });
+
+  return {
+    now,
+    etHour: Number(et.hour),
+    etMinute: Number(et.minute),
+    etWeekday: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(et.weekday),
+    contacts: contacts.filter((c) => !blocked.has(c.email)),
+    sentToday,
+    firstSendAt: first?.sentAt ?? null,
+    inbox: async () => {
+      // Read-only (EXAMINE): never touches Frank's read/unread state.
+      const client = new ImapFlow({ host: "imap.gmail.com", port: 993, secure: true, auth, logger: false });
+      await client.connect();
+      const lock = await client.getMailboxLock("INBOX", { readOnly: true });
+      try {
+        const heads: { uid: number; key: string }[] = [];
+        for await (const m of client.fetch({ since: new Date(now.getTime() - INBOX_LOOKBACK_MS) }, { uid: true, envelope: true })) {
+          heads.push({ uid: m.uid, key: m.envelope?.messageId ?? `${m.envelope?.from?.[0]?.address}|${String(m.envelope?.date)}|${m.envelope?.subject}` });
+        }
+        const done = new Set((await db.emailInbound.findMany({ where: { messageId: { in: heads.map((h) => h.key) } }, select: { messageId: true } })).map((r) => r.messageId));
+        const out: Inbound[] = [];
+        for (const h of heads.filter((h) => !done.has(h.key))) {
+          const m = await client.fetchOne(String(h.uid), { source: true }, { uid: true });
+          if (!m || !m.source) continue;
+          const p = await simpleParser(m.source);
+          const hdr = (k: string) => String(p.headers.get(k) ?? "").toLowerCase();
+          out.push({
+            messageId: h.key,
+            from: p.from?.text ?? "",
+            subject: p.subject ?? "",
+            text: p.text ?? "",
+            autoReply: (hdr("auto-submitted") !== "" && hdr("auto-submitted") !== "no") || !!p.headers.get("x-autoreply") || !!p.headers.get("x-autorespond") || ["auto_reply", "bulk", "junk"].includes(hdr("precedence")),
+          });
+        }
+        return out;
+      } finally {
+        lock.release();
+        await client.logout();
+      }
+    },
+    applyInbound: async (msg, kind, email) => {
+      const contact = email ? await db.emailContact.findUnique({ where: { email } }) : null;
+      if (email && !contact) return null;
+      if (contact && (kind === "unsubscribe" || kind === "bounce")) {
+        await db.emailContact.update({ where: { id: contact.id }, data: { status: kind === "bounce" ? "bounced" : "unsubscribed" } });
+        await db.emailSuppression.upsert({ where: { email: contact.email }, create: { email: contact.email, reason: kind === "bounce" ? "bounced" : "unsubscribed" }, update: {} });
+      }
+      // Don't downgrade an unsubscribe or bounce to a reply.
+      if (contact && kind === "reply") await db.emailContact.updateMany({ where: { id: contact.id, status: { in: ["active", "completed"] } }, data: { status: "replied" } });
+      await db.emailInbound.createMany({ data: [{ messageId: msg.messageId, contactId: contact?.id ?? null, kind: contact ? kind : "unmatched", subject: msg.subject.slice(0, 200) }], skipDuplicates: true });
+      return contact && { email: contact.email, company: contact.company };
+    },
+    send: async (m) => {
+      try {
+        await smtp.sendMail({
+          from: { name: BUSINESS.fromName, address: BUSINESS.from },
+          to: m.to,
+          subject: m.subject,
+          text: m.text,
+          messageId: m.messageId,
+          ...(m.inReplyTo && { inReplyTo: m.inReplyTo, references: m.inReplyTo }),
+          // Native unsubscribe button. No List-Unsubscribe-Post: one-click needs an https URI.
+          headers: { "List-Unsubscribe": `<mailto:${BUSINESS.from}?subject=unsubscribe>` },
+        });
+        return "sent";
+      } catch (err) {
+        // A 5xx on the recipient is a hard bounce; anything else (auth, network) fails the run so the Boss sees it.
+        const e = err as { code?: string; responseCode?: number };
+        if (e.code === "EENVELOPE" && e.responseCode && e.responseCode >= 500) return "refused";
+        throw err;
+      }
+    },
+    recordSend: async (contactId, step, subject, messageId, last) => {
+      await db.emailSend.create({ data: { contactId, step, subject, messageId } });
+      if (last) await db.emailContact.update({ where: { id: contactId }, data: { status: "completed" } });
+    },
+    bounce: async (contactId, email) => {
+      await db.emailContact.update({ where: { id: contactId }, data: { status: "bounced" } });
+      await db.emailSuppression.upsert({ where: { email }, create: { email, reason: "bounced" }, update: {} });
+    },
+    notify: (text) => pushToFrank(text),
+    sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  };
 }

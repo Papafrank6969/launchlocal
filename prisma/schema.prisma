@@ -386,3 +386,47 @@ model BetPick {
 
   @@index([result, gameAt])
 }
+
+// Cold email (src/lib/brothers/mailer.ts), ported from ~/projects/cold-email-pipeline
+// so it runs on the 15-minute ticks instead of Frank's PC.
+model EmailContact {
+  id        String      @id @default(cuid())
+  email     String      @unique // lowercased
+  firstName String      @default("")
+  company   String      @default("")
+  source    String      @default("")
+  status    String      @default("active") // active | replied | unsubscribed | bounced | completed
+  createdAt DateTime    @default(now())
+  sends     EmailSend[]
+
+  @@index([status])
+}
+
+model EmailSend {
+  id        String       @id @default(cuid())
+  contactId String
+  contact   EmailContact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  step      Int
+  subject   String
+  messageId String
+  sentAt    DateTime     @default(now())
+
+  @@unique([contactId, step])
+  @@index([sentAt])
+}
+
+/// Permanent do-not-contact list, separate from contacts so a re-import can never re-message an opt-out.
+model EmailSuppression {
+  email     String   @id
+  reason    String // unsubscribed | bounced | manual
+  createdAt DateTime @default(now())
+}
+
+/// Every inbound message already handled, so overlapping inbox scans don't double-count.
+model EmailInbound {
+  messageId String   @id
+  contactId String?
+  kind      String // reply | unsubscribe | bounce | auto_reply | unmatched
+  subject   String
+  createdAt DateTime @default(now())
+}
